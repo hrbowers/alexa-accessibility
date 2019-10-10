@@ -8,11 +8,28 @@ const LaunchRequestHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
     handle(handlerInput) {
+        /**
+         * sessionAttributes - Directs user path by tracking which intent they came from.
+         * sessionAttributes.previousIntent - Must be manually set in order to track it.
+         *  Value of previousIntent can be checked to determine what the 'yes' was in 
+         *  response to.
+         * 
+         * This allows us to use the 'yes' response to more than one question.
+         * */
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
+        
         const speakOutput = 'Welcome to the appeal process. If successful, you will reactivate your account. A plan' +
         ' of action includes, the root cause of the issue, the actions you have taken to resolve the issue, and the steps' +
         ' you have taken to prevent the issue going forward. Would you like to begin with the first question?';
+        
+        //TODO
+        /**
+         * repromptText is meant to be called if the user responsed with an undefined answer.
+         * However, It is not fully implemented yet.
+         * It can come to this, but, only after a second bad response.
+         * */
+         
         const repromptText = 'I didn\'t quite get that. Would you like to begin with the first question? Answer with yes, or no.';
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -20,27 +37,45 @@ const LaunchRequestHandler = {
             .getResponse();
     }
 };
-const AppealIntentHandler = {
+
+// Invoked by responding with 'the root cause of the issue'
+const RootCauseHandler = {
     canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AppealIntent';
-    },
-    handle(handlerInput) {
         
+        /**
+         * Ensures we come from 'yes' through 'LaunchRequest'
+         * 
+         * Otherwise 'yes' could take us here after any other question if the user invoked
+         * 'the root cause of the issue' 
+         * */
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.previousIntent = 'AppealIntent';
         
-        handlerInput.attributesManager.setSessionAttributes(sessionAttributes);
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+        && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
+        && sessionAttributes.previousIntent === 'LaunchRequest';
+    },
+    async handle(handlerInput) {
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.previousIntent = 'RootCause';
         
-        const speakOutput = sessionAttributes.previousIntent;
+        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+
+        const speechOutput = "You have entered that the root cause of the issue " + answer+
+        ". Is this the response that you would like to submit?";
+        
         
         return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt('add a reprompt if you want to keep the session open for the user to respond')
-            .getResponse();
+        .speak(speechOutput)
+        .reprompt()
+        .getResponse();
     }
-};
+}
 
+/**
+ * Many parts of this Alexa skill wants confirmation that what they entered is sufficient.
+ * A yes or no is the answer to that question. This intent directs those yes or no's to
+ * the proper path.
+ * */
 const YesIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -48,14 +83,38 @@ const YesIntentHandler = {
     },
     handle(handlerInput) {
         var speechOutput = "";
+        const reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";
+        
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        //const 
+        
+        // Question 1
         if(sessionAttributes.previousIntent === 'LaunchRequest') {
-            speechOutput = "Test";
-        } else
-                speechOutput = sessionAttributes.previousIntent;
-        var reprompt = "";
+            speechOutput = "Great, let's get started. What is the root cause of the issue?";
+        }
+        
+        // Question 1 complete, continue?
+        else if (sessionAttributes.previousIntent === 'RootCause') {
+            speechOutput = "Awesome, would you like to continue on to the next question?";
+            sessionAttributes.previousIntent = 'RootCauseCont';
+        } 
+        
+        // Question 2
+        else if (sessionAttributes.previousIntent === 'RootCauseCont') {
+            speechOutput = "Okay! What actions have you taken to resolve the issue?";
+        }
+        
+        //From cancel intent
+        else if(sessionAttributes.previousIntent === 'AMAZON.CancelIntent'){
+            speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
+            return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .getResponse();
+        }
+
         return handlerInput.responseBuilder
         .speak(speechOutput)
+        .reprompt(reprompt)
         .getResponse();
         
     }
@@ -74,26 +133,45 @@ const HelpIntentHandler = {
             .getResponse();
     }
 };
-const CancelAndStopIntentHandler = {
+const CancelIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Goodbye!';
+        const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.previousIntent = 'AMAZON.CancelIntent';
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt('Are you sure you want to stop now?')
+            .getResponse();
+    }
+};
+
+const StopIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+    },
+    handle(handlerInput) {
+        const speakOutput = 'Stop triggered';
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .getResponse();
     }
 };
+
 const SessionEndedRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
     },
     handle(handlerInput) {
         // Any cleanup logic goes here.
-        return handlerInput.responseBuilder.getResponse();
+        const speakOutput = 'Session Ended';
+        return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .getResponse();
     }
 };
 
@@ -140,9 +218,11 @@ const ErrorHandler = {
 exports.handler = Alexa.SkillBuilders.custom()
     .addRequestHandlers(
         LaunchRequestHandler,
-        AppealIntentHandler,YesIntentHandler,
+        RootCauseHandler,
+        YesIntentHandler,
         HelpIntentHandler,
-        CancelAndStopIntentHandler,
+        CancelIntentHandler,
+        StopIntentHandler,
         SessionEndedRequestHandler,
         IntentReflectorHandler // make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
     )
