@@ -104,6 +104,15 @@ const YesIntentHandler = {
             speechOutput = "Okay! What actions have you taken to resolve the issue?";
         }
 
+        
+        //From cancel intent
+        else if(sessionAttributes.previousIntent === 'AMAZON.CancelIntent'){
+            speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
+            return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .getResponse();
+        }
+
         return handlerInput.responseBuilder
         .speak(speechOutput)
         .reprompt(reprompt)
@@ -125,26 +134,45 @@ const HelpIntentHandler = {
             .getResponse();
     }
 };
-const CancelAndStopIntentHandler = {
+const CancelIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent'
-                || Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Goodbye!';
+        const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.previousIntent = 'AMAZON.CancelIntent';
+        return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .reprompt('Are you sure you want to stop now?')
+            .getResponse();
+    }
+};
+
+const StopIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
+    },
+    handle(handlerInput) {
+        const speakOutput = 'Stop triggered';
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .getResponse();
     }
 };
+
 const SessionEndedRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
     },
     handle(handlerInput) {
         // Any cleanup logic goes here.
-        return handlerInput.responseBuilder.getResponse();
+        const speakOutput = 'Session Ended';
+        return handlerInput.responseBuilder
+        .speak(speakOutput)
+        .getResponse();
     }
 };
 
@@ -194,7 +222,8 @@ exports.handler = Alexa.SkillBuilders.custom()
         RootCauseHandler,
         YesIntentHandler,
         HelpIntentHandler,
-        CancelAndStopIntentHandler,
+        CancelIntentHandler,
+        StopIntentHandler,
         SessionEndedRequestHandler,
         IntentReflectorHandler // make sure IntentReflectorHandler is last so it doesn't override your custom intent handlers
     )
