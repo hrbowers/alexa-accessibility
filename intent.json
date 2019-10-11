@@ -1,6 +1,7 @@
 {
     "interactionModel": {
         "languageModel": {
+
             "invocationName": "file an appeal",
             "intents": [
                 {
@@ -11,6 +12,7 @@
                         "cancel appeal",
                         "stop what i'm doing"
                     ]
+
                 },
                 {
                     "name": "AMAZON.HelpIntent",
@@ -32,9 +34,11 @@
                 },
                 {
                     "name": "AMAZON.NoIntent",
+
                     "samples": [
                         "no"
                     ]
+
                 },
                 {
                     "name": "RootCause",
@@ -53,3 +57,4 @@
         }
     }
 }
+

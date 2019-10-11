@@ -103,6 +103,7 @@ const YesIntentHandler = {
         else if (sessionAttributes.previousIntent === 'RootCauseCont') {
             speechOutput = "Okay! What actions have you taken to resolve the issue?";
         }
+
         
         //From cancel intent
         else if(sessionAttributes.previousIntent === 'AMAZON.CancelIntent'){
