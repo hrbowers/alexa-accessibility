@@ -1,9 +1,33 @@
 {
   "deploy_settings": {
     "jpasimio": {
-      "skill_id": "",
+      "skill_id": "amzn1.ask.skill.0919fe9c-d8b3-4933-8f9d-2a650e0dbbe9",
       "was_cloned": false,
-      "merge": {}
+      "merge": {},
+      "resources": {
+        "manifest": {
+          "eTag": "07864bd038d73bb927d90fa110cdc56d"
+        },
+        "interactionModel": {
+          "en-US": {
+            "eTag": "b82817115f4b900e08ad05f4ba62b775"
+          }
+        },
+        "lambda": [
+          {
+            "alexaUsage": [
+              "custom/default"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:295503081320:function:ask-custom-file-an-appeal-jpasimio",
+            "awsRegion": "us-east-1",
+            "codeUri": "lambda/custom",
+            "functionName": "ask-custom-file-an-appeal-jpasimio",
+            "handler": "index.handler",
+            "revisionId": "40e17e1e-f934-4ea5-9bda-f80ce1a0ea3f",
+            "runtime": "nodejs8.10"
+          }
+        ]
+      }
     }
   }
 }

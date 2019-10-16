@@ -5,9 +5,7 @@
         "en-US": {
           "summary": "Sample Short Description",
           "examplePhrases": [
-            "Alexa open hello world",
-            "hello",
-            "help"
+            "Alexa file an appeal"
           ],
           "name": "file-an-appeal",
           "description": "Sample Full Description"
