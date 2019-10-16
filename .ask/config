@@ -1,6 +1,6 @@
 {
   "deploy_settings": {
-    "default": {
+    "jpasimio": {
       "skill_id": "",
       "was_cloned": false,
       "merge": {}

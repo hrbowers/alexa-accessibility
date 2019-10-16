@@ -9,7 +9,7 @@
             "hello",
             "help"
           ],
-          "name": "Hello World",
+          "name": "file-an-appeal",
           "description": "Sample Full Description"
         }
       },
@@ -22,7 +22,7 @@
       "custom": {
         "endpoint": {
           "sourceDir": "lambda/custom",
-          "uri": "ask-custom-helloworld-default"
+          "uri": "ask-custom-file-an-appeal-jpasimio"
         }
       }
     },
