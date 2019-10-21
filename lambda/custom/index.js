@@ -1,6 +1,4 @@
-// This sample demonstrates handling intents from an Alexa skill using the Alexa Skills Kit SDK (v2).
-// Please visit https://alexa.design/cookbook for additional examples on implementing slots, dialog management,
-// session persistence, api calls, and more.
+
 const Alexa = require('ask-sdk-core');
 
 const LaunchRequestHandler = {
@@ -52,9 +50,9 @@ const RootCauseHandler = {
         
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
         && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
-        && sessionAttributes.previousIntent === 'LaunchRequest';
+        && (sessionAttributes.previousIntent === 'LaunchRequest'||sessionAttributes.previousIntent === 'AMAZON.YesIntent');
     },
-    async handle(handlerInput) {
+    handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'RootCause';
         
@@ -85,11 +83,11 @@ const YesIntentHandler = {
         var speechOutput = "";
         const reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";
         
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        //const 
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();        
         
         // Question 1
-        if(sessionAttributes.previousIntent === 'LaunchRequest') {
+        if(sessionAttributes.previousIntent === 'LaunchRequest'||sessionAttributes.previousIntent ==='AMAZON.HelpIntent') {
+            sessionAttributes.previousIntent = 'AMAZON.YesIntent';
             speechOutput = "Great, let's get started. What is the root cause of the issue?";
         }
         
@@ -126,7 +124,10 @@ const HelpIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.HelpIntent';
     },
     handle(handlerInput) {
-        const speakOutput = 'You can say hello to me! How can I help?';
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.previousIntent = 'AMAZON.HelpIntent';
+
+        const speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -141,8 +142,10 @@ const CancelIntentHandler = {
     },
     handle(handlerInput) {
         const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
+        
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'AMAZON.CancelIntent';
+
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt('Are you sure you want to stop now?')
