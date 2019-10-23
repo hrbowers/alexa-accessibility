@@ -45,7 +45,30 @@
                         }
                     ],
                     "samples": [
-                        "The root cause of the issue {Query}"
+                        "The root cause of the issue {Query}",
+                        "The reason this happened {Query}",
+                        "The reason {Query}",
+                        "This happened because {Query}",
+                        "The root cause {Query}",
+                        "The issue {Query}"
+                    ]
+                },
+                {
+                    "name": "ActionTaken",
+                    "slots": [
+                        {
+                            "name": "Query",
+                            "type": "AMAZON.SearchQuery"
+                        }
+                    ],
+                    "samples": [
+                        "The steps I took {Query}",
+                        "The steps we took {Query}",
+                        "I solved this by {Query}",
+                        "I fixed this by {Query}",
+                        "I fixed the issue by {Query}",
+                        "I resolved this by {Query}",
+                        "I resolved the issue by {Query}"
                     ]
                 }
             ],
