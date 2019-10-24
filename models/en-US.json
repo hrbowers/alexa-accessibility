@@ -70,6 +70,21 @@
                         "I resolved this by {Query}",
                         "I resolved the issue by {Query}"
                     ]
+                },
+                {
+                  "name": "Prevention",
+                  "slots": [
+                    {
+                      "name": "Query",
+                      "type": "AMAZON.SearchQuery"
+                    }
+                  ],
+                  "samples":[
+                    "Going forward {Query}",
+                    "In the future {Query}",
+                    "I plan to {Query}",
+                    "Prevention methods include {Query}"
+                  ]
                 }
             ],
             "types": []
