@@ -72,7 +72,7 @@
           ]
         },
         {
-          "name": "Prevention",
+          "name": "StepsTaken",
           "slots": [
             {
               "name": "Query",
@@ -83,7 +83,8 @@
             "Going forward {Query}",
             "In the future {Query}",
             "I plan to {Query}",
-            "Prevention methods include {Query}"
+            "Prevention methods include {Query}",
+            "Steps taken include {Query}"
           ]
         }
       ],
