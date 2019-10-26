@@ -1,5 +1,7 @@
 
 const Alexa = require('ask-sdk-core');
+const AlexaSDK = require('alex-sdk');
+const awsSDK = require('aws-sdk');
 const promisify = require('es6-promisify');
 
 const appId = 'TODO'; //It will be handy to have this later
@@ -94,7 +96,9 @@ const YesIntentHandler = {
         var speechOutput = "";
         const reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";
         
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();        
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();  
+        const { userId } = this.event.session.user;
+        const { slots } = this.event.request.intent;
         
         // Question 1
         if(sessionAttributes.previousIntent === 'LaunchRequest'||sessionAttributes.previousIntent ==='AMAZON.HelpIntent') {
@@ -102,11 +106,12 @@ const YesIntentHandler = {
             const slotToElicit = 'RootCauseQ';
             const speechOutput = "Great, let's get started. What is the root cause of the issue?";
             const repromptSpeech = "Please say what the root cause of the issue was.";
-            return this.emit(':elicitSlot, slotToElicit, speechOutput, repromptSpeech');
+            return this.emit(':elicitSlot', slotToElicit, speechOutput, repromptSpeech);
         }
         
         // Question 1 complete, continue?
-        else if (slots.RootCauseQ.confirmationStatus !== 'CONFIRMED') { // !!! TAKE NOTE !!!
+        else if (slots.RootCauseQ.confirmationStatus !== 'CONFIRMED' | slots.StepsTakenQ.confirmationStatus !=== 'CONFIRMED') {
+            // !!! TAKE NOTE !!!
             speechOutput = "Awesome, would you like to continue on to the next question?";
             sessionAttributes.previousIntent = 'RootCauseCont';
         } 
@@ -124,6 +129,20 @@ const YesIntentHandler = {
             .speak(speechOutput)
             .getResponse();
         }
+
+        const q1 = slots.RootCauseQ.value;
+        const q2 = slots.StepsTakenQ.value;
+        const q3 = slots.PreventionQ.value;
+        const dynamoParams = {
+            TableName: formTable,
+            Item: {
+                UserId: userId,
+                Q1: q1,
+                Q2: q2,
+                Q3: q3
+            }
+        };
+        return dbPut(dynamoParams);
 
         return handlerInput.responseBuilder
         .speak(speechOutput)
