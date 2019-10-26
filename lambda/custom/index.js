@@ -1,5 +1,17 @@
 
 const Alexa = require('ask-sdk-core');
+const alexaSDK = require('alexa-sdk'); //Just here for safety incase we need it (probably will get killed later)
+const awsSDK = require('aws-sdk');
+const promisify = require('es6-promisify');
+
+const formTable = 'Appeal Form';
+const docClient = new awsSDK.DynamoDB.DocumentClient();
+
+//Converting DynamoDB functions. Some may not be used for a bit until we add more handling.
+const dbScan = promisify(docClient.scan, docClient);
+const dbGet = promisify(docClient.get, docClient);
+const dbPut = promisify(docClient.put, docClient);
+const dbDelete = promisify(docClient.delete, docClient);
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -138,10 +150,14 @@ const YesIntentHandler = {
 
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
+        //Adding slots table & user
+        const { userId } = this.event.session.user;
+
         // Question 1
         if (sessionAttributes.previousIntent === 'LaunchRequest' || sessionAttributes.previousIntent === 'AMAZON.HelpIntent') {
             sessionAttributes.previousIntent = 'Continue';
             speechOutput = "Great, let's get started. What is the root cause of the issue?";
+            var q1 = this.event.request.intent.slots.RootCauseQ.value;
         }
 
         // Question 1 complete, continue?
@@ -157,12 +173,14 @@ const YesIntentHandler = {
         // Question 2 Root Cause
         else if (sessionAttributes.previousIntent === 'RootCause') {
             speechOutput = "Okay! What actions have you taken to resolve the issue?";
+            var q2 = this.event.request.intent.slots.ActionTakenQ.value;
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
         //Question 3 Action Taken
         else if (sessionAttributes.previousIntent === 'ActionTaken'){
             speechOutput = "Okay, what steps have you taken to prevent this from happening again?";
+            var q3 = this.event.request.intent.slots.StepsTakenQ.value;
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
@@ -179,6 +197,18 @@ const YesIntentHandler = {
                 .speak(speechOutput)
                 .getResponse();
         }
+
+        const dynamoParams = {
+            TableName: formTable,
+            Item: {
+                UserId: userId,
+                Q1: q1,
+                Q2: q2,
+                Q3: q3
+            }
+        };
+
+        dbPut(dynamoParams);
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
