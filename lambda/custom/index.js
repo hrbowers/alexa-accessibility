@@ -93,6 +93,30 @@ const ActionTakenHandler = {
     }
 }
 
+const StepsTakenHandler = {
+    canHandle(handlerInput){
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+        && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
+        && (sessionAttributes.previousIntent === 'GoToStepsTaken' || sessionAttributes.previousIntent === 'Continue');
+    },
+    handle(handlerInput){
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.previousIntent = 'StepsTaken';
+
+        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+
+        const speechOutput = "The steps you have taken to prevent further issues are "
+        + answer + ". Is this correct?";
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .reprompt()
+            .getResponse();
+    }
+}
+
 /**
  * Many parts of this Alexa skill wants confirmation that what they entered is sufficient.
  * A yes or no is the answer to that question. This intent directs those yes or no's to
@@ -130,18 +154,23 @@ const YesIntentHandler = {
             sessionAttributes.previousIntent = 'RootCauseCont';
         }*/
 
-        // Question 2
+        // Question 2 Root Cause
         else if (sessionAttributes.previousIntent === 'RootCause') {
             speechOutput = "Okay! What actions have you taken to resolve the issue?";
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
-        //Question 3
+        //Question 3 Action Taken
         else if (sessionAttributes.previousIntent === 'ActionTaken'){
             speechOutput = "Okay, what steps have you taken to prevent this from happening again?";
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
+        //Question 4 Prevention
+        else if (sessionAttributes.previousIntent === 'StepsTaken'){
+            speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
+            "regarding the status of your reinstatement.";
+        }
 
         //From cancel intent
         else if (sessionAttributes.previousIntent === 'AMAZON.CancelIntent') {
@@ -264,6 +293,7 @@ exports.handler = Alexa.SkillBuilders.custom()
         LaunchRequestHandler,
         RootCauseHandler,
         ActionTakenHandler,
+        StepsTakenHandler,
         YesIntentHandler,
         HelpIntentHandler,
         CancelIntentHandler,
