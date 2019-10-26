@@ -1,5 +1,16 @@
 
 const Alexa = require('ask-sdk-core');
+const promisify = require('es6-promisify');
+
+const appId = 'TODO'; //It will be handy to have this later
+const formTable = 'Responses';
+const docClient = new awsSDK.DynamoDB.DocumentClient();
+
+//Now for DB functions
+const dbScan = promisify(docClient.scan, docClient);
+const dbGet = promisify(docClient.get, docClient);
+const dbPut = promisify(docClient.put, docClient);
+const dbDelete = promisify(docClient.delete, docClient);
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -88,11 +99,14 @@ const YesIntentHandler = {
         // Question 1
         if(sessionAttributes.previousIntent === 'LaunchRequest'||sessionAttributes.previousIntent ==='AMAZON.HelpIntent') {
             sessionAttributes.previousIntent = 'AMAZON.YesIntent';
-            speechOutput = "Great, let's get started. What is the root cause of the issue?";
+            const slotToElicit = 'RootCauseQ';
+            const speechOutput = "Great, let's get started. What is the root cause of the issue?";
+            const repromptSpeech = "Please say what the root cause of the issue was.";
+            return this.emit(':elicitSlot, slotToElicit, speechOutput, repromptSpeech');
         }
         
         // Question 1 complete, continue?
-        else if (sessionAttributes.previousIntent === 'RootCause') {
+        else if (slots.RootCauseQ.confirmationStatus !== 'CONFIRMED') { // !!! TAKE NOTE !!!
             speechOutput = "Awesome, would you like to continue on to the next question?";
             sessionAttributes.previousIntent = 'RootCauseCont';
         } 
