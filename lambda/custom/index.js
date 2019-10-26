@@ -146,7 +146,7 @@ const YesIntentHandler = {
 
         // Question 1 complete, continue?
         /*
-        Reccomend eliminating excessive confirmations.  This can make the interaction much
+        Recommend eliminating excessive confirmations.  This can make the interaction much
         more of a chore for the user.
 
         else if (sessionAttributes.previousIntent === 'RootCause') {
