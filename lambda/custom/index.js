@@ -56,9 +56,9 @@ const RootCauseHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'RootCause';
 
-        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+        sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
-        const speechOutput = "You have entered that the root cause of the issue " + answer +
+        const speechOutput = "You have entered that the root cause of the issue " + sessionAttributes.qst1 +
             ". Is this the response that you would like to submit?";
 
 
@@ -81,9 +81,9 @@ const ActionTakenHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'ActionTaken';
 
-        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+        sessionAttributes.qst2 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
-        const speechOutput = "The steps you have taken are " + answer +
+        const speechOutput = "The steps you have taken are " + sessionAttributes.qst2 +
             ". Is this correct?";
 
         return handlerInput.responseBuilder
@@ -105,10 +105,10 @@ const StepsTakenHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'StepsTaken';
 
-        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+        sessionAttributes.qst3 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
         const speechOutput = "The steps you have taken to prevent further issues are "
-        + answer + ". Is this correct?";
+        + sessionAttributes.qst3 + ". Is this correct?";
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
