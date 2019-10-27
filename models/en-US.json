@@ -40,51 +40,51 @@
           "name": "RootCause",
           "slots": [
             {
-              "name": "RootCauseQ",
+              "name": "Query",
               "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
-            "The root cause of the issue {RootCauseQ}",
-            "The reason this happened {RootCauseQ}",
-            "The reason {RootCauseQ}",
-            "This happened because {RootCauseQ}",
-            "The root cause {RootCauseQ}",
-            "The issue {RootCauseQ}"
+            "The root cause of the issue {Query}",
+            "The reason this happened {Query}",
+            "The reason {Query}",
+            "This happened because {Query}",
+            "The root cause {Query}",
+            "The issue {Query}"
           ]
         },
         {
           "name": "ActionTaken",
           "slots": [
             {
-              "name": "ActionTakenQ",
+              "name": "Query",
               "type": "AMAZON.SearchQuery"
             }
           ],
           "samples": [
-            "The steps I took {ActionTakenQ}",
-            "The steps we took {ActionTakenQ}",
-            "I solved this by {ActionTakenQ}",
-            "I fixed this by {ActionTakenQ}",
-            "I fixed the issue by {ActionTakenQ}",
-            "I resolved this by {ActionTakenQ}",
-            "I resolved the issue by {ActionTakenQ}"
+            "The steps I took {Query}",
+            "The steps we took {Query}",
+            "I solved this by {Query}",
+            "I fixed this by {Query}",
+            "I fixed the issue by {Query}",
+            "I resolved this by {Query}",
+            "I resolved the issue by {Query}"
           ]
         },
         {
           "name": "StepsTaken",
           "slots": [
             {
-              "name": "StepsTakenQ",
+              "name": "Query",
               "type": "AMAZON.SearchQuery"
             }
           ],
-          "samples": [
-            "Going forward {StepsTakenQ}",
-            "In the future {StepsTakenQ}",
-            "I plan to {StepsTakenQ}",
-            "Prevention methods include {StepsTakenQ}",
-            "Steps taken include {StepsTakenQ}"
+          "samples":[
+            "Going forward {Query}",
+            "In the future {Query}",
+            "I plan to {Query}",
+            "Prevention methods include {Query}",
+            "Steps taken include {Query}"
           ]
         }
       ],
