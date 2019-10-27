@@ -13,6 +13,10 @@ const dbGet = promisify(docClient.get, docClient);
 const dbPut = promisify(docClient.put, docClient);
 const dbDelete = promisify(docClient.delete, docClient);
 
+var q1;
+var q2;
+var q3;
+
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
@@ -157,7 +161,7 @@ const YesIntentHandler = {
         if (sessionAttributes.previousIntent === 'LaunchRequest' || sessionAttributes.previousIntent === 'AMAZON.HelpIntent') {
             sessionAttributes.previousIntent = 'Continue';
             speechOutput = "Great, let's get started. What is the root cause of the issue?";
-            var q1 = this.event.request.intent.slots.RootCauseQ.value;
+            q1 = this.event.request.intent.slots.RootCauseQ.value;
         }
 
         // Question 1 complete, continue?
@@ -173,21 +177,31 @@ const YesIntentHandler = {
         // Question 2 Root Cause
         else if (sessionAttributes.previousIntent === 'RootCause') {
             speechOutput = "Okay! What actions have you taken to resolve the issue?";
-            var q2 = this.event.request.intent.slots.ActionTakenQ.value;
+            q2 = this.event.request.intent.slots.ActionTakenQ.value;
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
         //Question 3 Action Taken
         else if (sessionAttributes.previousIntent === 'ActionTaken'){
             speechOutput = "Okay, what steps have you taken to prevent this from happening again?";
-            var q3 = this.event.request.intent.slots.StepsTakenQ.value;
+            q3 = this.event.request.intent.slots.StepsTakenQ.value;
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
         //Question 4 Prevention
         else if (sessionAttributes.previousIntent === 'StepsTaken'){
             speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
-            "regarding the status of your reinstatement.";
+                "regarding the status of your reinstatement.";
+            const dynamoParams = {
+                TableName: formTable,
+                Item: {
+                    UserId: userId,
+                    Q1: q1,
+                    Q2: q2,
+                    Q3: q3
+                }
+            };
+            dbPut(dynamoParams);
         }
 
         //From cancel intent
@@ -197,18 +211,6 @@ const YesIntentHandler = {
                 .speak(speechOutput)
                 .getResponse();
         }
-
-        const dynamoParams = {
-            TableName: formTable,
-            Item: {
-                UserId: userId,
-                Q1: q1,
-                Q2: q2,
-                Q3: q3
-            }
-        };
-
-        dbPut(dynamoParams);
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
