@@ -1,55 +1,95 @@
 {
-    "interactionModel": {
-        "languageModel": {
-            "invocationName": "file an appeal",
-            "intents": [
-                {
-                    "name": "AMAZON.CancelIntent",
-                    "samples": [
-                        "never mind",
-                        "off",
-                        "cancel appeal",
-                        "stop what i'm doing"
-                    ]
-                },
-                {
-                    "name": "AMAZON.HelpIntent",
-                    "samples": []
-                },
-                {
-                    "name": "AMAZON.StopIntent",
-                    "samples": []
-                },
-                {
-                    "name": "AMAZON.NavigateHomeIntent",
-                    "samples": []
-                },
-                {
-                    "name": "AMAZON.YesIntent",
-                    "samples": [
-                        "yes"
-                    ]
-                },
-                {
-                    "name": "AMAZON.NoIntent",
-                    "samples": [
-                        "no"
-                    ]
-                },
-                {
-                    "name": "RootCause",
-                    "slots": [
-                        {
-                            "name": "Query",
-                            "type": "AMAZON.SearchQuery"
-                        }
-                    ],
-                    "samples": [
-                        "The root cause of the issue {Query}"
-                    ]
-                }
-            ],
-            "types": []
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "file an appeal",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": [
+            "never mind",
+            "off",
+            "cancel appeal",
+            "stop what i'm doing"
+          ]
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.YesIntent",
+          "samples": [
+            "yes"
+          ]
+        },
+        {
+          "name": "AMAZON.NoIntent",
+          "samples": [
+            "no"
+          ]
+        },
+        {
+          "name": "RootCause",
+          "slots": [
+            {
+              "name": "Query",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "The root cause of the issue {Query}",
+            "The reason this happened {Query}",
+            "The reason {Query}",
+            "This happened because {Query}",
+            "The root cause {Query}",
+            "The issue {Query}"
+          ]
+        },
+        {
+          "name": "ActionTaken",
+          "slots": [
+            {
+              "name": "Query",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "The steps I took {Query}",
+            "The steps we took {Query}",
+            "I solved this by {Query}",
+            "I fixed this by {Query}",
+            "I fixed the issue by {Query}",
+            "I resolved this by {Query}",
+            "I resolved the issue by {Query}"
+          ]
+        },
+        {
+          "name": "StepsTaken",
+          "slots": [
+            {
+              "name": "Query",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples":[
+            "Going forward {Query}",
+            "In the future {Query}",
+            "I plan to {Query}",
+            "Prevention methods include {Query}",
+            "Steps taken include {Query}"
+          ]
         }
+      ],
+      "types": []
     }
+  },
+  "version": "6"
 }
