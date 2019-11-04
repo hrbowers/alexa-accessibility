@@ -56,9 +56,9 @@ const RootCauseHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'RootCause';
 
-        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+        sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
-        const speechOutput = "You have entered that the root cause of the issue " + answer +
+        const speechOutput = "You have entered that the root cause of the issue " + sessionAttributes.qst1 +
             ". Is this the response that you would like to submit?";
 
 
@@ -81,9 +81,9 @@ const ActionTakenHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'ActionTaken';
 
-        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+        sessionAttributes.qst2 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
-        const speechOutput = "The steps you have taken are " + answer +
+        const speechOutput = "The steps you have taken are " + sessionAttributes.qst2 +
             ". Is this correct?";
 
         return handlerInput.responseBuilder
@@ -105,10 +105,10 @@ const StepsTakenHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'StepsTaken';
 
-        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+        sessionAttributes.qst3 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
         const speechOutput = "The steps you have taken to prevent further issues are "
-        + answer + ". Is this correct?";
+        + sessionAttributes.qst3 + ". Is this correct?";
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -139,20 +139,18 @@ const YesIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
         // Question 1
-        if (sessionAttributes.previousIntent === 'LaunchRequest' || sessionAttributes.previousIntent === 'AMAZON.HelpIntent') {
+        if (sessionAttributes.previousIntent === 'LaunchRequest' || sessionAttributes.previousIntent === 'AMAZON.HelpIntent'
+        || sessionAttributes.previousIntent === 'noContinue') {
+            
+            if(sessionAttributes.previousIntent === 'noContinue') {
+                speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
+            } else {
+                speechOutput = "Great, let's get started. What is the root cause of the issue?";                
+            }
+            
             sessionAttributes.previousIntent = 'Continue';
-            speechOutput = "Great, let's get started. What is the root cause of the issue?";
         }
 
-        // Question 1 complete, continue?
-        /*
-        Recommend eliminating excessive confirmations.  This can make the interaction much
-        more of a chore for the user.
-
-        else if (sessionAttributes.previousIntent === 'RootCause') {
-            speechOutput = "Awesome, would you like to continue on to the next question?";
-            sessionAttributes.previousIntent = 'RootCauseCont';
-        }*/
 
         // Question 2 Root Cause
         else if (sessionAttributes.previousIntent === 'RootCause') {
@@ -187,6 +185,33 @@ const YesIntentHandler = {
 
     }
 }
+
+const NoIntentHandler = {
+	    canHandle(handlerInput) {
+	        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+	            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NoIntent';
+	    },
+	    handle(handlerInput) {
+	        var speechOutput = "";
+            var reprompt = "";
+            
+	        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+
+	        if (sessionAttributes.previousIntent === 'RootCause') {
+	            speechOutput = "Ok, would you like to try root cause again?";
+	            reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel."
+	            sessionAttributes.previousIntent = 'noContinue'
+	        }
+
+	       
+
+	        return handlerInput.responseBuilder
+	            .speak(speechOutput)
+	            .reprompt(reprompt)
+	            .getResponse();
+
+	    }
+	}
 const HelpIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -295,6 +320,7 @@ exports.handler = Alexa.SkillBuilders.custom()
         ActionTakenHandler,
         StepsTakenHandler,
         YesIntentHandler,
+        NoIntentHandler,
         HelpIntentHandler,
         CancelIntentHandler,
         StopIntentHandler,
