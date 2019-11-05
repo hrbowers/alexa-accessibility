@@ -9,7 +9,7 @@ var docClient = new AWS.DynamoDB.DocumentClient();
 //Connect to the DynamoDB table and store the POA
 //For this skill we should only need the create part of CRUD.
 //If the scope expands, we might need the update portion as well.
-dbConnect.prototype.addPoa = (poaID) => {
+dbConnect.prototype.addPoa = (poaID,data1,data2,data3) => {
 
     return new Promise((resolve, reject) => {
 
@@ -21,9 +21,9 @@ dbConnect.prototype.addPoa = (poaID) => {
                 'poaId': poaID,
                 //User enteries added as item attributes
                 //todo1, todo2, and todo3 are placeholders
-                'rootCause': todo1,
-                'actionTaken': todo2,
-                'preventativeMeasure': todo3
+                'rootCause': data1,
+                'actionTaken': data2,
+                'preventativeMeasure': data3
             }
         };
 
