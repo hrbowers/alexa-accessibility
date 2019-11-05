@@ -1,11 +1,13 @@
 
 const Alexa = require('ask-sdk-core');
+const dbHelper = require("./dbConnect");
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {        
+        
         /**
          * sessionAttributes - Directs user path by tracking which intent they came from.
          * sessionAttributes.previousIntent - Must be manually set in order to track it.
@@ -144,16 +146,6 @@ const YesIntentHandler = {
             speechOutput = "Great, let's get started. What is the root cause of the issue?";
         }
 
-        // Question 1 complete, continue?
-        /*
-        Recommend eliminating excessive confirmations.  This can make the interaction much
-        more of a chore for the user.
-
-        else if (sessionAttributes.previousIntent === 'RootCause') {
-            speechOutput = "Awesome, would you like to continue on to the next question?";
-            sessionAttributes.previousIntent = 'RootCauseCont';
-        }*/
-
         // Question 2 Root Cause
         else if (sessionAttributes.previousIntent === 'RootCause') {
             speechOutput = "Okay! What actions have you taken to resolve the issue?";
@@ -168,8 +160,23 @@ const YesIntentHandler = {
 
         //Question 4 Prevention
         else if (sessionAttributes.previousIntent === 'StepsTaken'){
-            speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
-            "regarding the status of your reinstatement.";
+            
+            //Test data and function call
+            //TODO link these variables to actual user input
+            let id ='1003';
+            let d1 ='Root cause';
+            let d2 ='Actions taken';
+            let d3 ='Preventative measures';
+
+            let dbSave = saveAppeal(id,d1,d2,d3);
+            if(dbSave){
+                speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
+                "regarding the status of your reinstatement.";
+            }else{
+                speechOutput = "Database access failed";
+            }
+            
+            
         }
 
         //From cancel intent
@@ -305,3 +312,14 @@ exports.handler = Alexa.SkillBuilders.custom()
         ErrorHandler
     )
     .lambda();
+
+    async function saveAppeal(id,data1,data2,data3){
+        return dbHelper.addPoa(id,data1,data2,data3)
+            .then((data)=>{
+                return true;
+            })
+            .catch((err)=>{
+                console.log("Error occured while saving data", err);
+                return false;
+            })      
+    }
