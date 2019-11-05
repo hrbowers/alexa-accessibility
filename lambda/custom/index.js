@@ -50,7 +50,7 @@ const RootCauseHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
-            && (sessionAttributes.previousIntent === 'LaunchRequest' || sessionAttributes.previousIntent === 'Continue');
+            && sessionAttributes.previousIntent === 'Continue';
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -75,7 +75,7 @@ const ActionTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ActionTaken'
-            && (sessionAttributes.previousIntent === 'GoToActionTaken' || sessionAttributes.previousIntent === 'Continue');
+            && sessionAttributes.previousIntent === 'GoToActionTaken';
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -99,7 +99,7 @@ const StepsTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
         && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
-        && (sessionAttributes.previousIntent === 'GoToStepsTaken' || sessionAttributes.previousIntent === 'Continue');
+        && sessionAttributes.previousIntent === 'GoToStepsTaken';
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -134,48 +134,63 @@ const YesIntentHandler = {
     },
     handle(handlerInput) {
         var speechOutput = "";
-        const reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";
+        var reprompt = "";
 
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var prevIntent = sessionAttributes.previousIntent;
 
-        // Question 1
-        if (sessionAttributes.previousIntent === 'LaunchRequest' || sessionAttributes.previousIntent === 'AMAZON.HelpIntent'
-        || sessionAttributes.previousIntent === 'noContinue') {
+        // Question 1 Root Cause
+        if (prevIntent === 'LaunchRequest' 
+        	|| prevIntent === 'AMAZON.HelpIntent' 
+        		|| prevIntent === 'noContinue') {
             
-            if(sessionAttributes.previousIntent === 'noContinue') {
-                speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
-            } else {
-                speechOutput = "Great, let's get started. What is the root cause of the issue?";                
+        	reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";
+        	// US44_TSK45 Steven Foust
+            if(prevIntent === 'noContinue') {                
+            	speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';            	
+            } else {                
+            	speechOutput = "Great, let's get started. What is the root cause of the issue?";            	
             }
             
             sessionAttributes.previousIntent = 'Continue';
         }
 
 
-        // Question 2 Root Cause
-        else if (sessionAttributes.previousIntent === 'RootCause') {
-            speechOutput = "Okay! What actions have you taken to resolve the issue?";
+        // Question 2 Action Taken
+        else if (prevIntent === 'RootCause'
+        	|| prevIntent === 'noActionTaken') {
+        	
+        	// US44_TSK46 Steven Foust
+        	if (prevIntent === 'noActionTaken') {	
+        		speechOutput = 'Ok, let\'s try this again. What actions have you taken to resolve the issue?';
+        	} else {
+        		speechOutput = "Okay! What actions have you taken to resolve the issue?";
+        	}
+            
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
-        //Question 3 Action Taken
-        else if (sessionAttributes.previousIntent === 'ActionTaken'){
+        // Question 3 Steps Taken
+        else if (prevIntent === 'ActionTaken'){
             speechOutput = "Okay, what steps have you taken to prevent this from happening again?";
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
-        //Question 4 Prevention
-        else if (sessionAttributes.previousIntent === 'StepsTaken'){
+        // Completion
+        else if (prevIntent === 'StepsTaken'){
             speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
             "regarding the status of your reinstatement.";
         }
 
         //From cancel intent
-        else if (sessionAttributes.previousIntent === 'AMAZON.CancelIntent') {
+        else if (prevIntent === 'AMAZON.CancelIntent') {
             speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
+            
+            /* Repeated code
             return handlerInput.responseBuilder
                 .speak(speechOutput)
                 .getResponse();
+            */
         }
 
         return handlerInput.responseBuilder
@@ -186,24 +201,42 @@ const YesIntentHandler = {
     }
 }
 
+// US44_TSK45 Steven Foust
 const NoIntentHandler = {
 	    canHandle(handlerInput) {
 	        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
 	            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NoIntent';
 	    },
 	    handle(handlerInput) {
-	        var speechOutput = "";
+	        var speechOutput = "There is an error";
             var reprompt = "";
             
 	        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+	        var prevIntent = sessionAttributes.previousIntent;
+	        
+	        // US44_TSK45 Steven Foust
+	        if (prevIntent === 'RootCause') {
+	            
+	        	speechOutput = "Ok, would you like to try and answer root cause again?";
+	            reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	            
+	            sessionAttributes.previousIntent = 'noContinue';
+	        
+	        // US44_TSK46 Steven Foust    
+	        } else if (prevIntent === 'ActionTaken') {
+	        	
+	        	speechOutput = "Ok, would you like to try and answer action taken again?";
+	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	
+	        	sessionAttributes.previousIntent = 'noActionTaken';
+	        
+	        // US44_TSK46 Steven Foust
+	        } else if (prevIntent === 'noContinue'
+	        	|| prevIntent === 'noActionTaken'
+	        		|| prevIntent === 'noStepsTaken') {
+	        	speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
 
-	        if (sessionAttributes.previousIntent === 'RootCause') {
-	            speechOutput = "Ok, would you like to try root cause again?";
-	            reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel."
-	            sessionAttributes.previousIntent = 'noContinue'
-	        }
-
-	       
+	        }	       
 
 	        return handlerInput.responseBuilder
 	            .speak(speechOutput)
@@ -212,6 +245,7 @@ const NoIntentHandler = {
 
 	    }
 	}
+
 const HelpIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -229,6 +263,7 @@ const HelpIntentHandler = {
             .getResponse();
     }
 };
+
 const CancelIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
