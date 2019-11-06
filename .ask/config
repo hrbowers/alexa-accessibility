@@ -6,11 +6,11 @@
       "merge": {},
       "resources": {
         "manifest": {
-          "eTag": "21395eed0c6e030a0ea8aa4ee4c196f4"
+          "eTag": "180cf6d9652a0189e7b89fa4c2271b4f"
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "9c557d98875de45766ceaddaea2c04e4"
+            "eTag": "2e2bfdf4020636bc6543d4baa15aa61d"
           }
         },
         "lambda": [
@@ -23,36 +23,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "a1bf5716-e253-42fa-95e0-22c987cdbb2e",
-            "runtime": "nodejs8.10"
-          }
-        ]
-      }
-    },
-    "jpasimio": {
-      "skill_id": "amzn1.ask.skill.043d58ca-828d-41b9-8a3d-52a85b101c9d",
-      "was_cloned": false,
-      "merge": {},
-      "resources": {
-        "manifest": {
-          "eTag": "aae60d1f414733f88f3e39359ded3b41"
-        },
-        "interactionModel": {
-          "en-US": {
-            "eTag": "931ca5d7a237752740c3058b9a4240e3"
-          }
-        },
-        "lambda": [
-          {
-            "alexaUsage": [
-              "custom/default"
-            ],
-            "arn": "arn:aws:lambda:us-east-1:295503081320:function:ask-custom-file-an-appeal-ASUCapstone",
-            "awsRegion": "us-east-1",
-            "codeUri": "lambda/custom",
-            "functionName": "ask-custom-file-an-appeal-ASUCapstone",
-            "handler": "index.handler",
-            "revisionId": "a477bd68-37db-4730-8d47-17464f6f0f92",
+            "revisionId": "ee05e0ee-68a5-4df3-af5b-0e9de97dc77b",
             "runtime": "nodejs8.10"
           }
         ]
