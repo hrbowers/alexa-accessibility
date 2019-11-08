@@ -1,11 +1,13 @@
 
 const Alexa = require('ask-sdk-core');
+const dbHelper = require("./dbConnect");
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {        
+        
         /**
          * sessionAttributes - Directs user path by tracking which intent they came from.
          * sessionAttributes.previousIntent - Must be manually set in order to track it.
@@ -16,18 +18,18 @@ const LaunchRequestHandler = {
          * */
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
-        
+
         const speakOutput = 'Welcome to the appeal process. If successful, you will reactivate your account. A plan' +
-        ' of action includes, the root cause of the issue, the actions you have taken to resolve the issue, and the steps' +
-        ' you have taken to prevent the issue going forward. Would you like to begin with the first question?';
-        
+            ' of action includes, the root cause of the issue, the actions you have taken to resolve the issue, and the steps' +
+            ' you have taken to prevent the issue going forward. Would you like to begin with the first question?';
+
         //TODO
         /**
          * repromptText is meant to be called if the user responsed with an undefined answer.
          * However, It is not fully implemented yet.
          * It can come to this, but, only after a second bad response.
          * */
-         
+
         const repromptText = 'I didn\'t quite get that. Would you like to begin with the first question? Answer with yes, or no.';
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -39,7 +41,7 @@ const LaunchRequestHandler = {
 // Invoked by responding with 'the root cause of the issue'
 const RootCauseHandler = {
     canHandle(handlerInput) {
-        
+
         /**
          * Ensures we come from 'yes' through 'LaunchRequest'
          * 
@@ -47,25 +49,73 @@ const RootCauseHandler = {
          * 'the root cause of the issue' 
          * */
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        
+
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-        && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
-        && (sessionAttributes.previousIntent === 'LaunchRequest'||sessionAttributes.previousIntent === 'AMAZON.YesIntent');
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
+            && (sessionAttributes.previousIntent === 'LaunchRequest' || sessionAttributes.previousIntent === 'Continue');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'RootCause';
-        
-        const answer = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
-        const speechOutput = "You have entered that the root cause of the issue " + answer+
-        ". Is this the response that you would like to submit?";
-        
-        
+        sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+
+        const speechOutput = "You have entered that the root cause of the issue " + sessionAttributes.qst1 +
+            ". Is this the response that you would like to submit?";
+
+
         return handlerInput.responseBuilder
-        .speak(speechOutput)
-        .reprompt()
-        .getResponse();
+            .speak(speechOutput)
+            .reprompt()
+            .getResponse();
+    }
+}
+
+const ActionTakenHandler = {
+    canHandle(handlerInput){
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ActionTaken'
+            && (sessionAttributes.previousIntent === 'GoToActionTaken' || sessionAttributes.previousIntent === 'Continue');
+    },
+    handle(handlerInput){
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.previousIntent = 'ActionTaken';
+
+        sessionAttributes.qst2 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+
+        const speechOutput = "The steps you have taken are " + sessionAttributes.qst2 +
+            ". Is this correct?";
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .reprompt()
+            .getResponse();
+    }
+}
+
+const StepsTakenHandler = {
+    canHandle(handlerInput){
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+        && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
+        && (sessionAttributes.previousIntent === 'GoToStepsTaken' || sessionAttributes.previousIntent === 'Continue');
+    },
+    handle(handlerInput){
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.previousIntent = 'StepsTaken';
+
+        sessionAttributes.qst3 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+
+        const speechOutput = "The steps you have taken to prevent further issues are "
+        + sessionAttributes.qst3 + ". Is this correct?";
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .reprompt()
+            .getResponse();
     }
 }
 
@@ -73,6 +123,11 @@ const RootCauseHandler = {
  * Many parts of this Alexa skill wants confirmation that what they entered is sufficient.
  * A yes or no is the answer to that question. This intent directs those yes or no's to
  * the proper path.
+ **/
+
+ /*
+ * DevNote: This works, but I think there are better ways to do this using the dialog model
+ * tools. Will investigate this next sprint. -Jeremy
  * */
 const YesIntentHandler = {
     canHandle(handlerInput) {
@@ -82,40 +137,61 @@ const YesIntentHandler = {
     handle(handlerInput) {
         var speechOutput = "";
         const reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";
-        
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();        
-        
+
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+
         // Question 1
-        if(sessionAttributes.previousIntent === 'LaunchRequest'||sessionAttributes.previousIntent ==='AMAZON.HelpIntent') {
-            sessionAttributes.previousIntent = 'AMAZON.YesIntent';
+        if (sessionAttributes.previousIntent === 'LaunchRequest' || sessionAttributes.previousIntent === 'AMAZON.HelpIntent') {
+            sessionAttributes.previousIntent = 'Continue';
             speechOutput = "Great, let's get started. What is the root cause of the issue?";
         }
-        
-        // Question 1 complete, continue?
+
+        // Question 2 Root Cause
         else if (sessionAttributes.previousIntent === 'RootCause') {
-            speechOutput = "Awesome, would you like to continue on to the next question?";
-            sessionAttributes.previousIntent = 'RootCauseCont';
-        } 
-        
-        // Question 2
-        else if (sessionAttributes.previousIntent === 'RootCauseCont') {
             speechOutput = "Okay! What actions have you taken to resolve the issue?";
+            sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
-        
+        //Question 3 Action Taken
+        else if (sessionAttributes.previousIntent === 'ActionTaken'){
+            speechOutput = "Okay, what steps have you taken to prevent this from happening again?";
+            sessionAttributes.previousIntent = 'GoToStepsTaken';
+        }
+
+        //Question 4 Prevention
+        else if (sessionAttributes.previousIntent === 'StepsTaken'){
+            
+            //Test data and function call
+            //TODO link these variables to actual user input
+            let id ='1003';
+            let d1 ='Root cause';
+            let d2 ='Actions taken';
+            let d3 ='Preventative measures';
+
+            let dbSave = saveAppeal(id,d1,d2,d3);
+            if(dbSave){
+                speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
+                "regarding the status of your reinstatement.";
+            }else{
+                speechOutput = "Database access failed";
+            }
+            
+            
+        }
+
         //From cancel intent
-        else if(sessionAttributes.previousIntent === 'AMAZON.CancelIntent'){
+        else if (sessionAttributes.previousIntent === 'AMAZON.CancelIntent') {
             speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
             return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .getResponse();
+                .speak(speechOutput)
+                .getResponse();
         }
 
         return handlerInput.responseBuilder
-        .speak(speechOutput)
-        .reprompt(reprompt)
-        .getResponse();
-        
+            .speak(speechOutput)
+            .reprompt(reprompt)
+            .getResponse();
+
     }
 }
 const HelpIntentHandler = {
@@ -142,7 +218,7 @@ const CancelIntentHandler = {
     },
     handle(handlerInput) {
         const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
-        
+
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'AMAZON.CancelIntent';
 
@@ -174,8 +250,8 @@ const SessionEndedRequestHandler = {
         // Any cleanup logic goes here.
         const speakOutput = 'Session Ended';
         return handlerInput.responseBuilder
-        .speak(speakOutput)
-        .getResponse();
+            .speak(speakOutput)
+            .getResponse();
     }
 };
 
@@ -223,6 +299,8 @@ exports.handler = Alexa.SkillBuilders.custom()
     .addRequestHandlers(
         LaunchRequestHandler,
         RootCauseHandler,
+        ActionTakenHandler,
+        StepsTakenHandler,
         YesIntentHandler,
         HelpIntentHandler,
         CancelIntentHandler,
@@ -234,3 +312,14 @@ exports.handler = Alexa.SkillBuilders.custom()
         ErrorHandler
     )
     .lambda();
+
+    async function saveAppeal(id,data1,data2,data3){
+        return dbHelper.addPoa(id,data1,data2,data3)
+            .then((data)=>{
+                return true;
+            })
+            .catch((err)=>{
+                console.log("Error occured while saving data", err);
+                return false;
+            })      
+    }
