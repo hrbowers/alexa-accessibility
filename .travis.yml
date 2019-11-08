@@ -1,15 +1,16 @@
 language: node_js
 
 node_js:
-	- 7
+    - 12
+    - 7
 
 before_install:
-	- chmod +x aws_credential_travis.sh
-	- ./aws_credential_travis.sh
-	- npm i -g ask-cli alexa-sdk aws-sdk --save
+    - chmod +x aws_credential_travis.sh
+    - ./aws_credential_travis.sh
+    - npm i -g ask-cli alexa-sdk aws-sdk --save
 
 install:
-	- ask deploy
+    - ask deploy
 
 script: #TODO
-	- ask simulate -l en-US -t "file an appeal"
+    - ask simulate -l en-US -t "file an appeal"
