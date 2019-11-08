@@ -7,6 +7,7 @@ before_install:
     - chmod +x aws_credentials_travis.sh
     - ./aws_credentials_travis.sh
     - npm i -g ask-cli alexa-sdk aws-sdk --save
+    - ask init
 
 install:
     - ask deploy
