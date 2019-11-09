@@ -257,7 +257,7 @@ const NoIntentHandler = {
 	        	|| prevIntent === 'noActionTaken'
                     || prevIntent === 'noStepsTaken'
                         || prevIntent === 'LaunchRequest') {
-                speechOutput = 'Okay. Im dumb. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
+                speechOutput = 'Okay. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
 
                 //Exit point at skill end
                 return handlerInput.responseBuilder
