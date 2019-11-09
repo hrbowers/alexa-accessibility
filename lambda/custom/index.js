@@ -1,5 +1,5 @@
 
-const Alexa = require('ask-sdk-core');
+const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 
 const LaunchRequestHandler = {
@@ -16,10 +16,13 @@ const LaunchRequestHandler = {
          * 
          * This allows us to use the 'yes' response to more than one question.
          * */
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        const attributesManager = handlerInput.attributesManager;
+        const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
 
+
         const speakOutput = 'Welcome to the appeal process. Would you like to begin with the first question?';
+
 
         //TODO
         /**
@@ -132,27 +135,42 @@ const YesIntentHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.YesIntent';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {
         var speechOutput = "";
         var reprompt = "";
 
+
+      const attributesManager = handlerInput.attributesManager;        
+        const persistentAttributes = await attributesManager.getPersistentAttributes() || {};
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prevIntent = sessionAttributes.previousIntent;
 
-        // Question 1 Root Cause
-        if (prevIntent === 'LaunchRequest' 
-        	|| prevIntent === 'AMAZON.HelpIntent' 
-        		|| prevIntent === 'noContinue') {
+        
+        // Question 1
+        if (prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'noContinue') {
+               
+          reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";         
             
-        	reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";
-        	// US44_TSK45 Steven Foust
+          if(Object.keys(persistentAttributes).length ===0){
+                sessionAttributes.poaId = 1;
+                persistentAttributes.poaId = 2;
+                attributesManager.setPersistentAttributes(persistentAttributes);
+                await attributesManager.savePersistentAttributes();
+            }else{
+                sessionAttributes.poaId = persistentAttributes.poaId;
+                persistentAttributes.poaId += 1;
+                attributesManager.setPersistentAttributes(persistentAttributes);
+                await attributesManager.savePersistentAttributes();
+            }
+            
+            // US44_TSK45 Steven Foust
             if(prevIntent === 'noContinue') {                
             	speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';            	
             } else {                
             	speechOutput = "Great, let's get started. What is the root cause of the issue?";            	
             }
-            
             sessionAttributes.previousIntent = 'Continue';
+
         }
 
 
@@ -170,23 +188,29 @@ const YesIntentHandler = {
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
+
         // Question 3 Steps Taken
-        else if (prevIntent === 'ActionTaken'){
-            speechOutput = "Okay, what steps have you taken to prevent this from happening again?";
+        else if (prevIntent === 'ActionTaken'|| prevIntent === 'noStepsTaken'){
+            if (prevIntent === 'noStepsTaken') {	
+        		speechOutput = 'Ok, let\'s try this again. What steps have you taken to prevent this issue from happening again?';
+        	} else {
+        		speechOutput = "Okay! What steps have you taken to prevent this issue from happening again?";
+        	}
+
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
-        //Question 4 Prevention
+        //Finish and save to dynamo
         else if (prevIntent === 'StepsTaken'){
             
-            //Test data and function call
-            //TODO link these variables to actual user input
-            let id ='1003';
-            let d1 ='Root cause';
-            let d2 ='Actions taken';
-            let d3 ='Preventative measures';
+            //Collect poaId number and user input for storage into DynamoDb table
+            let id = `${sessionAttributes.poaId}`;
+            let d1 = sessionAttributes.qst1;
+            let d2 = sessionAttributes.qst2;
+            let d3 = sessionAttributes.qst3;
 
             let dbSave = saveAppeal(id,d1,d2,d3);
+
             if(dbSave){
                 speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
                 "regarding the status of your reinstatement.";
@@ -195,6 +219,7 @@ const YesIntentHandler = {
                 return handlerInput.responseBuilder
                 .speak(speechOutput)
                 .getResponse();
+
             }else{
                 speechOutput = "Database access failed";
             }
@@ -250,10 +275,18 @@ const NoIntentHandler = {
 	        	speechOutput = "Ok, would you like to try and answer action taken again?";
 	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
 	        	
-	        	sessionAttributes.previousIntent = 'noActionTaken';
-	        
-	        // US44_TSK46 Steven Foust
-	        } else if (prevIntent === 'noContinue'
+	        	sessionAttributes.previousIntent = 'noActionTaken';        
+            } 
+
+            else if(prevIntent === 'StepsTaken'){
+                
+                speechOutput = "Ok, would you like to try and answer steps taken again?";
+	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	
+	        	sessionAttributes.previousIntent = 'noStepsTaken';
+            }
+            // US44_TSK46 Steven Foust
+            else if (prevIntent === 'noContinue'
 	        	|| prevIntent === 'noActionTaken'
                     || prevIntent === 'noStepsTaken'
                         || prevIntent === 'LaunchRequest') {
@@ -296,13 +329,13 @@ const HelpIntentHandler = {
 
         switch(sessionAttributes.previousIntent){
             case 'Continue':
-                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.';
+                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
                 break;
             case 'GoToActionTaken':
-                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.';
+                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
                 break;
             case 'GoToStepsTaken':
-                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.';
+                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
                 break;
             default:
                 speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
@@ -400,7 +433,9 @@ const ErrorHandler = {
 // The SkillBuilder acts as the entry point for your skill, routing all request and response
 // payloads to the handlers above. Make sure any new handlers or interceptors you've
 // defined are included below. The order matters - they're processed top to bottom.
-exports.handler = Alexa.SkillBuilders.custom()
+const skillBuilder = Alexa.SkillBuilders.standard();
+
+exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
         RootCauseHandler,
@@ -417,8 +452,11 @@ exports.handler = Alexa.SkillBuilders.custom()
     .addErrorHandlers(
         ErrorHandler
     )
+    .withTableName('poa-id-numbers')
+    .withAutoCreateTable(true)
     .lambda();
 
+    //Helper function to save new POA data to DynamoDB
     async function saveAppeal(id,data1,data2,data3){
         return dbHelper.addPoa(id,data1,data2,data3)
             .then((data)=>{
