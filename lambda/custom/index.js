@@ -1,11 +1,13 @@
 
 const Alexa = require('ask-sdk-core');
+const dbHelper = require("./dbConnect");
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {        
+        
         /**
          * sessionAttributes - Directs user path by tracking which intent they came from.
          * sessionAttributes.previousIntent - Must be manually set in order to track it.
@@ -17,9 +19,7 @@ const LaunchRequestHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
 
-        const speakOutput = 'Welcome to the appeal process. If successful, you will reactivate your account. A plan' +
-            ' of action includes, the root cause of the issue, the actions you have taken to resolve the issue, and the steps' +
-            ' you have taken to prevent the issue going forward. Would you like to begin with the first question?';
+        const speakOutput = 'Welcome to the appeal process. Would you like to begin with the first question?';
 
         //TODO
         /**
@@ -50,7 +50,7 @@ const RootCauseHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
-            && sessionAttributes.previousIntent === 'Continue';
+            && (sessionAttributes.previousIntent === 'Continue'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -75,7 +75,7 @@ const ActionTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ActionTaken'
-            && sessionAttributes.previousIntent === 'GoToActionTaken';
+            && (sessionAttributes.previousIntent === 'GoToActionTaken'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -99,7 +99,7 @@ const StepsTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
         && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
-        && sessionAttributes.previousIntent === 'GoToStepsTaken';
+        && (sessionAttributes.previousIntent === 'GoToStepsTaken'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -176,23 +176,45 @@ const YesIntentHandler = {
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
-        // Completion
+        //Question 4 Prevention
         else if (prevIntent === 'StepsTaken'){
-            speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
-            "regarding the status of your reinstatement.";
+            
+            //Test data and function call
+            //TODO link these variables to actual user input
+            let id ='1003';
+            let d1 ='Root cause';
+            let d2 ='Actions taken';
+            let d3 ='Preventative measures';
+
+            let dbSave = saveAppeal(id,d1,d2,d3);
+            if(dbSave){
+                speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
+                "regarding the status of your reinstatement.";
+
+                //Exit point at end of skill
+                return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .getResponse();
+            }else{
+                speechOutput = "Database access failed";
+            }
         }
 
         //From cancel intent
         else if (prevIntent === 'AMAZON.CancelIntent') {
             speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
             
-            /* Repeated code
+            //This is not repeated code.
+            //This is an exit point so the skill can quit on a cancel request.
+            //That's why there is no reprompt.
+            // -JP
             return handlerInput.responseBuilder
                 .speak(speechOutput)
                 .getResponse();
-            */
+            
         }
 
+        //Speak output and await reprompt
         return handlerInput.responseBuilder
             .speak(speechOutput)
             .reprompt(reprompt)
@@ -233,10 +255,27 @@ const NoIntentHandler = {
 	        // US44_TSK46 Steven Foust
 	        } else if (prevIntent === 'noContinue'
 	        	|| prevIntent === 'noActionTaken'
-	        		|| prevIntent === 'noStepsTaken') {
-	        	speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
+                    || prevIntent === 'noStepsTaken'
+                        || prevIntent === 'LaunchRequest') {
+                speechOutput = 'Okay. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
 
-	        }	       
+                //Exit point at skill end
+                return handlerInput.responseBuilder
+	            .speak(speechOutput)
+                .getResponse();
+            }	     
+            
+            //US9_TSK35 Ray Bowers
+            else if (prevIntent === 'AMAZON.CancelIntent'){
+                speechOutput = "Okay let's start over. Are you ready?";
+                sessionAttributes.previousIntent = 'LaunchRequest';
+
+                //Exit point at skill end
+            return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .reprompt(speechOutput)
+            .getResponse();
+            }
 
 	        return handlerInput.responseBuilder
 	            .speak(speechOutput)
@@ -253,10 +292,23 @@ const HelpIntentHandler = {
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var speakOutput = '';
+
+        switch(sessionAttributes.previousIntent){
+            case 'Continue':
+                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.';
+                break;
+            case 'GoToActionTaken':
+                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.';
+                break;
+            case 'GoToStepsTaken':
+                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.';
+                break;
+            default:
+                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
+        }        
+
         sessionAttributes.previousIntent = 'AMAZON.HelpIntent';
-
-        const speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
-
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt(speakOutput)
@@ -366,3 +418,14 @@ exports.handler = Alexa.SkillBuilders.custom()
         ErrorHandler
     )
     .lambda();
+
+    async function saveAppeal(id,data1,data2,data3){
+        return dbHelper.addPoa(id,data1,data2,data3)
+            .then((data)=>{
+                return true;
+            })
+            .catch((err)=>{
+                console.log("Error occured while saving data", err);
+                return false;
+            })      
+    }

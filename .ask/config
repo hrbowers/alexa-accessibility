@@ -10,7 +10,7 @@
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "f46f0863aeb5931b950c2f63323de9d9"
+            "eTag": "9c557d98875de45766ceaddaea2c04e4"
           }
         },
         "lambda": [
@@ -23,7 +23,65 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "4211d948-04d6-4ebf-b278-cd6c5395c28d",
+            "revisionId": "1bbca952-6440-4c37-a5aa-8f4cf87d22c4",
+            "runtime": "nodejs8.10"
+          }
+        ]
+      }
+    },
+    "jpasimio": {
+      "skill_id": "amzn1.ask.skill.043d58ca-828d-41b9-8a3d-52a85b101c9d",
+      "was_cloned": false,
+      "merge": {},
+      "resources": {
+        "manifest": {
+          "eTag": "aae60d1f414733f88f3e39359ded3b41"
+        },
+        "interactionModel": {
+          "en-US": {
+            "eTag": "931ca5d7a237752740c3058b9a4240e3"
+          }
+        },
+        "lambda": [
+          {
+            "alexaUsage": [
+              "custom/default"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:295503081320:function:ask-custom-file-an-appeal-ASUCapstone",
+            "awsRegion": "us-east-1",
+            "codeUri": "lambda/custom",
+            "functionName": "ask-custom-file-an-appeal-ASUCapstone",
+            "handler": "index.handler",
+            "revisionId": "a477bd68-37db-4730-8d47-17464f6f0f92",
+            "runtime": "nodejs8.10"
+          }
+        ]
+      }
+    },
+    "default": {
+      "skill_id": "amzn1.ask.skill.46e1144c-eb26-4100-bafe-6d06f4593acb",
+      "was_cloned": false,
+      "merge": {},
+      "resources": {
+        "manifest": {
+          "eTag": "21395eed0c6e030a0ea8aa4ee4c196f4"
+        },
+        "interactionModel": {
+          "en-US": {
+            "eTag": "72a5371666d2e0753938facad9b3084d"
+          }
+        },
+        "lambda": [
+          {
+            "alexaUsage": [
+              "custom/default"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:258621086535:function:ask-custom-file-an-appeal-ASUCapstone",
+            "awsRegion": "us-east-1",
+            "codeUri": "lambda/custom",
+            "functionName": "ask-custom-file-an-appeal-ASUCapstone",
+            "handler": "index.handler",
+            "revisionId": "adc4e3b0-96be-4fe4-8037-ebb46d3d6641",
             "runtime": "nodejs8.10"
           }
         ]
