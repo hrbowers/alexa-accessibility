@@ -57,6 +57,35 @@
           }
         ]
       }
+    },
+    "default": {
+      "skill_id": "amzn1.ask.skill.46e1144c-eb26-4100-bafe-6d06f4593acb",
+      "was_cloned": false,
+      "merge": {},
+      "resources": {
+        "manifest": {
+          "eTag": "21395eed0c6e030a0ea8aa4ee4c196f4"
+        },
+        "interactionModel": {
+          "en-US": {
+            "eTag": "52ce073649af948f402c844a0d69665d"
+          }
+        },
+        "lambda": [
+          {
+            "alexaUsage": [
+              "custom/default"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:258621086535:function:ask-custom-file-an-appeal-ASUCapstone",
+            "awsRegion": "us-east-1",
+            "codeUri": "lambda/custom",
+            "functionName": "ask-custom-file-an-appeal-ASUCapstone",
+            "handler": "index.handler",
+            "revisionId": "adc4e3b0-96be-4fe4-8037-ebb46d3d6641",
+            "runtime": "nodejs8.10"
+          }
+        ]
+      }
     }
   }
 }

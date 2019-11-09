@@ -1,7 +1,7 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "file an appeal",
+      "invocationName": "make a plan of action",
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
