@@ -6,13 +6,11 @@
       "merge": {},
       "resources": {
         "manifest": {
-          "eTag": "180cf6d9652a0189e7b89fa4c2271b4f"
+          "eTag": "21395eed0c6e030a0ea8aa4ee4c196f4"
         },
         "interactionModel": {
           "en-US": {
-
-            "eTag": "af9f036cbbd96d5864d84083f82bc5a1"
-
+            "eTag": "1572977f71c2b5413e581f3a01a69fbd"
           }
         },
         "lambda": [
@@ -25,8 +23,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "05ccfea8-532c-4b1f-baa2-d83dd7411423",
-
+            "revisionId": "df8c11fc-7e46-4dd0-9a59-4d284d77360d",
             "runtime": "nodejs8.10"
           }
         ]
