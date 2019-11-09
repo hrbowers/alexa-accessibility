@@ -11,6 +11,6 @@ before_install:
 script: #TODO
     - npm test
 
-after install:
+after success:
     - ask deploy
 	- ask simulate -l en-US -t "file an appeal"
