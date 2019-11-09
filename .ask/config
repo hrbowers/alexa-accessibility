@@ -1,7 +1,7 @@
 {
   "deploy_settings": {
     "ASUCapstone": {
-      "skill_id": "amzn1.ask.skill.f7c7368d-2198-46f9-9426-209726afe4a4",
+      "skill_id": "amzn1.ask.skill.43b7d3ca-a02f-4195-8dbe-9cc4673b561c",
       "was_cloned": false,
       "merge": {},
       "resources": {
@@ -10,7 +10,9 @@
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "2e2bfdf4020636bc6543d4baa15aa61d"
+
+            "eTag": "af9f036cbbd96d5864d84083f82bc5a1"
+
           }
         },
         "lambda": [
@@ -23,7 +25,8 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "ee05e0ee-68a5-4df3-af5b-0e9de97dc77b",
+            "revisionId": "05ccfea8-532c-4b1f-baa2-d83dd7411423",
+
             "runtime": "nodejs8.10"
           }
         ]
