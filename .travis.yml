@@ -8,8 +8,9 @@ before_install:
     - ./aws_credentials_travis.sh
     - npm i -g ask-cli alexa-sdk aws-sdk --save
 
-install:
-    - ask deploy
-
 script: #TODO
-    - ask simulate -l en-US -t "file an appeal"
+    - npm test
+
+after install:
+    - ask deploy
+	- ask simulate -l en-US -t "file an appeal"

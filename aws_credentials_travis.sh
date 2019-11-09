@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 mkdir -p ~/.aws
+mkdir -p ~/.ask
 
 cat > ~/.aws/credentials << EOL
 [default]
