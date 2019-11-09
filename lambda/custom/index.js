@@ -278,13 +278,25 @@ const NoIntentHandler = {
 	        	|| prevIntent === 'noActionTaken'
                     || prevIntent === 'noStepsTaken'
                         || prevIntent === 'LaunchRequest') {
-	        	speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
+                speechOutput = 'Okay. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
 
                 //Exit point at skill end
                 return handlerInput.responseBuilder
 	            .speak(speechOutput)
-	            .getResponse();
-	        }	       
+                .getResponse();
+            }	     
+            
+            //US9_TSK35 Ray Bowers
+            else if (prevIntent === 'AMAZON.CancelIntent'){
+                speechOutput = "Okay let's start over. Are you ready?";
+                sessionAttributes.previousIntent = 'LaunchRequest';
+
+                //Exit point at skill end
+            return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .reprompt(speechOutput)
+            .getResponse();
+            }
 
 	        return handlerInput.responseBuilder
 	            .speak(speechOutput)
