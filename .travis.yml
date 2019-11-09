@@ -9,7 +9,7 @@ before_install:
     - npm i -g ask-cli alexa-sdk aws-sdk bespoken-tools --save
 
 script: #TODO
-    - npm test
+    - ask deploy
 
 #after success:
 #    - ask deploy
