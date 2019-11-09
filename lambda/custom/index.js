@@ -190,13 +190,17 @@ const YesIntentHandler = {
 
 
         // Question 3 Steps Taken
-        else if (prevIntent === 'ActionTaken'){
-            speechOutput = "Okay, what steps have you taken to prevent this from happening again?";
+        else if (prevIntent === 'ActionTaken'|| prevIntent === 'noStepsTaken'){
+            if (prevIntent === 'noStepsTaken') {	
+        		speechOutput = 'Ok, let\'s try this again. What steps have you taken to prevent this issue from happening again?';
+        	} else {
+        		speechOutput = "Okay! What steps have you taken to prevent this issue from happening again?";
+        	}
 
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
-        //Question 4 Prevention
+        //Finish and save to dynamo
         else if (prevIntent === 'StepsTaken'){
             
             //Collect poaId number and user input for storage into DynamoDb table
@@ -271,10 +275,18 @@ const NoIntentHandler = {
 	        	speechOutput = "Ok, would you like to try and answer action taken again?";
 	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
 	        	
-	        	sessionAttributes.previousIntent = 'noActionTaken';
-	        
-	        // US44_TSK46 Steven Foust
-	        } else if (prevIntent === 'noContinue'
+	        	sessionAttributes.previousIntent = 'noActionTaken';        
+            } 
+
+            else if(prevIntent === 'StepsTaken'){
+                
+                speechOutput = "Ok, would you like to try and answer steps taken again?";
+	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	
+	        	sessionAttributes.previousIntent = 'noStepsTaken';
+            }
+            // US44_TSK46 Steven Foust
+            else if (prevIntent === 'noContinue'
 	        	|| prevIntent === 'noActionTaken'
                     || prevIntent === 'noStepsTaken'
                         || prevIntent === 'LaunchRequest') {
