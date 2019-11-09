@@ -5,6 +5,9 @@ mkdir -p ~/.ask
 
 cat > ~/.aws/credentials << EOL
 [default]
-aws_access_key_id = AKIATYNYETND76I47P64
-aws_secret_access_key = 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
+aws_access_key_id = ${AWS_ACCESS_KEY_ID}
+aws_secret_access_key = ${AWS_SECRET_ACCESS_KEY}
 EOL
+
+sed -e s/ASK_ACCESS_TOKEN/${ASK_ACCESS_TOKEN}/g -e \
+    s/ASK_REFRESH_TOKEN/${ASK_REFRESH_TOKEN}/g sample_ask_config.json > ~/.ask/cli_config
