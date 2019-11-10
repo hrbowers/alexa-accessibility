@@ -9,7 +9,7 @@ before_install:
     - npm i -g ask-cli alexa-sdk aws-sdk bespoken-tools --save
 
 script: #TODO
-    - ask simulate -p ASUCapstone -l en-US -t "file an appeal"
+    - ask simulate -s amzn1.ask.skill.f7c7368d-2198-46f9-9426-209726afe4a4 -l en-US -t "file an appeal"
 
 #after success:
 #    - ask deploy
