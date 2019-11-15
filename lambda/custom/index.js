@@ -207,10 +207,10 @@ const YesIntentHandler = {
             let d3 = sessionAttributes.qst3;
 
             speechOutput = `Here is your completed plan of action. \ 
-                You said the root cause of your issue was ${d1}, you fixed this issue by ${d2}, and this won't happen again because you ${d3}. \
+                You said the root cause of your issue was ${d1}, you fixed this issue by ${d2}, and this won't happen again because you will ${d3}. \
                   Does that sound right?`;
 
-            prevIntent = 'finish';
+                sessionAttributes.previousIntent = 'finish';
         }
         
         //Finish and save to dynamo
