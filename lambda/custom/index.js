@@ -53,7 +53,7 @@ const RootCauseHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
-            && (sessionAttributes.previousIntent === 'Continue'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+            && (sessionAttributes.previousIntent === 'Continue'||sessionAttributes.previousIntent === 'startOver'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -61,7 +61,7 @@ const RootCauseHandler = {
 
         sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
-        const speechOutput = "You have entered that the root cause of the issue " + sessionAttributes.qst1 +
+        const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
             ". Is this the response that you would like to submit?";
 
 
@@ -112,6 +112,29 @@ const StepsTakenHandler = {
 
         const speechOutput = "The steps you have taken to prevent further issues are "
         + sessionAttributes.qst3 + ". Is this correct?";
+
+        return handlerInput.responseBuilder
+            .speak(speechOutput)
+            .reprompt()
+            .getResponse();
+    }
+}
+
+const StartOverHandler = {
+    canHandle(handlerInput){
+        console.log('start over can handle');
+        console.log('request type ',Alexa.getRequestType(handlerInput.requestEnvelope));
+        console.log('intent name ',Alexa.getIntentName(handlerInput.requestEnvelope));
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StartOver';
+        
+    },
+    handle(handlerInput){
+        console.log('start over main handler');
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.singleAnswerEntry = 'false';
+
+        const speechOutput = "Ok, let us start again. What was the root cause of your issue?";
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -298,6 +321,17 @@ const NoIntentHandler = {
 	        	
 	        	sessionAttributes.previousIntent = 'noStepsTaken';
             }
+
+            else if(prevIntent === 'finish'){
+                
+                speechOutput = "Ok, you can say, start again, to begin the process again. \
+                    Or, you can just answer a single question by saying the root cause was, i fixed this by, or i plan to.";
+	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	
+                sessionAttributes.previousIntent = 'startOver';
+                sessionAttributes.singleAnswerEntry = 'true';
+            }
+
             // US44_TSK46 Steven Foust
             else if (prevIntent === 'noContinue'
 	        	|| prevIntent === 'noActionTaken'
@@ -341,16 +375,30 @@ const HelpIntentHandler = {
 
         switch(sessionAttributes.previousIntent){
             case 'Continue':
-                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
+                speakOutput = 'Please explain why this issue happened.  \
+                    You can say things like, the reason this happened was, or the root cause was.  \
+                        What is the root cause of the issue?';
                 break;
             case 'GoToActionTaken':
-                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
+                speakOutput = 'Please explain how you fixed the issue.  \
+                    You can say things like, I fixed this by, or the steps I took were.  \
+                        How have you fixed the issue?';
                 break;
             case 'GoToStepsTaken':
-                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
+                speakOutput = 'Please explain how you have prevented this from happening again.  \
+                    You can say things like, going forward I will, or I plan to.  \
+                        How will you prevent this issue from happening again?';
+                break;
+            case 'startOver':
+                speakOutput = "To start the appeal process from the beginning, please say, start again.  \
+                    If you want to change you answer to just a single question, you can say things like, the root cause was, to explain the root cause of the issue,\
+                        or you can say things like, i fixed this by, to explain how you fixed the issue,\
+                            or you can say things like, i plan to, to explain how you will prevent the issue from happening again.";
                 break;
             default:
-                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
+                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
+                    what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
+                        I will guide you through each question.  Are you ready to start now?';
         }        
 
         sessionAttributes.previousIntent = 'AMAZON.HelpIntent';
@@ -453,6 +501,7 @@ exports.handler = skillBuilder
         RootCauseHandler,
         ActionTakenHandler,
         StepsTakenHandler,
+        StartOverHandler,
         YesIntentHandler,
         NoIntentHandler,
         HelpIntentHandler,

@@ -89,6 +89,12 @@
             "Prevention methods include {Query}",
             "Steps taken include {Query}"
           ]
+        },
+        {
+          "name": "StartOver",
+          "samples":[
+            "start again"
+          ]
         }
       ],
       "types": []
