@@ -25,6 +25,10 @@
           "samples": []
         },
         {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        },
+        {
           "name": "AMAZON.YesIntent",
           "samples": [
             "yes"
