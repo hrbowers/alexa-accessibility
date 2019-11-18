@@ -45,12 +45,15 @@
             }
           ],
           "samples": [
-            "The root cause of the issue {Query}",
-            "The reason this happened {Query}",
-            "The reason {Query}",
+            "The root cause of the issue was {Query}",
+            "The root cause of the issue is {Query}",
+            "The reason this happened was {Query}",
+            "The reason was {Query}",
             "This happened because {Query}",
-            "The root cause {Query}",
-            "The issue {Query}"
+            "The root cause was {Query}",
+            "The root cause is {Query}",
+            "The issue was {Query}",
+            "The issue is {Query}"
           ]
         },
         {
@@ -62,8 +65,8 @@
             }
           ],
           "samples": [
-            "The steps I took {Query}",
-            "The steps we took {Query}",
+            "The steps I took were {Query}",
+            "The steps we took were {Query}",
             "I solved this by {Query}",
             "I fixed this by {Query}",
             "I fixed the issue by {Query}",

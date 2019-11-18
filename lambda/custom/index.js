@@ -200,8 +200,21 @@ const YesIntentHandler = {
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
+        //Confirm complete user entry before submission
+        else if(prevIntent === 'StepsTaken'){
+            let d1 = sessionAttributes.qst1;
+            let d2 = sessionAttributes.qst2;
+            let d3 = sessionAttributes.qst3;
+
+            speechOutput = `Here is your completed plan of action. \ 
+                You said the root cause of your issue was ${d1}, you fixed this issue by ${d2}, and this won't happen again because you will ${d3}. \
+                  Does that sound right?`;
+
+                sessionAttributes.previousIntent = 'finish';
+        }
+        
         //Finish and save to dynamo
-        else if (prevIntent === 'StepsTaken'){
+        else if (prevIntent === 'finish'){
             
             //Collect poaId number and user input for storage into DynamoDb table
             let id = `${sessionAttributes.poaId}`;
@@ -306,7 +319,6 @@ const NoIntentHandler = {
                 //Exit point at skill end
             return handlerInput.responseBuilder
             .speak(speechOutput)
-            .reprompt(speechOutput)
             .getResponse();
             }
 
