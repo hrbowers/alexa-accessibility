@@ -120,29 +120,6 @@ const StepsTakenHandler = {
     }
 }
 
-const StartOverHandler = {
-    canHandle(handlerInput){
-        console.log('start over can handle');
-        console.log('request type ',Alexa.getRequestType(handlerInput.requestEnvelope));
-        console.log('intent name ',Alexa.getIntentName(handlerInput.requestEnvelope));
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StartOver';
-        
-    },
-    handle(handlerInput){
-        console.log('start over main handler');
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.singleAnswerEntry = 'false';
-
-        const speechOutput = "Ok, let us start again. What was the root cause of your issue?";
-
-        return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .reprompt()
-            .getResponse();
-    }
-}
-
 /**
  * Many parts of this Alexa skill wants confirmation that what they entered is sufficient.
  * A yes or no is the answer to that question. This intent directs those yes or no's to
@@ -170,7 +147,7 @@ const YesIntentHandler = {
 
         
         // Question 1
-        if (prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'noContinue') {
+        if (prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'noContinue'||prevIntent === 'startOver') {
                
           reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";         
             
@@ -187,8 +164,9 @@ const YesIntentHandler = {
             }
             
             // US44_TSK45 Steven Foust
-            if(prevIntent === 'noContinue') {                
-            	speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';            	
+            if(prevIntent === 'noContinue'||prevIntent === 'startOver') {                
+                speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
+                sessionAttributes.singleAnswerEntry = 'false';
             } else {                
             	speechOutput = "Great, let's get started. What is the root cause of the issue?";            	
             }
@@ -324,8 +302,8 @@ const NoIntentHandler = {
 
             else if(prevIntent === 'finish'){
                 
-                speechOutput = "Ok, you can say, start again, to begin the process again. \
-                    Or, you can just answer a single question by saying the root cause was, i fixed this by, or i plan to.";
+                speechOutput = "Ok, would you like to start again from the beginning?  You can say yes to start over,\
+                    say no to change just a single answer, or say cancel to quit and finish your plan of action at a later date.";
 	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
 	        	
                 sessionAttributes.previousIntent = 'startOver';
@@ -388,12 +366,6 @@ const HelpIntentHandler = {
                 speakOutput = 'Please explain how you have prevented this from happening again.  \
                     You can say things like, going forward I will, or I plan to.  \
                         How will you prevent this issue from happening again?';
-                break;
-            case 'startOver':
-                speakOutput = "To start the appeal process from the beginning, please say, start again.  \
-                    If you want to change you answer to just a single question, you can say things like, the root cause was, to explain the root cause of the issue,\
-                        or you can say things like, i fixed this by, to explain how you fixed the issue,\
-                            or you can say things like, i plan to, to explain how you will prevent the issue from happening again.";
                 break;
             default:
                 speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
@@ -501,7 +473,6 @@ exports.handler = skillBuilder
         RootCauseHandler,
         ActionTakenHandler,
         StepsTakenHandler,
-        StartOverHandler,
         YesIntentHandler,
         NoIntentHandler,
         HelpIntentHandler,
