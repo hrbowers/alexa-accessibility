@@ -19,6 +19,7 @@ const LaunchRequestHandler = {
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
+        sessionAttributes.singleAnswerEntry = 'false';
 
 
         const speakOutput = 'Welcome to the appeal process. Are you ready to begin?';
@@ -61,11 +62,8 @@ const RootCauseHandler = {
 
         sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
-
-        const speechOutput = "You have entered that the root cause of the issue " + sessionAttributes.qst1 +
+        const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
             ". Is this correct?";
-
-
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -80,7 +78,7 @@ const ActionTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ActionTaken'
-            && (sessionAttributes.previousIntent === 'GoToActionTaken'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+            && (sessionAttributes.previousIntent === 'GoToActionTaken'||sessionAttributes.previousIntent === 'startOver'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -104,7 +102,7 @@ const StepsTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
         && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
-        && (sessionAttributes.previousIntent === 'GoToStepsTaken'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+        && (sessionAttributes.previousIntent === 'GoToStepsTaken'||sessionAttributes.previousIntent === 'startOver'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -142,82 +140,13 @@ const YesIntentHandler = {
         var reprompt = "";
 
 
-      const attributesManager = handlerInput.attributesManager;        
+        const attributesManager = handlerInput.attributesManager;        
         const persistentAttributes = await attributesManager.getPersistentAttributes() || {};
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prevIntent = sessionAttributes.previousIntent;
 
-        
-        // Question 1
-        if (prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'noContinue'||prevIntent === 'startOver') {
-               
-          reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";         
-            
-          if(Object.keys(persistentAttributes).length ===0){
-                sessionAttributes.poaId = 1;
-                persistentAttributes.poaId = 2;
-                attributesManager.setPersistentAttributes(persistentAttributes);
-                await attributesManager.savePersistentAttributes();
-            }else{
-                sessionAttributes.poaId = persistentAttributes.poaId;
-                persistentAttributes.poaId += 1;
-                attributesManager.setPersistentAttributes(persistentAttributes);
-                await attributesManager.savePersistentAttributes();
-            }
-            
-            // US44_TSK45 Steven Foust
-            if(prevIntent === 'noContinue'||prevIntent === 'startOver') {                
-                speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
-                sessionAttributes.singleAnswerEntry = 'false';
-            } else {                
-            	speechOutput = "Great, let's get started. What is the root cause of the issue?";            	
-            }
-            sessionAttributes.previousIntent = 'Continue';
-
-        }
-
-
-        // Question 2 Action Taken
-        else if (prevIntent === 'RootCause'
-        	|| prevIntent === 'noActionTaken') {
-        	
-        	// US44_TSK46 Steven Foust
-        	if (prevIntent === 'noActionTaken') {	
-        		speechOutput = 'Ok, let\'s try this again. What actions have you taken to resolve the issue?';
-        	} else {
-        		speechOutput = "Okay! What actions have you taken to resolve the issue?";
-        	}
-            
-            sessionAttributes.previousIntent = 'GoToActionTaken';
-        }
-
-
-        // Question 3 Steps Taken
-        else if (prevIntent === 'ActionTaken'|| prevIntent === 'noStepsTaken'){
-            if (prevIntent === 'noStepsTaken') {	
-        		speechOutput = 'Ok, let\'s try this again. What steps have you taken to prevent this issue from happening again?';
-        	} else {
-        		speechOutput = "Okay! What steps have you taken to prevent this issue from happening again?";
-        	}
-
-            sessionAttributes.previousIntent = 'GoToStepsTaken';
-        }
-
-        //Confirm complete user entry before submission
-        else if(prevIntent === 'StepsTaken'){
-            let d1 = sessionAttributes.qst1;
-            let d2 = sessionAttributes.qst2;
-            let d3 = sessionAttributes.qst3;
-
-            speechOutput = `Here is your completed plan of action. \ 
-                You said the root cause of your issue was ${d1}, you fixed this issue by ${d2}, and this won't happen again because you will ${d3}. \
-                  Is this what you would like to submit?`;
-
-                sessionAttributes.previousIntent = 'finish';
-        }
-        
         //Finish and save to dynamo
-        else if (prevIntent === 'finish'){
+        if (prevIntent === 'finish'){
             
             //Collect poaId number and user input for storage into DynamoDb table
             let id = `${sessionAttributes.poaId}`;
@@ -253,6 +182,70 @@ const YesIntentHandler = {
                 .speak(speechOutput)
                 .getResponse();
             
+        }
+        
+        // Question 1
+        else if ((prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'noContinue'||prevIntent === 'startOver') && sessionAttributes.singleAnswerEntry === 'false') {
+               
+          reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";         
+            
+          if(Object.keys(persistentAttributes).length ===0){
+                sessionAttributes.poaId = 1;
+                persistentAttributes.poaId = 2;
+                attributesManager.setPersistentAttributes(persistentAttributes);
+                await attributesManager.savePersistentAttributes();
+            }else{
+                sessionAttributes.poaId = persistentAttributes.poaId;
+                persistentAttributes.poaId += 1;
+                attributesManager.setPersistentAttributes(persistentAttributes);
+                await attributesManager.savePersistentAttributes();
+            }
+            
+            // US44_TSK45 Steven Foust
+            if(prevIntent === 'noContinue'||prevIntent === 'startOver') {                
+                speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
+            } else {                
+            	speechOutput = "Great, let's get started. What is the root cause of the issue?";            	
+            }
+            sessionAttributes.previousIntent = 'Continue';
+
+        }
+
+        // Question 2 Action Taken
+        else if ((prevIntent === 'RootCause'|| prevIntent === 'noActionTaken') && sessionAttributes.singleAnswerEntry === 'false') {
+        	
+        	// US44_TSK46 Steven Foust
+        	if (prevIntent === 'noActionTaken') {	
+        		speechOutput = 'Ok, let\'s try this again. What actions have you taken to resolve the issue?';
+        	} else {
+        		speechOutput = "Okay! What actions have you taken to resolve the issue?";
+        	}
+            
+            sessionAttributes.previousIntent = 'GoToActionTaken';
+        }
+
+        // Question 3 Steps Taken
+        else if ((prevIntent === 'ActionTaken'|| prevIntent === 'noStepsTaken') && sessionAttributes.singleAnswerEntry === 'false'){
+            if (prevIntent === 'noStepsTaken') {	
+        		speechOutput = 'Ok, let\'s try this again. What steps have you taken to prevent this issue from happening again?';
+        	} else {
+        		speechOutput = "Okay! What steps have you taken to prevent this issue from happening again?";
+        	}
+
+            sessionAttributes.previousIntent = 'GoToStepsTaken';
+        }
+
+        //Confirm complete user entry before submission
+        else if(prevIntent === 'StepsTaken'||sessionAttributes.singleAnswerEntry === 'true'){
+            let d1 = sessionAttributes.qst1;
+            let d2 = sessionAttributes.qst2;
+            let d3 = sessionAttributes.qst3;
+
+            speechOutput = `Here is your completed plan of action. \ 
+                You said the root cause of your issue was ${d1}, you fixed this issue by ${d2}, and this won't happen again because you will ${d3}. \
+                  Is this what you would like to submit?`;
+
+                sessionAttributes.previousIntent = 'finish';
         }
 
         //Speak output and await reprompt
@@ -304,11 +297,22 @@ const NoIntentHandler = {
 
             else if(prevIntent === 'finish'){
                 
-                speechOutput = "Ok, would you like to start again from the beginning?  You can say yes to start over,\
+                speechOutput = "If you need to change more than one answer, I would recommend starting over from the beginning.\
+                    Would you like to start again from the beginning?  You can say yes to start over,\
                     say no to change just a single answer, or say cancel to quit and finish your plan of action at a later date.";
 	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
 	        	
                 sessionAttributes.previousIntent = 'startOver';
+                sessionAttributes.singleAnswerEntry = 'false'
+            }
+
+            else if(prevIntent === 'startOver'){
+                
+                speechOutput = "Ok, you can say, the root cause was, to explain the root cause of the issue.\
+                    Or you can say, i fixed this by, to explain how you resolved the issue.\
+                        Or you can say, i plan to, to explain how you will prevent this issue from hapenning again.";
+	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	
                 sessionAttributes.singleAnswerEntry = 'true';
             }
 
