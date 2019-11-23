@@ -8,22 +8,13 @@ const LaunchRequestHandler = {
     },
     async handle(handlerInput) {        
         
-        /**
-         * sessionAttributes - Directs user path by tracking which intent they came from.
-         * sessionAttributes.previousIntent - Must be manually set in order to track it.
-         *  Value of previousIntent can be checked to determine what the 'yes' was in 
-         *  response to.
-         * 
-         * This allows us to use the 'yes' response to more than one question.
-         * */
+        //Set initial session attributes to setup initial routing
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
         sessionAttributes.singleAnswerEntry = 'false';
 
-
         const speakOutput = 'Welcome to the appeal process. Are you ready to begin?';
-
 
         //TODO
         /**
@@ -48,22 +39,15 @@ const LaunchRequestHandler = {
  */
 const RootCauseHandler = {
     canHandle(handlerInput) {
-
-        /**
-         * Ensures we come from 'yes' through 'LaunchRequest'
-         * 
-         * Otherwise 'yes' could take us here after any other question if the user invoked
-         * 'the root cause of the issue' 
-         * */
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
 
-            && (sessionAttributes.previousIntent === 'Continue'||sessionAttributes.previousIntent === 'noContinue' ||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
-
-           
-
+            && (sessionAttributes.previousIntent === 'Continue'||
+                sessionAttributes.previousIntent === 'noContinue'||
+                    sessionAttributes.previousIntent === 'startOver'||
+                        sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -95,9 +79,10 @@ const ActionTakenHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ActionTaken'
 
-            && (sessionAttributes.previousIntent === 'GoToActionTaken'||sessionAttributes.previousIntent === 'noActionTaken'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
-
-
+            && (sessionAttributes.previousIntent === 'GoToActionTaken'||
+                sessionAttributes.previousIntent === 'noActionTaken'||
+                    sessionAttributes.previousIntent === 'startOver'||
+                        sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -128,8 +113,10 @@ const StepsTakenHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
         && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
 
-        && (sessionAttributes.previousIntent === 'GoToStepsTaken'||sessionAttributes.previousIntent === 'noStepsTaken'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
-
+        && (sessionAttributes.previousIntent === 'GoToStepsTaken'||
+            sessionAttributes.previousIntent === 'noStepsTaken'||
+                sessionAttributes.previousIntent === 'startOver'||
+                    sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -166,12 +153,13 @@ const YesIntentHandler = {
         var speechOutput = "";
         var reprompt = "";
 
-
+        //Get current set of attributes to route to the correct response
         const attributesManager = handlerInput.attributesManager;        
         const persistentAttributes = await attributesManager.getPersistentAttributes() || {};
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prevIntent = sessionAttributes.previousIntent;
 
+        //Check if finished first.
         //Finish and save to dynamo
         if (prevIntent === 'finish'){
             
@@ -201,14 +189,10 @@ const YesIntentHandler = {
         else if (prevIntent === 'AMAZON.CancelIntent') {
             speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
             
-            //This is not repeated code.
-            //This is an exit point so the skill can quit on a cancel request.
-            //That's why there is no reprompt.
-            // -JP
+            //Output message and don't reprompt to exit skill
             return handlerInput.responseBuilder
                 .speak(speechOutput)
-                .getResponse();
-            
+                .getResponse();            
         }
    
         // Prompt for Question 1
@@ -228,10 +212,9 @@ const YesIntentHandler = {
                 persistentAttributes.poaId += 1;
                 attributesManager.setPersistentAttributes(persistentAttributes);
                 await attributesManager.savePersistentAttributes();
-
             }
             
-            
+            //If starting over, output appropriate response
             if(prevIntent === 'startOver') {                
                 speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
             } else {                
@@ -241,20 +224,15 @@ const YesIntentHandler = {
             sessionAttributes.previousIntent = 'Continue';
         }
 
-
         // Prompt for Question 2 Action Taken
-        else if (prevIntent === 'RootCause' && sessionAttributes.singleAnswerEntry === 'false') {        	
-        	
-        		speechOutput = "Okay! How have you resolved the issue?";       	
-            
+        else if (prevIntent === 'RootCause' && sessionAttributes.singleAnswerEntry === 'false') {        	        	
+        	speechOutput = "Okay! How have you resolved the issue?";            
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
         // Prompt for Question 3 Steps Taken
-        else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){
-            
-        		speechOutput = "Okay! How have you prevented the issue from happening again?";           	
-
+        else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){            
+        	speechOutput = "Okay! How have you prevented the issue from happening again?";
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
@@ -271,49 +249,11 @@ const YesIntentHandler = {
                 sessionAttributes.previousIntent = 'finish';
         }
 
-        
-        //Finish and save to dynamo
-        else if (prevIntent === 'finish'){
-            
-            //Collect poaId number and user input for storage into DynamoDb table
-            let id = `${sessionAttributes.poaId}`;
-            let d1 = sessionAttributes.qst1;
-            let d2 = sessionAttributes.qst2;
-            let d3 = sessionAttributes.qst3;
-
-            let dbSave = saveAppeal(id,d1,d2,d3);
-
-            if(dbSave){
-                speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
-                "regarding the status of your reinstatement.";
-
-                //Exit point at end of skill
-                return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .getResponse();
-
-            }else{
-                speechOutput = "Database access failed";
-            }
-        }
-
-        //From cancel intent
-        else if (prevIntent === 'AMAZON.CancelIntent') {
-            speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
-            
-            return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .getResponse();
-            
-        }
-
-
         //Speak output and await reprompt
         return handlerInput.responseBuilder
             .speak(speechOutput)
             .reprompt(reprompt)
             .getResponse();
-
     }
 }
 
@@ -356,7 +296,7 @@ const NoIntentHandler = {
 	        	sessionAttributes.previousIntent = 'noStepsTaken';
             }
 
-
+            //If final confirmation is rejected, offer to start over or change a single answer.
             else if(prevIntent === 'finish'){
                 
                 speechOutput = "If you need to change more than one answer, I would recommend starting over from the beginning.\
@@ -368,6 +308,7 @@ const NoIntentHandler = {
                 sessionAttributes.singleAnswerEntry = 'false'
             }
 
+            //If only re-entering a single answer, briefly remind the user of the question prompts
             else if(prevIntent === 'startOver'){
                 
                 speechOutput = "Ok, you can say, the root cause was, to explain the root cause of the issue.\
@@ -379,8 +320,7 @@ const NoIntentHandler = {
             }
 
             //User quits at the beginning of the skill
-            else if (prevIntent === 'LaunchRequest') {
-              
+            else if (prevIntent === 'LaunchRequest') {              
                 speechOutput = 'Okay. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
 
                 //Exit point at skill end
@@ -395,11 +335,11 @@ const NoIntentHandler = {
                 sessionAttributes.previousIntent = 'LaunchRequest';
             }
 
+            //Output message and await response
 	        return handlerInput.responseBuilder
 	            .speak(speechOutput)
 	            .reprompt(reprompt)
 	            .getResponse();
-
 	    }
 	}
 
