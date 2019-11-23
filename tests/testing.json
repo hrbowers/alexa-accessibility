@@ -1,0 +1,9 @@
+{
+  "handler": "../lambda/custom/index.js",
+  "locales": "en-US",
+  "interactionModel": "../models/en-US.json",
+  "trace": true,
+  "jest": {
+    "silent": true
+  }
+}
