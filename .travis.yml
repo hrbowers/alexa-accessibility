@@ -4,9 +4,16 @@ node_js:
 cache:
   directories:
   - lambda/custom/node_modules
+before_install:
+  - chmod +x aws_credentials_travis.sh
+  - ./aws_credentials_travis.sh
+  - npm i -g ask-cli alexa-sdk aws-sdk --save
 install:
   - npm install bespoken-tools -g
   - cd lambda/custom && npm install && cd ../..
 script:
- - cd tests
- - bst test
+  - cd tests
+  - bst test
+  - cd ../
+after_success:
+  - ask deploy

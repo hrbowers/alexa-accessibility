@@ -6,4 +6,3 @@ configuation:
 - test: Launch request, nothing further
 - LaunchRequest: #merely launches to see that things build
     - prompt: Welcome to the appeal process. Are you ready to begin?
-    - exit
