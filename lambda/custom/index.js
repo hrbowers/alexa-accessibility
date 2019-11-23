@@ -218,7 +218,8 @@ const YesIntentHandler = {
             if(prevIntent === 'startOver') {                
                 speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
             } else {                
-            	speechOutput = "Great, let's get started. What is the root cause of the issue?";            	
+                speechOutput = "Great, let's get started. What is the root cause of the issue? You can say things like,\
+                    the reason was, or the issue was.";            	
             }
 
             sessionAttributes.previousIntent = 'Continue';
@@ -226,13 +227,15 @@ const YesIntentHandler = {
 
         // Prompt for Question 2 Action Taken
         else if (prevIntent === 'RootCause' && sessionAttributes.singleAnswerEntry === 'false') {        	        	
-        	speechOutput = "Okay! How have you resolved the issue?";            
+            speechOutput = "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
+                or the steps I took were.";            
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
         // Prompt for Question 3 Steps Taken
         else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){            
-        	speechOutput = "Okay! How have you prevented the issue from happening again?";
+            speechOutput = "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
+                or I have prevented this by.";
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
