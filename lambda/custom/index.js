@@ -21,7 +21,7 @@ const LaunchRequestHandler = {
         sessionAttributes.previousIntent = 'LaunchRequest';
 
 
-        const speakOutput = 'Welcome to the appeal process. Would you like to begin with the first question?';
+        const speakOutput = 'Welcome to the appeal process. Are you ready to begin?';
 
 
         //TODO
@@ -31,7 +31,7 @@ const LaunchRequestHandler = {
          * It can come to this, but, only after a second bad response.
          * */
 
-        const repromptText = 'I didn\'t quite get that. Would you like to begin with the first question? Answer with yes, or no.';
+        const repromptText = 'I didn\'t quite get that. Would you like to begin? Answer with yes, or no.';
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt(repromptText)
@@ -61,8 +61,10 @@ const RootCauseHandler = {
 
         sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
-        const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
-            ". Is this the response that you would like to submit?";
+
+        const speechOutput = "You have entered that the root cause of the issue " + sessionAttributes.qst1 +
+            ". Is this correct?";
+
 
 
         return handlerInput.responseBuilder
@@ -209,7 +211,7 @@ const YesIntentHandler = {
 
             speechOutput = `Here is your completed plan of action. \ 
                 You said the root cause of your issue was ${d1}, you fixed this issue by ${d2}, and this won't happen again because you will ${d3}. \
-                  Does that sound right?`;
+                  Is this what you would like to submit?`;
 
                 sessionAttributes.previousIntent = 'finish';
         }
