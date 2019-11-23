@@ -1,8 +1,11 @@
 ---
 configuation:
-    locales: en-US
+    locale: en-US
+    dynamo: mock
+    userId: TestUserID
+    deviceId: TestDeviceID
 
 ---
-- test: Launch request, nothing further
+- test.only: Launch request, nothing further
 - LaunchRequest: #merely launches to see that things build
     - prompt: Welcome to the appeal process. Are you ready to begin?
