@@ -1,0 +1,11 @@
+language: node_js
+node_js:
+  - 12
+cache:
+  directories:
+  - lambda/custom/node_modules
+install:
+  - npm install bespoken-tools -g
+  - cd lambda/custom && npm install && cd ../..
+script:
+ - bst test
