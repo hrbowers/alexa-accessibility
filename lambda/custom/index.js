@@ -1,6 +1,7 @@
 
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
+const responses = require("./response");
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
@@ -23,7 +24,7 @@ const LaunchRequestHandler = {
          * It can come to this, but, only after a second bad response.
          * */
 
-        const repromptText = 'I didn\'t quite get that. Would you like to begin? Answer with yes, or no.';
+        const repromptText = responses.reprompt() + 'Would you like to begin? Answer with yes, or no.';
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt(repromptText)
@@ -172,8 +173,7 @@ const YesIntentHandler = {
             let dbSave = saveAppeal(id,d1,d2,d3);
 
             if(dbSave){
-                speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
-                "regarding the status of your reinstatement.";
+                speechOutput = responses.completion();
 
                 //Exit point at end of skill
                 return handlerInput.responseBuilder
@@ -181,13 +181,13 @@ const YesIntentHandler = {
                 .getResponse();
 
             }else{
-                speechOutput = "Database access failed";
+                speechOutput = responses.dbFail();
             }
         }
 
         //From cancel intent
         else if (prevIntent === 'AMAZON.CancelIntent') {
-            speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
+            speechOutput = responses.cancel();
             
             //Output message and don't reprompt to exit skill
             return handlerInput.responseBuilder
@@ -198,7 +198,7 @@ const YesIntentHandler = {
         // Prompt for Question 1
         else if ((prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'startOver') && sessionAttributes.singleAnswerEntry === 'false') {
             
-          reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";         
+          reprompt = responses.reprompt() + "What is the root cause of the issue?";         
            
           //retrieve id number from persistence, increment, and save new increment
           //back to persistence for next item.
@@ -216,7 +216,7 @@ const YesIntentHandler = {
             
             //If starting over, output appropriate response
             if(prevIntent === 'startOver') {                
-                speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
+                speechOutput = responses.startOver() + 'What is the root cause of the issue?';
             } else {                
                 speechOutput = "Great, let's get started. What is the root cause of the issue? You can say things like,\
                     the reason was, or the issue was.";            	
@@ -275,8 +275,8 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 1
 	        if (prevIntent === 'RootCause') {
 	            
-	        	speechOutput = "Ok, let\'s try again. What was the root cause of your issue?";
-	            reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	speechOutput = responses.startOver() + "What was the root cause of your issue?";
+	            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	            
 	            sessionAttributes.previousIntent = 'noContinue';	        	         
             }
@@ -284,8 +284,8 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 2
             else if (prevIntent === 'ActionTaken') {
 	        	
-	        	speechOutput = "Ok, let\'s try again. How did you resolve your issue?";
-	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	speechOutput = responses.startOver() + "How did you resolve your issue?";
+	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	        	
 	        	sessionAttributes.previousIntent = 'noActionTaken';        
             } 
@@ -293,8 +293,8 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 3
             else if(prevIntent === 'StepsTaken'){
                 
-                speechOutput = "Ok, let\'s try again.  How will you prevent this issue from happening again?";
-	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+                speechOutput = responses.startOver() + "How will you prevent this issue from happening again?";
+	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	        	
 	        	sessionAttributes.previousIntent = 'noStepsTaken';
             }
@@ -334,7 +334,7 @@ const NoIntentHandler = {
             
             //User cancels, and then decides not to cancel at the confirmation of cancel
             else if (prevIntent === 'AMAZON.CancelIntent'){
-                speechOutput = "Okay let's start over. Are you ready?";
+                speechOutput = responses.startOver() + "Are you ready?";
                 sessionAttributes.previousIntent = 'LaunchRequest';
             }
 
