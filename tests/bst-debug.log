@@ -1,0 +1,48 @@
+2019-11-23T19:29:51.867Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:29:51.870Z error: bst-test            Error: ENOENT: no such file or directory, open 'models\en-US.json'
+    at Object.openSync (fs.js:440:3)
+    at Object.readFileSync (fs.js:342:35)
+    at Function.Object.<anonymous>.InteractionModel.fromFile (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\virtual-alexa\lib\src\model\InteractionModel.js:44:23)
+    at VirtualAlexaBuilder.Object.<anonymous>.VirtualAlexaBuilder.create (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\virtual-alexa\lib\src\core\VirtualAlexa.js:164:57)
+    at VirtualAlexaInvoker.before (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\VirtualAlexaInvoker.js:58:48)
+    at TestRunner.<anonymous> (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:144:25)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:1:192)
+    at _next (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:3:194)
+    at C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:3:364
+2019-11-23T19:30:07.182Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:30:07.194Z error: bst-test            Error: Cannot find module 'ask-sdk' from 'index.js'
+    at Resolver.resolveModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:259:17)
+    at Resolver._getVirtualMockPath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:390:14)
+    at Resolver._getAbsolutePath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:376:14)
+    at Resolver.getModuleID (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:348:31)
+    at Runtime._shouldMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:942:37)
+    at Runtime.requireModuleOrMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:595:16)
+    at Object.<anonymous> (C:\Users\Fral\source\repos\hrbowers\alexa-accessibility\lambda\custom\index.js:2:1)
+    at Runtime._execModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:867:68)
+    at Runtime._loadModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:577:12)
+    at Runtime.requireModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:433:10)
+2019-11-23T19:35:27.770Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:35:27.782Z error: bst-test            Error: Cannot find module 'ask-sdk' from 'index.js'
+    at Resolver.resolveModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:259:17)
+    at Resolver._getVirtualMockPath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:390:14)
+    at Resolver._getAbsolutePath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:376:14)
+    at Resolver.getModuleID (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:348:31)
+    at Runtime._shouldMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:942:37)
+    at Runtime.requireModuleOrMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:595:16)
+    at Object.<anonymous> (C:\Users\Fral\source\repos\hrbowers\alexa-accessibility\lambda\custom\index.js:2:1)
+    at Runtime._execModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:867:68)
+    at Runtime._loadModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:577:12)
+    at Runtime.requireModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:433:10)
+2019-11-23T19:37:12.193Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:37:12.206Z error: bst-test            Error: Cannot find module 'ask-sdk' from 'index.js'
+    at Resolver.resolveModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:259:17)
+    at Resolver._getVirtualMockPath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:390:14)
+    at Resolver._getAbsolutePath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:376:14)
+    at Resolver.getModuleID (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:348:31)
+    at Runtime._shouldMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:942:37)
+    at Runtime.requireModuleOrMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:595:16)
+    at Object.<anonymous> (C:\Users\Fral\source\repos\hrbowers\alexa-accessibility\lambda\custom\index.js:2:1)
+    at Runtime._execModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:867:68)
+    at Runtime._loadModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:577:12)
+    at Runtime.requireModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:433:10)
