@@ -72,3 +72,9 @@
     at Generator.next (<anonymous>)
     at asyncGeneratorStep (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:1:192)
     at _next (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:3:194)
+2019-11-23T20:14:43.323Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T20:14:43.325Z error: bst-test            Error: Locale must be defined either in the testing.json or the test file itself under the config element
+    at TestRunner.<anonymous> (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:110:17)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:1:192)
+    at _next (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:3:194)
