@@ -19,6 +19,7 @@ const LaunchRequestHandler = {
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
+        sessionAttributes.singleAnswerEntry = 'false';
 
 
         const speakOutput = 'Welcome to the appeal process. Are you ready to begin?';
@@ -58,7 +59,11 @@ const RootCauseHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
+
             && (sessionAttributes.previousIntent === 'Continue'||sessionAttributes.previousIntent === 'noContinue' ||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+
+           
+
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -89,7 +94,10 @@ const ActionTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ActionTaken'
+
             && (sessionAttributes.previousIntent === 'GoToActionTaken'||sessionAttributes.previousIntent === 'noActionTaken'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+
+
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -119,7 +127,9 @@ const StepsTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
         && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
+
         && (sessionAttributes.previousIntent === 'GoToStepsTaken'||sessionAttributes.previousIntent === 'noStepsTaken'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -157,15 +167,53 @@ const YesIntentHandler = {
         var reprompt = "";
 
 
-      const attributesManager = handlerInput.attributesManager;        
+        const attributesManager = handlerInput.attributesManager;        
         const persistentAttributes = await attributesManager.getPersistentAttributes() || {};
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prevIntent = sessionAttributes.previousIntent;
 
-        
+        //Finish and save to dynamo
+        if (prevIntent === 'finish'){
+            
+            //Collect poaId number and user input for storage into DynamoDb table
+            let id = `${sessionAttributes.poaId}`;
+            let d1 = sessionAttributes.qst1;
+            let d2 = sessionAttributes.qst2;
+            let d3 = sessionAttributes.qst3;
+
+            let dbSave = saveAppeal(id,d1,d2,d3);
+
+            if(dbSave){
+                speechOutput = "This completes the appeals process. Please wait to hear from Amazon " +
+                "regarding the status of your reinstatement.";
+
+                //Exit point at end of skill
+                return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .getResponse();
+
+            }else{
+                speechOutput = "Database access failed";
+            }
+        }
+
+        //From cancel intent
+        else if (prevIntent === 'AMAZON.CancelIntent') {
+            speechOutput = 'Okay.  Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
+            
+            //This is not repeated code.
+            //This is an exit point so the skill can quit on a cancel request.
+            //That's why there is no reprompt.
+            // -JP
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .getResponse();
+            
+        }
+   
         // Prompt for Question 1
-        if (prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent') {
-               
+        else if ((prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'startOver') && sessionAttributes.singleAnswerEntry === 'false') {
+            
           reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";         
            
           //retrieve id number from persistence, increment, and save new increment
@@ -180,28 +228,38 @@ const YesIntentHandler = {
                 persistentAttributes.poaId += 1;
                 attributesManager.setPersistentAttributes(persistentAttributes);
                 await attributesManager.savePersistentAttributes();
-            }            
-                         
-            speechOutput = "Great, let's get started. What is the root cause of the issue?";
+
+            }
+            
+            
+            if(prevIntent === 'startOver') {                
+                speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
+            } else {                
+            	speechOutput = "Great, let's get started. What is the root cause of the issue?";            	
+            }
+
             sessionAttributes.previousIntent = 'Continue';
         }
 
 
         // Prompt for Question 2 Action Taken
-        else if (prevIntent === 'RootCause') {        	
-        	speechOutput = "Okay! How have you resolved the issue?";       	            
+        else if (prevIntent === 'RootCause' && sessionAttributes.singleAnswerEntry === 'false') {        	
+        	
+        		speechOutput = "Okay! How have you resolved the issue?";       	
+            
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
-
         // Prompt for Question 3 Steps Taken
-        else if (prevIntent === 'ActionTaken'){                    	
-        	speechOutput = "Okay! How have you prevented the issue from happening again?";        	
+        else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){
+            
+        		speechOutput = "Okay! How have you prevented the issue from happening again?";           	
+
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
         //Confirm complete user entry before submission
-        else if(prevIntent === 'StepsTaken'){
+        else if(prevIntent === 'StepsTaken'||sessionAttributes.singleAnswerEntry === 'true'){
             let d1 = sessionAttributes.qst1;
             let d2 = sessionAttributes.qst2;
             let d3 = sessionAttributes.qst3;
@@ -212,6 +270,7 @@ const YesIntentHandler = {
 
                 sessionAttributes.previousIntent = 'finish';
         }
+
         
         //Finish and save to dynamo
         else if (prevIntent === 'finish'){
@@ -247,6 +306,7 @@ const YesIntentHandler = {
                 .getResponse();
             
         }
+
 
         //Speak output and await reprompt
         return handlerInput.responseBuilder
@@ -295,9 +355,32 @@ const NoIntentHandler = {
 	        	
 	        	sessionAttributes.previousIntent = 'noStepsTaken';
             }
-            
+
+
+            else if(prevIntent === 'finish'){
+                
+                speechOutput = "If you need to change more than one answer, I would recommend starting over from the beginning.\
+                    Would you like to start again from the beginning?  You can say yes to start over,\
+                    say no to change just a single answer, or say cancel to quit and finish your plan of action at a later date.";
+	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	
+                sessionAttributes.previousIntent = 'startOver';
+                sessionAttributes.singleAnswerEntry = 'false'
+            }
+
+            else if(prevIntent === 'startOver'){
+                
+                speechOutput = "Ok, you can say, the root cause was, to explain the root cause of the issue.\
+                    Or you can say, i fixed this by, to explain how you resolved the issue.\
+                        Or you can say, i plan to, to explain how you will prevent this issue from hapenning again.";
+	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	
+                sessionAttributes.singleAnswerEntry = 'true';
+            }
+
             //User quits at the beginning of the skill
             else if (prevIntent === 'LaunchRequest') {
+              
                 speechOutput = 'Okay. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
 
                 //Exit point at skill end
@@ -334,16 +417,24 @@ const HelpIntentHandler = {
 
         switch(sessionAttributes.previousIntent){
             case 'Continue':
-                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
+                speakOutput = 'Please explain why this issue happened.  \
+                    You can say things like, the reason this happened was, or the root cause was.  \
+                        What is the root cause of the issue?';
                 break;
             case 'GoToActionTaken':
-                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
+                speakOutput = 'Please explain how you fixed the issue.  \
+                    You can say things like, I fixed this by, or the steps I took were.  \
+                        How have you fixed the issue?';
                 break;
             case 'GoToStepsTaken':
-                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
+                speakOutput = 'Please explain how you have prevented this from happening again.  \
+                    You can say things like, going forward I will, or I plan to.  \
+                        How will you prevent this issue from happening again?';
                 break;
             default:
-                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
+                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
+                    what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
+                        I will guide you through each question.  Are you ready to start now?';
         }        
 
         sessionAttributes.previousIntent = 'AMAZON.HelpIntent';
