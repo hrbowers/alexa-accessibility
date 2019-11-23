@@ -1,0 +1,15 @@
+{
+  "profiles": {
+    "default": {
+      "token": {
+        "access_token": "Atza|IwEBIKhsXgcLePwj8HjP_vklJoD35SYOD-pDa5OgRXmP9UekjmyVR7JU8slsxoGVoY5Uhb1HsLXS5rerCfiKrHBGVWue7Vhz9rg2K7vwJyv7AO0ZHUE_QQmHzoc8umO3VtZ1xskyvdw5j9YNUEplIbbSaWtQ7dNIlSGeiVvx6MP6Okm__9mdumXjADPBr-d-ODl1GD4YQ4DDpBwI1dmmfHmC9DYCfOM4RdBqN6Io1MZD3QyoJ8XP2MKEpNo6bsuYcfb0HzLCOgo1GpUbSPTfY_oU0Sp5k7GWEAUgOxbqMONrUp28PbyY-ITiD1-50HvKvyoQVQ6uNq-V8bUPtaitZPiGoKZpqerFWMUQD-2lkvUOEe1cTgsZe9qNde2G24T0Ib-mP3hhWQM_p-sV-tF8k0eyTREBBCNxw4IOx3DPVWtI_Dv4FcyzN0Jf4KiMAJnB3W4I86wgV2OUS7O-jM0k4lSVQKHZfkBJWSUTDiqZnsIGoOmpBpEXm-OiUzfwPBSMmQvJziO_AvaFasZuwHuPhhujqA5bxNjr0twkiwbNkvb-KeyM52-xqvR3FeaWdGlinj09SWnPFNLrdpYnJxmM508y_z_cTpO5Nwq0nL7G-kO-zSvBaEDvU55FwqGYhw21_x2B1i-RaRwQcjFYM_mZRIOG13MsdYk7TACwVq8xDRwB3cIODNMD7W-UI0FSFZ_WZhbMrCU",
+        "refresh_token": "Atzr|IwEBIMeKflB_f4DINGqeg2btZsZDN6CmxmedGZYeWiECqe4ltHauE8XrK_5Obq6sNWrUE_1a7wlMWOiNILsNjPCzD5kB5bDSh0ghTdYRdduMnLZwr6YG7L4lwHdZbxB1CjBpQQcfyL7MuletD_btH6Rq9GRepeCrUyQCuTxZqlI8n4_aKhcWxV3_6yomXzGmuohc73C89GweCOt1zh_0Jc3fhcqAVwS7PktcENzmFFZaJ9aZySXupOGApjjFIK3qASN0Lp6Iuzt3TeQ6FnF5HZiibxmNKv_xTDfPc6RCiABzmI3Nu6WLgWF6jnbVF9gCAqG5dRJivozZl7O-eQcHfF9PFzMGASE6kr_1vveTj_9Wsf4rHV9gZDQbhNXs1dPteBZOkhPBHHs1VjLdG8KvLxqRj5IPGDiyZb-maSwDjfogdATv4RlIaTp3sx9grpkvrV8iRvEl4P1-M_NBXcHv-Hm0s0fgPKguEBwJEBqWDFMzYKezbyKwn1GVt7-F2_vIJQ1Yfna2iy9E2XGUnQNlpe5aMf1Dd1qqluNitrZwTZqQ68D6f5FsaYgL_LdQepR0IcC9o2p6NdGBOFOXf3Y0c4sBwmWshNa3JKWiddKxWhl6FglYyo4iO-PP6PIuKAjrdoK2mZXWmVV47ysSe-QiMOMd47HJ0V-YbOV05FDeANRzquH_yw",
+        "token_type": "bearer",
+        "expires_in": 3600,
+        "expires_at": "2019-11-08T01:38:38.876Z"
+      },
+      "vendor_id": "M3PPTHP8B7R6XB",
+      "aws_profile": "ask_cli_default"
+    }
+  }
+}
