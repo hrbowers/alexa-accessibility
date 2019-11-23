@@ -53,7 +53,7 @@ const RootCauseHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
-            && (sessionAttributes.previousIntent === 'Continue'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+            && (sessionAttributes.previousIntent === 'Continue'||sessionAttributes.previousIntent === 'startOver'||sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -61,8 +61,10 @@ const RootCauseHandler = {
 
         sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
+
         const speechOutput = "You have entered that the root cause of the issue " + sessionAttributes.qst1 +
-            ". Is thit correct?";
+            ". Is this correct?";
+
 
 
         return handlerInput.responseBuilder
@@ -147,7 +149,7 @@ const YesIntentHandler = {
 
         
         // Question 1
-        if (prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'noContinue') {
+        if (prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'noContinue'||prevIntent === 'startOver') {
                
           reprompt = "I'm sorry, I didn't get that. What is the root cause of the issue?";         
             
@@ -164,8 +166,9 @@ const YesIntentHandler = {
             }
             
             // US44_TSK45 Steven Foust
-            if(prevIntent === 'noContinue') {                
-            	speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';            	
+            if(prevIntent === 'noContinue'||prevIntent === 'startOver') {                
+                speechOutput = 'Ok, let\'s try this again. What is the root cause of the issue?';
+                sessionAttributes.singleAnswerEntry = 'false';
             } else {                
             	speechOutput = "Great, let's get started. What is the root cause of the issue?";            	
             }
@@ -298,6 +301,17 @@ const NoIntentHandler = {
 	        	
 	        	sessionAttributes.previousIntent = 'noStepsTaken';
             }
+
+            else if(prevIntent === 'finish'){
+                
+                speechOutput = "Ok, would you like to start again from the beginning?  You can say yes to start over,\
+                    say no to change just a single answer, or say cancel to quit and finish your plan of action at a later date.";
+	        	reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
+	        	
+                sessionAttributes.previousIntent = 'startOver';
+                sessionAttributes.singleAnswerEntry = 'true';
+            }
+
             // US44_TSK46 Steven Foust
             else if (prevIntent === 'noContinue'
 	        	|| prevIntent === 'noActionTaken'
@@ -341,16 +355,24 @@ const HelpIntentHandler = {
 
         switch(sessionAttributes.previousIntent){
             case 'Continue':
-                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
+                speakOutput = 'Please explain why this issue happened.  \
+                    You can say things like, the reason this happened was, or the root cause was.  \
+                        What is the root cause of the issue?';
                 break;
             case 'GoToActionTaken':
-                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
+                speakOutput = 'Please explain how you fixed the issue.  \
+                    You can say things like, I fixed this by, or the steps I took were.  \
+                        How have you fixed the issue?';
                 break;
             case 'GoToStepsTaken':
-                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
+                speakOutput = 'Please explain how you have prevented this from happening again.  \
+                    You can say things like, going forward I will, or I plan to.  \
+                        How will you prevent this issue from happening again?';
                 break;
             default:
-                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
+                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
+                    what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
+                        I will guide you through each question.  Are you ready to start now?';
         }        
 
         sessionAttributes.previousIntent = 'AMAZON.HelpIntent';
