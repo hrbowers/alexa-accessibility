@@ -59,10 +59,12 @@ const RootCauseHandler = {
         const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
             ". Is this correct?";
 
+        const repromptText = "Please explain the root cause of the issue. Start by saying, the root cause was..."
+        + " or, the reason this happened, followed by your response."
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
-            .reprompt()
+            .reprompt(repromptText)
             .getResponse();
     }
 }
@@ -94,9 +96,12 @@ const ActionTakenHandler = {
         const speechOutput = "The steps you have taken are " + sessionAttributes.qst2 +
             ". Is this correct?";
 
+        const repromptText = "Please explain the steps you have taken to resolve the issue." +
+        "Start by saying, the steps I took were... or, I fixed this by, followed by your response.";
+
         return handlerInput.responseBuilder
             .speak(speechOutput)
-            .reprompt()
+            .reprompt(repromptText)
             .getResponse();
     }
 }
@@ -128,9 +133,12 @@ const StepsTakenHandler = {
         const speechOutput = "The steps you have taken to prevent further issues are "
         + sessionAttributes.qst3 + ". Is this correct?";
 
+        const repromptText = "Please explain how you will prevent this issue from happening again." +
+        "Start by saying, going forward... or, in the future... followed by your response."
+
         return handlerInput.responseBuilder
             .speak(speechOutput)
-            .reprompt()
+            .reprompt(repromptText)
             .getResponse();
     }
 }
@@ -232,6 +240,7 @@ const YesIntentHandler = {
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
+
         // Prompt for Question 3 Steps Taken
         else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){            
             speechOutput = "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
@@ -241,6 +250,8 @@ const YesIntentHandler = {
 
         //Confirm complete user entry before submission
         else if(prevIntent === 'StepsTaken'||sessionAttributes.singleAnswerEntry === 'true'){
+
+          
             let d1 = sessionAttributes.qst1;
             let d2 = sessionAttributes.qst2;
             let d3 = sessionAttributes.qst3;
@@ -250,6 +261,7 @@ const YesIntentHandler = {
                   Is this what you would like to submit?`;
 
                 sessionAttributes.previousIntent = 'finish';
+
         }
 
         //Speak output and await reprompt
@@ -287,6 +299,7 @@ const NoIntentHandler = {
 	        	speechOutput = responses.startOver() + "How did you resolve your issue?";
 	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	        	
+
 	        	sessionAttributes.previousIntent = 'noActionTaken';        
             } 
 
@@ -324,6 +337,7 @@ const NoIntentHandler = {
 
             //User quits at the beginning of the skill
             else if (prevIntent === 'LaunchRequest') {              
+
                 speechOutput = 'Okay. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
 
                 //Exit point at skill end
@@ -336,6 +350,7 @@ const NoIntentHandler = {
             else if (prevIntent === 'AMAZON.CancelIntent'){
                 speechOutput = responses.startOver() + "Are you ready?";
                 sessionAttributes.previousIntent = 'LaunchRequest';
+
             }
 
             //Output message and await response
@@ -469,6 +484,39 @@ const ErrorHandler = {
     }
 };
 
+const FallbackIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent');
+      },
+
+        //testing response, not permanent
+      handle(handlerInput) {
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var speakOutput = '';
+
+        switch(sessionAttributes.previousIntent){
+            case 'Continue':
+                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
+                break;
+            case 'GoToActionTaken':
+                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
+                break;
+            case 'GoToStepsTaken':
+                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
+                break;
+            default:
+                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
+        } 
+        sessionAttributes.previousIntent = 'AMAZON.FallbackIntent';
+
+        return handlerInput.responseBuilder
+          .speak('I did not understand your response.')
+          .reprompt('Sorry, please try again')
+          .getResponse();
+      },
+}
+
 // The SkillBuilder acts as the entry point for your skill, routing all request and response
 // payloads to the handlers above. Make sure any new handlers or interceptors you've
 // defined are included below. The order matters - they're processed top to bottom.
@@ -482,6 +530,7 @@ exports.handler = skillBuilder
         StepsTakenHandler,
         YesIntentHandler,
         NoIntentHandler,
+        FallbackIntentHandler,
         HelpIntentHandler,
         CancelIntentHandler,
         StopIntentHandler,

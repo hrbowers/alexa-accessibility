@@ -176,6 +176,10 @@
             "The steps we have taken are {Query}",
             "The steps we have taken include {Query}"
           ]
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
         }
       ],
       "types": []
