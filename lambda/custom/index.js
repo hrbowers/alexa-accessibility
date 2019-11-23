@@ -48,7 +48,8 @@ const RootCauseHandler = {
             && (sessionAttributes.previousIntent === 'Continue'||
                 sessionAttributes.previousIntent === 'noContinue'||
                     sessionAttributes.previousIntent === 'startOver'||
-                        sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+                        sessionAttributes.previousIntent === 'AMAZON.FallbackIntent'||
+                            sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -85,7 +86,8 @@ const ActionTakenHandler = {
             && (sessionAttributes.previousIntent === 'GoToActionTaken'||
                 sessionAttributes.previousIntent === 'noActionTaken'||
                     sessionAttributes.previousIntent === 'startOver'||
-                        sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+                        sessionAttributes.previousIntent === 'AMAZON.FallbackIntent'||
+                            sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -122,7 +124,8 @@ const StepsTakenHandler = {
         && (sessionAttributes.previousIntent === 'GoToStepsTaken'||
             sessionAttributes.previousIntent === 'noStepsTaken'||
                 sessionAttributes.previousIntent === 'startOver'||
-                    sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
+                    sessionAttributes.previousIntent === 'AMAZON.FallbackIntent'||
+                        sessionAttributes.previousIntent === 'AMAZON.HelpIntent');
     },
     handle(handlerInput){
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -204,7 +207,10 @@ const YesIntentHandler = {
         }
    
         // Prompt for Question 1
-        else if ((prevIntent === 'LaunchRequest' || prevIntent === 'AMAZON.HelpIntent'|| prevIntent === 'startOver') && sessionAttributes.singleAnswerEntry === 'false') {
+        else if ((prevIntent === 'LaunchRequest' 
+                    || prevIntent === 'AMAZON.HelpIntent'
+                        || prevIntent === 'startOver') 
+                            && sessionAttributes.singleAnswerEntry === 'false') {
             
           reprompt = responses.reprompt() + "What is the root cause of the issue?";         
            
@@ -240,7 +246,6 @@ const YesIntentHandler = {
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
-
         // Prompt for Question 3 Steps Taken
         else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){            
             speechOutput = "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
@@ -250,7 +255,6 @@ const YesIntentHandler = {
 
         //Confirm complete user entry before submission
         else if(prevIntent === 'StepsTaken'||sessionAttributes.singleAnswerEntry === 'true'){
-
           
             let d1 = sessionAttributes.qst1;
             let d2 = sessionAttributes.qst2;
@@ -260,8 +264,7 @@ const YesIntentHandler = {
                 You said the root cause of your issue was ${d1}, you fixed this issue by ${d2}, and this won't happen again because you will ${d3}. \
                   Is this what you would like to submit?`;
 
-                sessionAttributes.previousIntent = 'finish';
-
+            sessionAttributes.previousIntent = 'finish';
         }
 
         //Speak output and await reprompt
@@ -297,8 +300,7 @@ const NoIntentHandler = {
             else if (prevIntent === 'ActionTaken') {
 	        	
 	        	speechOutput = responses.startOver() + "How did you resolve your issue?";
-	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
-	        	
+	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";       	
 
 	        	sessionAttributes.previousIntent = 'noActionTaken';        
             } 
@@ -350,7 +352,6 @@ const NoIntentHandler = {
             else if (prevIntent === 'AMAZON.CancelIntent'){
                 speechOutput = responses.startOver() + "Are you ready?";
                 sessionAttributes.previousIntent = 'LaunchRequest';
-
             }
 
             //Output message and await response
@@ -447,6 +448,39 @@ const SessionEndedRequestHandler = {
     }
 };
 
+const FallbackIntentHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent');
+      },
+
+        //testing response, not permanent
+      handle(handlerInput) {
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var speakOutput = '';
+
+        switch(sessionAttributes.previousIntent){
+            case 'Continue':
+                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
+                break;
+            case 'GoToActionTaken':
+                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
+                break;
+            case 'GoToStepsTaken':
+                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
+                break;
+            default:
+                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
+        } 
+        sessionAttributes.previousIntent = 'AMAZON.FallbackIntent';
+
+        return handlerInput.responseBuilder
+          .speak(speakOutput)
+          .reprompt('Sorry, please try again')
+          .getResponse();
+      }
+}
+
 // The intent reflector is used for interaction model testing and debugging.
 // It will simply repeat the intent the user said. You can create custom handlers
 // for your intents by defining them above, then also adding them to the request
@@ -483,39 +517,6 @@ const ErrorHandler = {
             .getResponse();
     }
 };
-
-const FallbackIntentHandler = {
-    canHandle(handlerInput) {
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.FallbackIntent');
-      },
-
-        //testing response, not permanent
-      handle(handlerInput) {
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        var speakOutput = '';
-
-        switch(sessionAttributes.previousIntent){
-            case 'Continue':
-                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
-                break;
-            case 'GoToActionTaken':
-                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
-                break;
-            case 'GoToStepsTaken':
-                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
-                break;
-            default:
-                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
-        } 
-        sessionAttributes.previousIntent = 'AMAZON.FallbackIntent';
-
-        return handlerInput.responseBuilder
-          .speak('I did not understand your response.')
-          .reprompt('Sorry, please try again')
-          .getResponse();
-      },
-}
 
 // The SkillBuilder acts as the entry point for your skill, routing all request and response
 // payloads to the handlers above. Make sure any new handlers or interceptors you've
