@@ -25,10 +25,6 @@
           "samples": []
         },
         {
-          "name": "AMAZON.FallbackIntent",
-          "samples": []
-        },
-        {
           "name": "AMAZON.YesIntent",
           "samples": [
             "yes"
@@ -93,6 +89,10 @@
             "Prevention methods include {Query}",
             "Steps taken include {Query}"
           ]
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
         }
       ],
       "types": []

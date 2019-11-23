@@ -91,9 +91,12 @@ const ActionTakenHandler = {
         const speechOutput = "The steps you have taken are " + sessionAttributes.qst2 +
             ". Is this correct?";
 
+        const repromptText = "Please explain the steps you have taken to resolve the issue." +
+        "Start by saying, the steps I took were... or, I fixed this by, followed by your response.";
+
         return handlerInput.responseBuilder
             .speak(speechOutput)
-            .reprompt()
+            .reprompt(repromptText)
             .getResponse();
     }
 }
@@ -115,9 +118,12 @@ const StepsTakenHandler = {
         const speechOutput = "The steps you have taken to prevent further issues are "
         + sessionAttributes.qst3 + ". Is this correct?";
 
+        const repromptText = "Please explain how you will prevent this issue from happening again." +
+        "Start by saying, going forward... or, in the future... followed by your response."
+
         return handlerInput.responseBuilder
             .speak(speechOutput)
-            .reprompt()
+            .reprompt(repromptText)
             .getResponse();
     }
 }
@@ -428,13 +434,27 @@ const FallbackIntentHandler = {
 
         //testing response, not permanent
       handle(handlerInput) {
-
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var speakOutput = '';
+
+        switch(sessionAttributes.previousIntent){
+            case 'Continue':
+                speakOutput = 'Please explain why this issue happened.  You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
+                break;
+            case 'GoToActionTaken':
+                speakOutput = 'Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
+                break;
+            case 'GoToStepsTaken':
+                speakOutput = 'Please explain how you have prevented this from happening again.  You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
+                break;
+            default:
+                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, what you have done to resolve the issue, and how you will prevent this issue from happening again.  I will guide you through each question.  Are you ready to start now?';
+        } 
         sessionAttributes.previousIntent = 'AMAZON.FallbackIntent';
 
         return handlerInput.responseBuilder
-          .speak("Sorry, what are you talking about?")
-          .reprompt("Uhhhh, what?")
+          .speak('I did not understand your response.')
+          .reprompt('Sorry, please try again')
           .getResponse();
       },
 }
