@@ -10,7 +10,7 @@
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "e7ace92620252a86c08ef3b6994873c3"
+            "eTag": "273e12788067dcc9fae994e601223817"
           }
         },
         "lambda": [
@@ -23,8 +23,8 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "99f7b43a-f378-437d-9b40-2471d6999da4",
-            "runtime": "nodejs8.10"
+            "revisionId": "123fc937-2bab-49e8-9387-a1a8592ccfb4",
+            "runtime": "nodejs10.x"
           }
         ]
       }
@@ -53,7 +53,7 @@
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
             "revisionId": "4f492111-5f93-4b18-bcaa-286b18b06692",
-            "runtime": "nodejs8.10"
+            "runtime": "nodejs10.x"
           }
         ]
       }
