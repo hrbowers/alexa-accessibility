@@ -23,7 +23,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "123fc937-2bab-49e8-9387-a1a8592ccfb4",
+            "revisionId": "6ba345b8-0165-4e2d-a10a-f32eca2eb0bc",
             "runtime": "nodejs10.x"
           }
         ]
