@@ -14,6 +14,7 @@ const LaunchRequestHandler = {
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
         sessionAttributes.singleAnswerEntry = 'false';
+        sessionAttributes.POAFlag = 'false';
 
         //Get test account status
         return dbHelper.getTestValue()
@@ -37,6 +38,7 @@ const LaunchRequestHandler = {
             }
             
             if(status === 1){
+                sessionAttributes.POAFlag = 'true';
                 speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
                     Would you like to fill out the plan of action now?"
             }else if(status === 2){
@@ -231,11 +233,19 @@ const YesIntentHandler = {
                 .speak(speechOutput)
                 .getResponse();            
         }
+
+        //Prompt for self-reinstatment
+        else if((prevIntent === 'LaunchRequest' 
+                    || prevIntent === 'startOver')
+                        &&sessionAttributes.POAFlag === 'false'){
+            speechOutput = 'Begin self-reinstatement';
+        }
    
         // Prompt for Question 1
         else if ((prevIntent === 'LaunchRequest' 
                     || prevIntent === 'startOver') 
-                        && sessionAttributes.singleAnswerEntry === 'false') {
+                        && sessionAttributes.singleAnswerEntry === 'false'
+                            && sessionAttributes.POAFlag === 'true') {
             
           reprompt = responses.reprompt() + "What is the root cause of the issue?";         
            
