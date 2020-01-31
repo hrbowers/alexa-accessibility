@@ -60,4 +60,28 @@ dbConnect.prototype.getTestValue = () => {
     });
 }
 
+dbConnect.prototype.updateStatus = (status) => {
+    return new Promise((resolve,reject) => {
+        const params ={
+            TableName: 'sample-account-status',
+            Key: {
+                'accountId':1
+            },
+            UpdateExpression: "set statusCode = :s",
+            ExpressionAttributeValues:{
+                ":s":status
+            }
+        }
+
+        docClient.update(params,(err,data) => {
+            if(err) {
+                console.error("Error updating: ", JSON.stringify(err,null,2));
+                return reject(JSON.stringify(err,null,2))
+            }
+            console.log("Update successful: ",JSON.stringify(data));
+            resolve(data)
+        })
+    });
+}
+
 module.exports = new dbConnect();
