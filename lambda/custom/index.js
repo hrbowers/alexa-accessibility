@@ -465,29 +465,47 @@ const HelpIntentHandler = {
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var prev = sessionAttributes.previousIntent;
         var speakOutput = '';
 
-        switch(sessionAttributes.previousIntent){
-            case 'Continue':
-                speakOutput = 'Please explain why this issue happened.  \
-                    You can say things like, the reason this happened was, or the root cause was.  \
-                        What is the root cause of the issue?';
-                break;
-            case 'GoToActionTaken':
-                speakOutput = 'Please explain how you fixed the issue.  \
-                    You can say things like, I fixed this by, or the steps I took were.  \
-                        How have you fixed the issue?';
-                break;
-            case 'GoToStepsTaken':
-                speakOutput = 'Please explain how you have prevented this from happening again.  \
-                    You can say things like, going forward I will, or I plan to.  \
-                        How will you prevent this issue from happening again?';
-                break;
-            default:
+        if(prev === 'Continue'){
+            speakOutput = 'Please explain why this issue happened.  \
+                            You can say things like, the reason this happened was, or the root cause was.  \
+                            What is the root cause of the issue?';
+        }else if(prev === 'GoToActionTaken'){
+            speakOutput = 'Please explain how you fixed the issue.  \
+                            You can say things like, I fixed this by, or the steps I took were.  \
+                            How have you fixed the issue?';
+        }else if(prev === 'GoToStepsTaken'){
+            speakOutput = 'Please explain how you have prevented this from happening again.  \
+                            You can say things like, going forward I will, or I plan to.  \
+                            How will you prevent this issue from happening again?';
+        }else if(prev === 'LaunchRequest'){
+            if(sessionAttributes.POAFlag === 'true'){
                 speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
-                    what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
-                        I will guide you through each question.  Are you ready to start now?';
-        }        
+                                what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
+                                I will guide you through each question.  Are you ready to start now?';
+            }else{
+                speakOutput = 'To complete the self-reinstatement process, you must agree that you understand the violated policy,\
+                                agree that you have identified why the policy was violated and taken steps to prevent further violations,\
+                                and indicate you understand further violations could result in permanent loss of selling privileges.\
+                                Simply say yes when prompted to indicate your understanding and agreement.  Are you ready to begin?';
+            }
+        }else if(prev === 'self1' || prev === 'self2' || prev === 'self3' || prev === 'self4'){
+            speakOutput = 'Simply say yes to indicate your understanding and agreement.  If you do not agree with or understand the statement, say no\
+                            to leave your account suspended and end the self-reinstatement process.';
+            
+            if(prev === 'self1'){
+                speakOutput += ' Do you understand the violated policy?';
+            }else if(prev === 'self2'){
+                speakOutput += ' Have you identified why the policy was violated and taken steps to prevent further violations?';
+            }else if(prev === 'self3'){
+                speakOutput += ' Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations\
+                                of shopping on Amazon?';
+            }else{
+                speakOutput += ' Do you understand that further violations could result in a permanent loss of your selling privileges?'
+            }
+        }
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
