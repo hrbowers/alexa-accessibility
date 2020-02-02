@@ -2,6 +2,15 @@
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
+var questions = [
+    "Great, let's get started. What is the root cause of the issue? You can say things like,\
+the reason was, or the issue was.", 
+    "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
+or the steps I took were.", 
+    "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
+or I have prevented this by."
+];
+
 
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
