@@ -11,7 +11,6 @@ or the steps I took were.",
 or I have prevented this by."
 ];
 
-
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
@@ -496,7 +495,7 @@ const HelpIntentHandler = {
                                 I will guide you through each question.  Are you ready to start now?';
             }else{
                 speakOutput = 'To complete the self-reinstatement process, you must agree that you understand the violated policy,\
-                                agree that you have identified why the policy was violated and taken steps to prevent further violations,\
+                                agree that you have identified why the policy was violated and have taken steps to prevent further violations,\
                                 and indicate you understand further violations could result in permanent loss of selling privileges.\
                                 Simply say yes when prompted to indicate your understanding and agreement.  Are you ready to begin?';
             }
@@ -589,6 +588,18 @@ const FallbackIntentHandler = {
         var speakOutput = responses.reprompt();
 
         switch(sessionAttributes.previousIntent){
+            case 'self1':
+                speakOutput += ' Do you understand the violated policy?';
+                break;
+            case 'self2':
+                speakOutput += ' Have you identified the cause of your policy violation and taken steps to prevent this issue from happening again?';
+                break;
+            case 'self3':
+                speakOutput += ' Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations of shopping on Amazon?';
+                break;
+            case 'self4':
+                speakOutput += ' Do you understand that further violations could result in a permanent loss of your selling privileges?';
+                break;
             case 'Continue':
                 speakOutput += ' Please explain why this issue happened.\
                     You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
@@ -610,7 +621,11 @@ const FallbackIntentHandler = {
                 speakOutput += ' The steps you have taken to prevent further issues are ' + sessionAttributes.qst3 + '. Is this correct?';
                 break;    
             case 'LaunchRequest':
-                speakOutput += ' Are you ready to begin the appeal process?';
+                if(sessionAttributes.POAFlag === 'true'){
+                    speakOutput += ' Are you ready to fill out your plan of action?';
+                }else{
+                    speakOutput += ' Are you ready to complete the self-reinstatment process?';
+                }
                 break;
             case 'finish':
                 speakOutput += ' Are you satisfied with your appeal entry?';
