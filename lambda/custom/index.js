@@ -14,21 +14,55 @@ const LaunchRequestHandler = {
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
         sessionAttributes.singleAnswerEntry = 'false';
+        sessionAttributes.POAFlag = 'false';
 
-        const speakOutput = 'Welcome to the appeal process. Are you ready to begin?';
+        //Get test account status
+        return dbHelper.getTestValue()
+        .then((data)=>{
+            console.log(data, typeof(data));
+            var speakOutput = '';
+            var status = data.Item.statusCode;
 
-        //TODO
-        /**
-         * repromptText is meant to be called if the user responsed with an undefined answer.
-         * However, It is not fully implemented yet.
-         * It can come to this, but, only after a second bad response.
-         * */
+            if (data.length == 0) {
+                speakOutput = "No account information available";
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            }
 
-        const repromptText = responses.reprompt() + 'Would you like to begin? Answer with yes, or no.';
-        return handlerInput.responseBuilder
+            if(status === -1){
+                speakOutput = 'There was an error getting your account status';
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            }
+            
+            if(status === 1){
+                sessionAttributes.POAFlag = 'true';
+                speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
+                    Would you like to fill out the plan of action now?"
+            }else if(status === 2){
+                speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
+                    Would you like to begin the process now?"
+            }else{
+                speakOutput = 'Your account is in good standing and does not need attention at this time.'
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            }
+            
+            return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt(repromptText)
+            .reprompt()
             .getResponse();
+        })
+        .catch((err)=>{
+            console.log("Error occured while getting data", err);
+            var speakOutput = 'Error getting status';
+            return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .getResponse();
+        })        
     }
 };
 
@@ -199,11 +233,19 @@ const YesIntentHandler = {
                 .speak(speechOutput)
                 .getResponse();            
         }
+
+        //Prompt for self-reinstatment
+        else if((prevIntent === 'LaunchRequest' 
+                    || prevIntent === 'startOver')
+                        &&sessionAttributes.POAFlag === 'false'){
+            speechOutput = 'Begin self-reinstatement';
+        }
    
         // Prompt for Question 1
         else if ((prevIntent === 'LaunchRequest' 
                     || prevIntent === 'startOver') 
-                        && sessionAttributes.singleAnswerEntry === 'false') {
+                        && sessionAttributes.singleAnswerEntry === 'false'
+                            && sessionAttributes.POAFlag === 'true') {
             
           reprompt = responses.reprompt() + "What is the root cause of the issue?";         
            
@@ -586,3 +628,5 @@ exports.handler = skillBuilder
                 return false;
             })      
     }
+
+    
