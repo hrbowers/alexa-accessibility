@@ -234,14 +234,55 @@ const YesIntentHandler = {
                 .getResponse();            
         }
 
-        //Prompt for self-reinstatment
+        //Prompt for self-reinstatment 1 of 4
         else if((prevIntent === 'LaunchRequest' 
                     || prevIntent === 'startOver')
                         &&sessionAttributes.POAFlag === 'false'){
-            speechOutput = 'Begin self-reinstatement';
+            speechOutput = 'In order to reactivate your account, please confirm your agreement and understanding of the following statements by saying yes. \
+                Do you understand the violated policy?';
+                sessionAttributes.previousIntent = 'self1';
         }
+
+        //Prompt for self-reinstatment 2 of 4
+        else if(prevIntent === 'self1'){
+            speechOutput = 'Have you identified the cause of your policy violation and taken steps to prevent this issue from happening again?';
+            sessionAttributes.previousIntent = 'self2';
+        }
+
+        //Prompt for self-reinstatment 3 of 4
+        else if(prevIntent === 'self2'){
+            speechOutput = 'Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations of shopping on Amazon?';
+            sessionAttributes.previousIntent = 'self3';
+        }
+
+        //Prompt for self-reinstatment 4 of 4
+        else if(prevIntent === 'self3'){
+            speechOutput = 'Do you understand that further violations could result in a permanent loss of your selling privileges?';
+            sessionAttributes.previousIntent = 'self4';
+        }
+
+        //Complete self-reinstatement and set account status back to 0 (all clear)
+        else if(prevIntent === 'self4'){           
+            return dbHelper.updateStatus(0)
+            .then((data) => {
+                console.log(data);
+                speechOutput = 'Thank you for completeing the self-reinstatement process. Your account should be reactivated shortly.';
+                //Output message and don't reprompt to exit skill
+                return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .getResponse();
+            })
+            .catch((err)=>{
+                console.log("Error occured while updating", err);
+                var speakOutput = 'Error updating status';
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            }) 
+        }
+        
    
-        // Prompt for Question 1
+        // Prompt for POA Question 1 of 3
         else if ((prevIntent === 'LaunchRequest' 
                     || prevIntent === 'startOver') 
                         && sessionAttributes.singleAnswerEntry === 'false'
@@ -274,14 +315,14 @@ const YesIntentHandler = {
             sessionAttributes.previousIntent = 'Continue';
         }
 
-        // Prompt for Question 2 Action Taken
+        // Prompt for Question 2 of 3 Action Taken
         else if (prevIntent === 'RootCause' && sessionAttributes.singleAnswerEntry === 'false') {        	        	
             speechOutput = "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
                 or the steps I took were.";            
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
-        // Prompt for Question 3 Steps Taken
+        // Prompt for Question 3 of 3 Steps Taken
         else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){            
             speechOutput = "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
                 or I have prevented this by.";
@@ -322,8 +363,25 @@ const NoIntentHandler = {
 	        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 	        var prevIntent = sessionAttributes.previousIntent;
             
+            //If a no response is received during self-reinstatement, cancel process with
+            //appropriate message
+            if(prevIntent === 'self1' ||
+                        prevIntent === 'self2' ||
+                            prevIntent === 'self3' ||
+                                prevIntent === 'self4'){
+                speechOutput = "to complete the self-reinstatement process, you must understand the violated policy,\
+                                Identify why the policy was violated, take steps to prevent further violations,\
+                                and acknowledge that further violations could result in permanent loss of selling privileges.\
+                                Your account will remain suspended until the self-reinstatement process is completed.  Goodbye."
+                                
+                //Exit point at skill end
+                return handlerInput.responseBuilder
+	            .speak(speechOutput)
+                .getResponse();
+            }
+
             //Prompt for re-entry of question 1
-	        if (prevIntent === 'RootCause') {
+	        else if (prevIntent === 'RootCause') {
 	            
 	        	speechOutput = responses.startOver() + "What was the root cause of your issue?";
 	            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
@@ -407,29 +465,47 @@ const HelpIntentHandler = {
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var prev = sessionAttributes.previousIntent;
         var speakOutput = '';
 
-        switch(sessionAttributes.previousIntent){
-            case 'Continue':
-                speakOutput = 'Please explain why this issue happened.  \
-                    You can say things like, the reason this happened was, or the root cause was.  \
-                        What is the root cause of the issue?';
-                break;
-            case 'GoToActionTaken':
-                speakOutput = 'Please explain how you fixed the issue.  \
-                    You can say things like, I fixed this by, or the steps I took were.  \
-                        How have you fixed the issue?';
-                break;
-            case 'GoToStepsTaken':
-                speakOutput = 'Please explain how you have prevented this from happening again.  \
-                    You can say things like, going forward I will, or I plan to.  \
-                        How will you prevent this issue from happening again?';
-                break;
-            default:
+        if(prev === 'Continue'){
+            speakOutput = 'Please explain why this issue happened.  \
+                            You can say things like, the reason this happened was, or the root cause was.  \
+                            What is the root cause of the issue?';
+        }else if(prev === 'GoToActionTaken'){
+            speakOutput = 'Please explain how you fixed the issue.  \
+                            You can say things like, I fixed this by, or the steps I took were.  \
+                            How have you fixed the issue?';
+        }else if(prev === 'GoToStepsTaken'){
+            speakOutput = 'Please explain how you have prevented this from happening again.  \
+                            You can say things like, going forward I will, or I plan to.  \
+                            How will you prevent this issue from happening again?';
+        }else if(prev === 'LaunchRequest'){
+            if(sessionAttributes.POAFlag === 'true'){
                 speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
-                    what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
-                        I will guide you through each question.  Are you ready to start now?';
-        }        
+                                what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
+                                I will guide you through each question.  Are you ready to start now?';
+            }else{
+                speakOutput = 'To complete the self-reinstatement process, you must agree that you understand the violated policy,\
+                                agree that you have identified why the policy was violated and taken steps to prevent further violations,\
+                                and indicate you understand further violations could result in permanent loss of selling privileges.\
+                                Simply say yes when prompted to indicate your understanding and agreement.  Are you ready to begin?';
+            }
+        }else if(prev === 'self1' || prev === 'self2' || prev === 'self3' || prev === 'self4'){
+            speakOutput = 'Simply say yes to indicate your understanding and agreement.  If you do not agree with or understand the statement, say no\
+                            to leave your account suspended and end the self-reinstatement process.';
+            
+            if(prev === 'self1'){
+                speakOutput += ' Do you understand the violated policy?';
+            }else if(prev === 'self2'){
+                speakOutput += ' Have you identified why the policy was violated and taken steps to prevent further violations?';
+            }else if(prev === 'self3'){
+                speakOutput += ' Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations\
+                                of shopping on Amazon?';
+            }else{
+                speakOutput += ' Do you understand that further violations could result in a permanent loss of your selling privileges?'
+            }
+        }
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
