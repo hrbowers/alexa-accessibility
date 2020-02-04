@@ -23,6 +23,8 @@ const LaunchRequestHandler = {
         sessionAttributes.previousIntent = 'LaunchRequest';
         sessionAttributes.singleAnswerEntry = 'false';
         sessionAttributes.POAFlag = 'false';
+        sessionAttributes.reply = 'false';
+        sessionAttributes.poaId = 0;
 
         //Get test account status
         return dbHelper.getTestValue()
@@ -30,6 +32,8 @@ const LaunchRequestHandler = {
             console.log(data, typeof(data));
             var speakOutput = '';
             var status = data.Item.statusCode;
+            var poaId = data.Item.poaId;
+            
 
             if (data.length == 0) {
                 speakOutput = "No account information available";
@@ -52,6 +56,11 @@ const LaunchRequestHandler = {
             }else if(status === 2){
                 speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
                     Would you like to begin the process now?"
+            }else if(status === 4){
+                sessionAttributes.reply = 'true';
+                sessionAttributes.poaId = poaId;
+                speakOutput = "Your account is under review for reinstatment.  Is there more information \
+                    you would like to add to your plan of action?"
             }else{
                 speakOutput = 'Your account is in good standing and does not need attention at this time.'
                 return handlerInput.responseBuilder
@@ -253,6 +262,13 @@ const YesIntentHandler = {
             return handlerInput.responseBuilder
                 .speak(speechOutput)
                 .getResponse();            
+        }
+
+        //TODO: Implement the reply process and update the POA with the new information.
+        //Prompt from this point.
+        //Prompt for reply
+        else if(prevIntent === 'LaunchRequest' && sessionAttributes.reply === 'true'){
+            speechOutput = `Adding information to plan of action number ${sessionAttributes.poaId}`;
         }
 
         //Prompt for self-reinstatment 1 of 4

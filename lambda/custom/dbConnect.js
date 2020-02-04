@@ -67,7 +67,7 @@ dbConnect.prototype.updateStatus = (status,poaId) => {
             Key: {
                 'accountId':1
             },
-            UpdateExpression: "set statusCode = :s, poaID = :id",
+            UpdateExpression: "set statusCode = :s, poaId = :id",
             ExpressionAttributeValues:{
                 ":s":status,
                 ":id":poaId
