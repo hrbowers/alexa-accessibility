@@ -70,7 +70,7 @@ dbConnect.prototype.updateStatus = (status,poaId) => {
             UpdateExpression: "set statusCode = :s, poaID = :id",
             ExpressionAttributeValues:{
                 ":s":status,
-                ":id":poaID
+                ":id":poaId
             }
         }
 

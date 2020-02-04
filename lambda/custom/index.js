@@ -284,7 +284,7 @@ const YesIntentHandler = {
 
         //Complete self-reinstatement and set account status back to 0 (all clear)
         else if(prevIntent === 'self4'){           
-            return dbHelper.updateStatus(0,null)
+            return dbHelper.updateStatus(0,'noPOA')
             .then((data) => {
                 console.log("Update at self ",data);
                 speechOutput = 'Thank you for completeing the self-reinstatement process. Your account should be reactivated shortly.';
