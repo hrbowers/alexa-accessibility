@@ -220,12 +220,25 @@ const YesIntentHandler = {
             let dbSave = saveAppeal(id,d1,d2,d3);
 
             if(dbSave){
-                speechOutput = responses.completion();
+                
+                return dbHelper.updateStatus(4,id)
+                .then((data) =>{
+                    console.log("Update at POA ",data);
+                    speechOutput = responses.completion();
 
-                //Exit point at end of skill
-                return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .getResponse();
+                    //Exit point at end of skill
+                    return handlerInput.responseBuilder
+                    .speak(speechOutput)
+                    .getResponse();
+                })
+                .catch((err)=>{
+                    console.log("Error occured while updating", err);
+                    var speakOutput = 'Error updating status';
+                    return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .getResponse();
+                })
+                
 
             }else{
                 speechOutput = responses.dbFail();
@@ -271,9 +284,9 @@ const YesIntentHandler = {
 
         //Complete self-reinstatement and set account status back to 0 (all clear)
         else if(prevIntent === 'self4'){           
-            return dbHelper.updateStatus(0)
+            return dbHelper.updateStatus(0,null)
             .then((data) => {
-                console.log(data);
+                console.log("Update at self ",data);
                 speechOutput = 'Thank you for completeing the self-reinstatement process. Your account should be reactivated shortly.';
                 //Output message and don't reprompt to exit skill
                 return handlerInput.responseBuilder
