@@ -85,4 +85,28 @@ dbConnect.prototype.updateStatus = (status,poaId) => {
     });
 }
 
+dbConnect.prototype.updatePOA = (poaId,reply) => {
+    return new Promise((resolve,reject) => {
+        const params = {
+            TableName: 'poa-storage',
+            Key: {
+                'poaId':poaId
+            },
+            UpdateExpression: "set reply = :r",
+            ExpressionAttributeValues:{
+                ":r":reply
+            }
+        }
+
+        docClient.update(params,(err,data) => {
+            if(err){
+                console.error("Error updating: ", JSON.stringify(err));
+                return reject(JSON.stringify(err));
+            }
+            console.log("Update OK: ",JSON.stringify(data))
+            resolve(data);
+        })
+    });
+}
+
 module.exports = new dbConnect();

@@ -59,8 +59,9 @@ const LaunchRequestHandler = {
             }else if(status === 4){
                 sessionAttributes.reply = 'true';
                 sessionAttributes.poaId = poaId;
-                speakOutput = "Your account is under review for reinstatment.  Is there more information \
-                    you would like to add to your plan of action?"
+                speakOutput = "Your account is under review for reinstatment.  You can add additional information \
+                    to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
+                    action unchanged."
             }else{
                 speakOutput = 'Your account is in good standing and does not need attention at this time.'
                 return handlerInput.responseBuilder
@@ -80,6 +81,42 @@ const LaunchRequestHandler = {
             .speak(speakOutput)
             .getResponse();
         })        
+    }
+};
+
+const ReplyHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Reply'
+    },
+    async handle(handlerInput) {        
+        const attributesManager = handlerInput.attributesManager;
+        const sessionAttributes = attributesManager.getSessionAttributes();
+        const current = handlerInput.requestEnvelope.request.intent;
+        sessionAttributes.previousIntent = 'Reply';
+
+        if(handlerInput.requestEnvelope.request.dialogState === 'COMPLETED'){
+            return dbHelper.updatePOA(sessionAttributes.poaId,current.slots.Query.value)
+            .then((data) => {
+                console.log(data, typeof(data));
+                var speakOutput = 'Your plan of action was successfully updated. Please wait to hear back from Amazon regarding the status of your account reinstatement.';
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            })
+            .catch((err) => {
+                console.log("Error occured while updating", err);
+            var speakOutput = 'Error updating';
+            return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .getResponse();
+            })
+
+        }else{
+            return handlerInput.responseBuilder
+            .addDelegateDirective()
+            .getResponse();
+        }
     }
 };
 
@@ -727,6 +764,7 @@ const skillBuilder = Alexa.SkillBuilders.standard();
 exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
+        ReplyHandler,
         RootCauseHandler,
         ActionTakenHandler,
         StepsTakenHandler,
