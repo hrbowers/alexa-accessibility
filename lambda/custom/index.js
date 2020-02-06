@@ -3,6 +3,19 @@ const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
 
+/* Arrays of different phrases to make dialogue more natural and engaging */
+const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
+                    'How did this issue originate?', 'Please explain the cause of your issues.'];
+
+/* Helper function to select phrases at random */                
+function randomPhrase(myData){
+
+    var i = 0;
+    i = Math.floor(Math.random() * myData.length);
+    return(myData[i]);
+}
+
+
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
@@ -165,9 +178,6 @@ const YesIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prevIntent = sessionAttributes.previousIntent;
 
-        const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
-                            'How did this issue originate?'];
-
         //Check if finished first.
         //Finish and save to dynamo
         if (prevIntent === 'finish'){
@@ -226,9 +236,9 @@ const YesIntentHandler = {
             
             //If starting over, output appropriate response
             if(prevIntent === 'startOver') {                
-                speechOutput = responses.startOver() + 'What is the root cause of the issue?';
+                speechOutput = responses.startOver() + randomPhrase(rootPrompts);
             } else {                
-                speechOutput = "Great, let's get started. What is the root cause of the issue? You can say things like,\
+                speechOutput = "Great, let's get started. " + randomPhrase(rootPrompts) + " You can say things like,\
                     the reason was, or the issue was.";            	
             }
 
