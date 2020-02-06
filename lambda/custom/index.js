@@ -165,6 +165,9 @@ const YesIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prevIntent = sessionAttributes.previousIntent;
 
+        const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
+                            'How did this issue originate?'];
+
         //Check if finished first.
         //Finish and save to dynamo
         if (prevIntent === 'finish'){
@@ -205,7 +208,7 @@ const YesIntentHandler = {
                     || prevIntent === 'startOver') 
                         && sessionAttributes.singleAnswerEntry === 'false') {
             
-          reprompt = responses.reprompt() + "What is the root cause of the issue?";         
+          reprompt = responses.reprompt() + rootPrompts/*"What is the root cause of the issue?"*/;         
            
           //retrieve id number from persistence, increment, and save new increment
           //back to persistence for next item.
