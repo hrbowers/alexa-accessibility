@@ -2,11 +2,17 @@
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
+
+
+/* Array of questions for each step in the Plan of Action */
 var questions = [
+    //Root cause
     "Great, let's get started. What is the root cause of the issue? You can say things like,\
 the reason was, or the issue was.", 
+    //Action taken
     "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
 or the steps I took were.", 
+    //Prevention
     "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
 or I have prevented this by."
 ];
@@ -15,9 +21,17 @@ var i = 0;
 
 
 
-/* Arrays of different phrases to make dialogue more natural and engaging */
+/* Arrays of different phrases to make dialogue more natural and engaging for Root Cause */
 const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
                     'How did this issue originate?', 'Please explain the cause of your issues.'];
+
+/* Arrays of different phrases to make dialogue more natural and engaging for Steps Taken */
+const actionPrompts = ['Please explain the steps you have taken to resolve the issue.',
+                        'What actions have you taken to resolve the issue?', 'How did you handle the issue?']
+
+/* Arrays of different phrases to make dialogue more natural and engaging for Prevention */
+const preventPrompts = ['Please explain how you will prevent this issue from happening in the future.',
+                        'How will you prevent this from happening again?', 'What will you do to ensure this does not happen again?']
 
 /* Helper function to select phrases at random */                
 function randomPhrase(myData){
@@ -28,7 +42,8 @@ function randomPhrase(myData){
 }
 
 
-
+/* Skill initiation handler, determines status of account
+ * and responds to user accordingly */
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
@@ -154,7 +169,7 @@ const ActionTakenHandler = {
         const speechOutput = "The steps you have taken are " + sessionAttributes.qst2 +
             ". Is this correct?";
 
-        const repromptText = "Please explain the steps you have taken to resolve the issue." +
+        const repromptText = randomPhrase(actionPrompts) +
         "Start by saying, the steps I took were... or, I fixed this by, followed by your response.";
 
         return handlerInput.responseBuilder
@@ -190,7 +205,7 @@ const StepsTakenHandler = {
         const speechOutput = "The steps you have taken to prevent further issues are "
         + sessionAttributes.qst3 + ". Is this correct?";
 
-        const repromptText = "Please explain how you will prevent this issue from happening again." +
+        const repromptText = randomPhrase(preventPrompts) +
         "Start by saying, going forward... or, in the future... followed by your response."
 
         return handlerInput.responseBuilder
@@ -345,7 +360,7 @@ const YesIntentHandler = {
             
             //If starting over, output appropriate response
             if(prevIntent === 'startOver') {    
-                speechOutput = responses.startOver() + 'randomPhrase(rootPrompts)';
+                speechOutput = responses.startOver() + randomPhrase(rootPrompts);
                  // Set 'i' be the second question.
                  i = 1; 
             } else {                
@@ -430,7 +445,7 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 2
             else if (prevIntent === 'ActionTaken') {
 	        	
-	        	speechOutput = responses.startOver() + "How did you resolve your issue?";
+	        	speechOutput = responses.startOver() + randomPhrase(actionPrompts);
 	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";       	
 
 	        	sessionAttributes.previousIntent = 'noActionTaken';        
@@ -439,7 +454,7 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 3
             else if(prevIntent === 'StepsTaken'){
                 
-                speechOutput = responses.startOver() + "How will you prevent this issue from happening again?";
+                speechOutput = responses.startOver() + randomPhrase(preventPrompts);
 	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	        	
 	        	sessionAttributes.previousIntent = 'noStepsTaken';
@@ -506,24 +521,31 @@ const HelpIntentHandler = {
         var prev = sessionAttributes.previousIntent;
         var speakOutput = '';
 
+        //Root cause
         if(prev === 'Continue'){
-            speakOutput = speakOutput = randomPhrase(rootPrompts)  + '\
+            speakOutput = randomPhrase(rootPrompts)  + '\
                     You can say things like, the reason this happened was, or the root cause was.  \
                         What is the root cause of the issue?';        }
+        //Action taken
         else if(prev === 'GoToActionTaken'){
-            speakOutput = 'Please explain how you fixed the issue.  \
+            speakOutput = randomPhrase(actionPrompts) + '\
                             You can say things like, I fixed this by, or the steps I took were.  \
                             How have you fixed the issue?';
+        //Prevention
         }else if(prev === 'GoToStepsTaken'){
-            speakOutput = 'Please explain how you have prevented this from happening again.  \
+            speakOutput = randomPhrase(preventPrompts) + '\
                             You can say things like, going forward I will, or I plan to.  \
                             How will you prevent this issue from happening again?';
-        }else if(prev === 'LaunchRequest'){
+        }
+        //Plan of action first step
+        else if(prev === 'LaunchRequest'){
             if(sessionAttributes.POAFlag === 'true'){
                 speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
                                 what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
                                 I will guide you through each question.  Are you ready to start now?';
-            }else{
+            }
+            //Self reinstatement
+            else{
                 speakOutput = 'To complete the self-reinstatement process, you must agree that you understand the violated policy,\
                                 agree that you have identified why the policy was violated and have taken steps to prevent further violations,\
                                 and indicate you understand further violations could result in permanent loss of selling privileges.\
