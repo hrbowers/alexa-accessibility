@@ -11,6 +11,8 @@ or the steps I took were.",
 or I have prevented this by."
 ];
 
+var i = 0;
+
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
@@ -326,11 +328,12 @@ const YesIntentHandler = {
             }
             
             //If starting over, output appropriate response
-            if(prevIntent === 'startOver') {                
+            if(prevIntent === 'startOver') {    
                 speechOutput = responses.startOver() + 'What is the root cause of the issue?';
+                 // Set 'i' be the second question.
+                 i = 1; 
             } else {                
-                speechOutput = "Great, let's get started. What is the root cause of the issue? You can say things like,\
-                    the reason was, or the issue was.";            	
+                speechOutput = questions[i++];            	
             }
 
             sessionAttributes.previousIntent = 'Continue';
@@ -338,15 +341,13 @@ const YesIntentHandler = {
 
         // Prompt for Question 2 of 3 Action Taken
         else if (prevIntent === 'RootCause' && sessionAttributes.singleAnswerEntry === 'false') {        	        	
-            speechOutput = "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
-                or the steps I took were.";            
+            speechOutput = questions[i++];            
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
         // Prompt for Question 3 of 3 Steps Taken
         else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){            
-            speechOutput = "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
-                or I have prevented this by.";
+            speechOutput = questions[i++];
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
