@@ -13,6 +13,22 @@ or I have prevented this by."
 
 var i = 0;
 
+
+
+/* Arrays of different phrases to make dialogue more natural and engaging */
+const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
+                    'How did this issue originate?', 'Please explain the cause of your issues.'];
+
+/* Helper function to select phrases at random */                
+function randomPhrase(myData){
+
+    var i = 0;
+    i = Math.floor(Math.random() * myData.length);
+    return(myData[i]);
+}
+
+
+
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
@@ -102,7 +118,7 @@ const RootCauseHandler = {
         const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
             ". Is this correct?";
 
-        const repromptText = "Please explain the root cause of the issue. Start by saying, the root cause was..."
+        const repromptText =  randomPhrase(rootPrompts) + "Start by saying, the root cause was..."
         + " or, the reason this happened, followed by your response."
 
         return handlerInput.responseBuilder
@@ -311,7 +327,7 @@ const YesIntentHandler = {
                         && sessionAttributes.singleAnswerEntry === 'false'
                             && sessionAttributes.POAFlag === 'true') {
             
-          reprompt = responses.reprompt() + "What is the root cause of the issue?";         
+          reprompt = responses.reprompt() + randomPhrase(rootPrompts);         
            
           //retrieve id number from persistence, increment, and save new increment
           //back to persistence for next item.
@@ -329,11 +345,11 @@ const YesIntentHandler = {
             
             //If starting over, output appropriate response
             if(prevIntent === 'startOver') {    
-                speechOutput = responses.startOver() + 'What is the root cause of the issue?';
+                speechOutput = responses.startOver() + 'randomPhrase(rootPrompts)';
                  // Set 'i' be the second question.
                  i = 1; 
             } else {                
-                speechOutput = questions[i++];            	
+                speechOutput = questions[i++];      
             }
 
             sessionAttributes.previousIntent = 'Continue';
@@ -405,7 +421,7 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 1
 	        else if (prevIntent === 'RootCause') {
 	            
-	        	speechOutput = responses.startOver() + "What was the root cause of your issue?";
+	        	speechOutput = responses.startOver() + randomPhrase(rootPrompts);
 	            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	            
 	            sessionAttributes.previousIntent = 'noContinue';	        	         
@@ -491,10 +507,10 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
         if(prev === 'Continue'){
-            speakOutput = 'Please explain why this issue happened.  \
-                            You can say things like, the reason this happened was, or the root cause was.  \
-                            What is the root cause of the issue?';
-        }else if(prev === 'GoToActionTaken'){
+            speakOutput = speakOutput = randomPhrase(rootPrompts)  + '\
+                    You can say things like, the reason this happened was, or the root cause was.  \
+                        What is the root cause of the issue?';        }
+        else if(prev === 'GoToActionTaken'){
             speakOutput = 'Please explain how you fixed the issue.  \
                             You can say things like, I fixed this by, or the steps I took were.  \
                             How have you fixed the issue?';
