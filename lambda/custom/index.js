@@ -2,6 +2,17 @@
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
+var questions = [
+    "Great, let's get started. What is the root cause of the issue? You can say things like,\
+the reason was, or the issue was.", 
+    "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
+or the steps I took were.", 
+    "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
+or I have prevented this by."
+];
+
+var i = 0;
+
 
 /* Arrays of different phrases to make dialogue more natural and engaging */
 const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
@@ -27,21 +38,55 @@ const LaunchRequestHandler = {
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'LaunchRequest';
         sessionAttributes.singleAnswerEntry = 'false';
+        sessionAttributes.POAFlag = 'false';
 
-        const speakOutput = 'Welcome to the appeal process. Are you ready to begin?';
+        //Get test account status
+        return dbHelper.getTestValue()
+        .then((data)=>{
+            console.log(data, typeof(data));
+            var speakOutput = '';
+            var status = data.Item.statusCode;
 
-        //TODO
-        /**
-         * repromptText is meant to be called if the user responsed with an undefined answer.
-         * However, It is not fully implemented yet.
-         * It can come to this, but, only after a second bad response.
-         * */
+            if (data.length == 0) {
+                speakOutput = "No account information available";
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            }
 
-        const repromptText = responses.reprompt() + 'Would you like to begin? Answer with yes, or no.';
-        return handlerInput.responseBuilder
+            if(status === -1){
+                speakOutput = 'There was an error getting your account status';
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            }
+            
+            if(status === 1){
+                sessionAttributes.POAFlag = 'true';
+                speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
+                    Would you like to fill out the plan of action now?"
+            }else if(status === 2){
+                speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
+                    Would you like to begin the process now?"
+            }else{
+                speakOutput = 'Your account is in good standing and does not need attention at this time.'
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            }
+            
+            return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt(repromptText)
+            .reprompt()
             .getResponse();
+        })
+        .catch((err)=>{
+            console.log("Error occured while getting data", err);
+            var speakOutput = 'Error getting status';
+            return handlerInput.responseBuilder
+            .speak(speakOutput)
+            .getResponse();
+        })        
     }
 };
 
@@ -212,11 +257,60 @@ const YesIntentHandler = {
                 .speak(speechOutput)
                 .getResponse();            
         }
+
+        //Prompt for self-reinstatment 1 of 4
+        else if((prevIntent === 'LaunchRequest' 
+                    || prevIntent === 'startOver')
+                        &&sessionAttributes.POAFlag === 'false'){
+            speechOutput = 'In order to reactivate your account, please confirm your agreement and understanding of the following statements by saying yes. \
+                Do you understand the violated policy?';
+                sessionAttributes.previousIntent = 'self1';
+        }
+
+        //Prompt for self-reinstatment 2 of 4
+        else if(prevIntent === 'self1'){
+            speechOutput = 'Have you identified the cause of your policy violation and taken steps to prevent this issue from happening again?';
+            sessionAttributes.previousIntent = 'self2';
+        }
+
+        //Prompt for self-reinstatment 3 of 4
+        else if(prevIntent === 'self2'){
+            speechOutput = 'Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations of shopping on Amazon?';
+            sessionAttributes.previousIntent = 'self3';
+        }
+
+        //Prompt for self-reinstatment 4 of 4
+        else if(prevIntent === 'self3'){
+            speechOutput = 'Do you understand that further violations could result in a permanent loss of your selling privileges?';
+            sessionAttributes.previousIntent = 'self4';
+        }
+
+        //Complete self-reinstatement and set account status back to 0 (all clear)
+        else if(prevIntent === 'self4'){           
+            return dbHelper.updateStatus(0)
+            .then((data) => {
+                console.log(data);
+                speechOutput = 'Thank you for completeing the self-reinstatement process. Your account should be reactivated shortly.';
+                //Output message and don't reprompt to exit skill
+                return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .getResponse();
+            })
+            .catch((err)=>{
+                console.log("Error occured while updating", err);
+                var speakOutput = 'Error updating status';
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+            }) 
+        }
+        
    
-        // Prompt for Question 1
+        // Prompt for POA Question 1 of 3
         else if ((prevIntent === 'LaunchRequest' 
                     || prevIntent === 'startOver') 
-                        && sessionAttributes.singleAnswerEntry === 'false') {
+                        && sessionAttributes.singleAnswerEntry === 'false'
+                            && sessionAttributes.POAFlag === 'true') {
             
           reprompt = responses.reprompt() + randomPhrase(rootPrompts);         
            
@@ -235,27 +329,26 @@ const YesIntentHandler = {
             }
             
             //If starting over, output appropriate response
-            if(prevIntent === 'startOver') {                
-                speechOutput = responses.startOver() + randomPhrase(rootPrompts);
+            if(prevIntent === 'startOver') {    
+                speechOutput = responses.startOver() + 'randomPhrase(rootPrompts)';
+                 // Set 'i' be the second question.
+                 i = 1; 
             } else {                
-                speechOutput = "Great, let's get started. " + randomPhrase(rootPrompts) + " You can say things like,\
-                    the reason was, or the issue was.";            	
+                speechOutput = questions[i++];      
             }
 
             sessionAttributes.previousIntent = 'Continue';
         }
 
-        // Prompt for Question 2 Action Taken
+        // Prompt for Question 2 of 3 Action Taken
         else if (prevIntent === 'RootCause' && sessionAttributes.singleAnswerEntry === 'false') {        	        	
-            speechOutput = "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
-                or the steps I took were.";            
+            speechOutput = questions[i++];            
             sessionAttributes.previousIntent = 'GoToActionTaken';
         }
 
-        // Prompt for Question 3 Steps Taken
+        // Prompt for Question 3 of 3 Steps Taken
         else if (prevIntent === 'ActionTaken' && sessionAttributes.singleAnswerEntry === 'false'){            
-            speechOutput = "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
-                or I have prevented this by.";
+            speechOutput = questions[i++];
             sessionAttributes.previousIntent = 'GoToStepsTaken';
         }
 
@@ -293,8 +386,25 @@ const NoIntentHandler = {
 	        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 	        var prevIntent = sessionAttributes.previousIntent;
             
+            //If a no response is received during self-reinstatement, cancel process with
+            //appropriate message
+            if(prevIntent === 'self1' ||
+                        prevIntent === 'self2' ||
+                            prevIntent === 'self3' ||
+                                prevIntent === 'self4'){
+                speechOutput = "to complete the self-reinstatement process, you must understand the violated policy,\
+                                Identify why the policy was violated, take steps to prevent further violations,\
+                                and acknowledge that further violations could result in permanent loss of selling privileges.\
+                                Your account will remain suspended until the self-reinstatement process is completed.  Goodbye."
+                                
+                //Exit point at skill end
+                return handlerInput.responseBuilder
+	            .speak(speechOutput)
+                .getResponse();
+            }
+
             //Prompt for re-entry of question 1
-	        if (prevIntent === 'RootCause') {
+	        else if (prevIntent === 'RootCause') {
 	            
 	        	speechOutput = responses.startOver() + randomPhrase(rootPrompts);
 	            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
@@ -378,29 +488,47 @@ const HelpIntentHandler = {
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var prev = sessionAttributes.previousIntent;
         var speakOutput = '';
 
-        switch(sessionAttributes.previousIntent){
-            case 'Continue':
-                speakOutput = randomPhrase(rootPrompts)  + '\
+        if(prev === 'Continue'){
+            speakOutput = speakOutput = randomPhrase(rootPrompts)  + '\
                     You can say things like, the reason this happened was, or the root cause was.  \
-                        What is the root cause of the issue?';
-                break;
-            case 'GoToActionTaken':
-                speakOutput = 'Please explain how you fixed the issue.  \
-                    You can say things like, I fixed this by, or the steps I took were.  \
-                        How have you fixed the issue?';
-                break;
-            case 'GoToStepsTaken':
-                speakOutput = 'Please explain how you have prevented this from happening again.  \
-                    You can say things like, going forward I will, or I plan to.  \
-                        How will you prevent this issue from happening again?';
-                break;
-            default:
+                        What is the root cause of the issue?';        }
+        else if(prev === 'GoToActionTaken'){
+            speakOutput = 'Please explain how you fixed the issue.  \
+                            You can say things like, I fixed this by, or the steps I took were.  \
+                            How have you fixed the issue?';
+        }else if(prev === 'GoToStepsTaken'){
+            speakOutput = 'Please explain how you have prevented this from happening again.  \
+                            You can say things like, going forward I will, or I plan to.  \
+                            How will you prevent this issue from happening again?';
+        }else if(prev === 'LaunchRequest'){
+            if(sessionAttributes.POAFlag === 'true'){
                 speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
-                    what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
-                        I will guide you through each question.  Are you ready to start now?';
-        }        
+                                what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
+                                I will guide you through each question.  Are you ready to start now?';
+            }else{
+                speakOutput = 'To complete the self-reinstatement process, you must agree that you understand the violated policy,\
+                                agree that you have identified why the policy was violated and taken steps to prevent further violations,\
+                                and indicate you understand further violations could result in permanent loss of selling privileges.\
+                                Simply say yes when prompted to indicate your understanding and agreement.  Are you ready to begin?';
+            }
+        }else if(prev === 'self1' || prev === 'self2' || prev === 'self3' || prev === 'self4'){
+            speakOutput = 'Simply say yes to indicate your understanding and agreement.  If you do not agree with or understand the statement, say no\
+                            to leave your account suspended and end the self-reinstatement process.';
+            
+            if(prev === 'self1'){
+                speakOutput += ' Do you understand the violated policy?';
+            }else if(prev === 'self2'){
+                speakOutput += ' Have you identified why the policy was violated and taken steps to prevent further violations?';
+            }else if(prev === 'self3'){
+                speakOutput += ' Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations\
+                                of shopping on Amazon?';
+            }else{
+                speakOutput += ' Do you understand that further violations could result in a permanent loss of your selling privileges?'
+            }
+        }
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -599,3 +727,5 @@ exports.handler = skillBuilder
                 return false;
             })      
     }
+
+    
