@@ -71,7 +71,7 @@ const RootCauseHandler = {
         const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
             ". Is this correct?";
 
-        const repromptText = "Please explain the root cause of the issue. Start by saying, the root cause was..."
+        const repromptText =  randomPhrase(rootPrompts) + "Start by saying, the root cause was..."
         + " or, the reason this happened, followed by your response."
 
         return handlerInput.responseBuilder
@@ -218,7 +218,7 @@ const YesIntentHandler = {
                     || prevIntent === 'startOver') 
                         && sessionAttributes.singleAnswerEntry === 'false') {
             
-          reprompt = responses.reprompt() + rootPrompts/*"What is the root cause of the issue?"*/;         
+          reprompt = responses.reprompt() + randomPhrase(rootPrompts);         
            
           //retrieve id number from persistence, increment, and save new increment
           //back to persistence for next item.
@@ -296,7 +296,7 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 1
 	        if (prevIntent === 'RootCause') {
 	            
-	        	speechOutput = responses.startOver() + "What was the root cause of your issue?";
+	        	speechOutput = responses.startOver() + randomPhrase(rootPrompts);
 	            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	            
 	            sessionAttributes.previousIntent = 'noContinue';	        	         
@@ -382,7 +382,7 @@ const HelpIntentHandler = {
 
         switch(sessionAttributes.previousIntent){
             case 'Continue':
-                speakOutput = 'Please explain why this issue happened.  \
+                speakOutput = randomPhrase(rootPrompts)  + '\
                     You can say things like, the reason this happened was, or the root cause was.  \
                         What is the root cause of the issue?';
                 break;
