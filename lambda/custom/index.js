@@ -330,7 +330,7 @@ const YesIntentHandler = {
             
             //If starting over, output appropriate response
             if(prevIntent === 'startOver') {    
-                speechOutput = responses.startOver() + 'randomPhrase(rootPrompts)';
+                speechOutput = responses.startOver() + randomPhrase(rootPrompts);
                  // Set 'i' be the second question.
                  i = 1; 
             } else {                
