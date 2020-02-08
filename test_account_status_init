@@ -1,0 +1,12 @@
+//DynamoDB table set up via AWS console.  This is the equivalent
+//CLI script to accomplish the same.  This script is included to
+//show evidence of work done in the repository.  DO NOT try to run
+//this script.
+
+aws dynamodb create-table \
+    --table-name sample-account-status \
+    --attribute-definitions \
+        AttributeName=accountId,AttributeType=N \
+        AttributeName=statusCode,AttributeType=N \
+    --key-schema AttributeName=poaID,KeyType=HASH \
+    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5

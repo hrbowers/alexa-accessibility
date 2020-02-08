@@ -1,0 +1,80 @@
+2019-11-23T19:03:57.012Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:03:57.014Z error: bst-test            YAMLException: A YAML file cannot contain tabs as indentation at line 9, column 1:
+    	- exit
+    ^
+    at generateError (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:191:10)
+    at throwError (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:197:9)
+    at skipSeparationSpace (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:391:9)
+    at readPlainScalar (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:515:7)
+    at composeNode (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:1394:20)
+    at readBlockMapping (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:1107:11)
+    at composeNode (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:1378:12)
+    at readBlockSequence (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:973:5)
+    at composeNode (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:1377:12)
+    at readBlockMapping (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\js-yaml-bespoken\lib\js-yaml\loader.js:1107:11)
+2019-11-23T19:06:26.972Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:06:26.974Z error: bst-test            Error: Cannot find module 'C:\Users\Fral\source\repos\lambda\custom\index.js' from 'ModuleInvoker.js'
+    at Resolver.resolveModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:259:17)
+    at Resolver._getVirtualMockPath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:390:14)
+    at Resolver._getAbsolutePath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:376:14)
+    at Resolver.getModuleID (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:348:31)
+    at Runtime._shouldMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:942:37)
+    at Runtime.requireModuleOrMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:595:16)
+    at Function.Object.<anonymous>.ModuleInvoker.invokeHandler (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\virtual-alexa\lib\src\impl\ModuleInvoker.js:17:29)
+    at LocalSkillInteractor.Object.<anonymous>.LocalSkillInteractor.invoke (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\virtual-alexa\lib\src\impl\LocalSkillInteractor.js:24:50)
+    at LocalSkillInteractor.<anonymous> (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\virtual-alexa\lib\src\impl\SkillInteractor.js:65:41)
+    at step (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\virtual-alexa\lib\src\impl\SkillInteractor.js:32:23)
+2019-11-23T19:08:15.040Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:08:15.059Z error: bst-test            Error: Cannot find module 'ask-sdk' from 'index.js'
+    at Resolver.resolveModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:259:17)
+    at Resolver._getVirtualMockPath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:390:14)
+    at Resolver._getAbsolutePath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:376:14)
+    at Resolver.getModuleID (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:348:31)
+    at Runtime._shouldMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:942:37)
+    at Runtime.require [as requireModuleOrMock] (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:595:16)
+    at Object.<anonymous> (C:\Users\Fral\source\repos\hrbowers\alexa-accessibility\lambda\custom\index.js:2:15)
+    at Runtime._execModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:867:68)
+    at Runtime._loadModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:577:12)
+    at Runtime.requireModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:433:10)
+2019-11-23T19:13:28.997Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:13:29.016Z error: bst-test            Error: Cannot find module 'ask-sdk' from 'index.js'
+    at Resolver.resolveModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:259:17)
+    at Resolver._getVirtualMockPath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:390:14)
+    at Resolver._getAbsolutePath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:376:14)
+    at Resolver.getModuleID (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:348:31)
+    at Runtime._shouldMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:942:37)
+    at Runtime.require [as requireModuleOrMock] (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:595:16)
+    at Object.<anonymous> (C:\Users\Fral\source\repos\hrbowers\alexa-accessibility\lambda\custom\index.js:2:15)
+    at Runtime._execModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:867:68)
+    at Runtime._loadModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:577:12)
+    at Runtime.requireModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:433:10)
+2019-11-23T19:15:43.988Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:15:44.007Z error: bst-test            Error: Cannot find module 'ask-sdk' from 'index.js'
+    at Resolver.resolveModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:259:17)
+    at Resolver._getVirtualMockPath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:390:14)
+    at Resolver._getAbsolutePath (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:376:14)
+    at Resolver.getModuleID (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-resolve\build\index.js:348:31)
+    at Runtime._shouldMock (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:942:37)
+    at Runtime.require [as requireModuleOrMock] (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:595:16)
+    at Object.<anonymous> (C:\Users\Fral\source\repos\hrbowers\alexa-accessibility\lambda\custom\index.js:2:15)
+    at Runtime._execModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:867:68)
+    at Runtime._loadModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:577:12)
+    at Runtime.requireModule (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\jest-runtime\build\index.js:433:10)
+2019-11-23T19:27:57.557Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:27:57.559Z error: bst-test            Error: Locale must be defined either in the testing.json or the test file itself under the config element
+    at TestRunner.<anonymous> (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:110:17)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:1:192)
+    at _next (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:3:194)
+2019-11-23T19:29:01.596Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T19:29:01.598Z error: bst-test            Error: Locale must be defined either in the testing.json or the test file itself under the config element
+    at TestRunner.<anonymous> (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:110:17)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:1:192)
+    at _next (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:3:194)
+2019-11-23T20:14:43.323Z error: bst-test            Error using bst-test on Node: v12.13.0
+2019-11-23T20:14:43.325Z error: bst-test            Error: Locale must be defined either in the testing.json or the test file itself under the config element
+    at TestRunner.<anonymous> (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:110:17)
+    at Generator.next (<anonymous>)
+    at asyncGeneratorStep (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:1:192)
+    at _next (C:\Users\Fral\AppData\Roaming\npm\node_modules\bespoken-tools\node_modules\skill-testing-ml\dist\lib\runner\TestRunner.js:3:194)
