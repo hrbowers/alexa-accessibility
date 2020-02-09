@@ -2,16 +2,46 @@
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
+
+
+/* Array of questions for each step in the Plan of Action */
 var questions = [
+    //Root cause
     "Great, let's get started. What is the root cause of the issue? You can say things like,\
 the reason was, or the issue was.", 
+    //Action taken
     "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
 or the steps I took were.", 
+    //Prevention
     "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
 or I have prevented this by."
 ];
 
 
+
+/* Arrays of different phrases to make dialogue more natural and engaging for Root Cause */
+const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
+                    'How did this issue originate?', 'Please explain the cause of your issues.'];
+
+/* Arrays of different phrases to make dialogue more natural and engaging for Steps Taken */
+const actionPrompts = ['Please explain the steps you have taken to resolve the issue.',
+                        'What actions have you taken to resolve the issue?', 'How did you handle the issue?']
+
+/* Arrays of different phrases to make dialogue more natural and engaging for Prevention */
+const preventPrompts = ['Please explain how you will prevent this issue from happening in the future.',
+                        'How will you prevent this from happening again?', 'What will you do to ensure this does not happen again?']
+
+/* Helper function to select phrases at random */                
+function randomPhrase(myData){
+
+    var i = 0;
+    i = Math.floor(Math.random() * myData.length);
+    return(myData[i]);
+}
+
+
+/* Skill initiation handler, determines status of account
+ * and responds to user accordingly */
 const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
@@ -104,7 +134,7 @@ const RootCauseHandler = {
         const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
             ". Is this correct?";
 
-        const repromptText = "Please explain the root cause of the issue. Start by saying, the root cause was..."
+        const repromptText =  randomPhrase(rootPrompts) + "Start by saying, the root cause was..."
         + " or, the reason this happened, followed by your response."
 
         return handlerInput.responseBuilder
@@ -140,7 +170,7 @@ const ActionTakenHandler = {
         const speechOutput = "The steps you have taken are " + sessionAttributes.qst2 +
             ". Is this correct?";
 
-        const repromptText = "Please explain the steps you have taken to resolve the issue." +
+        const repromptText = randomPhrase(actionPrompts) +
         "Start by saying, the steps I took were... or, I fixed this by, followed by your response.";
 
         return handlerInput.responseBuilder
@@ -176,7 +206,7 @@ const StepsTakenHandler = {
         const speechOutput = "The steps you have taken to prevent further issues are "
         + sessionAttributes.qst3 + ". Is this correct?";
 
-        const repromptText = "Please explain how you will prevent this issue from happening again." +
+        const repromptText = randomPhrase(preventPrompts) +
         "Start by saying, going forward... or, in the future... followed by your response."
 
         return handlerInput.responseBuilder
@@ -224,12 +254,25 @@ const YesIntentHandler = {
             let dbSave = saveAppeal(id,d1,d2,d3);
 
             if(dbSave){
-                speechOutput = responses.completion();
+                
+                return dbHelper.updateStatus(4,id)
+                .then((data) =>{
+                    console.log("Update at POA ",data);
+                    speechOutput = responses.completion();
 
-                //Exit point at end of skill
-                return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .getResponse();
+                    //Exit point at end of skill
+                    return handlerInput.responseBuilder
+                    .speak(speechOutput)
+                    .getResponse();
+                })
+                .catch((err)=>{
+                    console.log("Error occured while updating", err);
+                    var speakOutput = 'Error updating status';
+                    return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .getResponse();
+                })
+                
 
             }else{
                 speechOutput = responses.dbFail();
@@ -275,9 +318,9 @@ const YesIntentHandler = {
 
         //Complete self-reinstatement and set account status back to 0 (all clear)
         else if(prevIntent === 'self4'){           
-            return dbHelper.updateStatus(0)
+            return dbHelper.updateStatus(0,null)
             .then((data) => {
-                console.log(data);
+                console.log("Update at self ",data);
                 speechOutput = 'Thank you for completeing the self-reinstatement process. Your account should be reactivated shortly.';
                 //Output message and don't reprompt to exit skill
                 return handlerInput.responseBuilder
@@ -298,7 +341,7 @@ const YesIntentHandler = {
                         && sessionAttributes.singleAnswerEntry === 'false'
                             && sessionAttributes.POAFlag === 'true') {
             
-          reprompt = responses.reprompt() + "What is the root cause of the issue?";         
+          reprompt = responses.reprompt() + randomPhrase(rootPrompts);         
            
           //retrieve id number from persistence, increment, and save new increment
           //back to persistence for next item.
@@ -318,7 +361,7 @@ const YesIntentHandler = {
           }
             //If starting over, output appropriate response
             if(prevIntent === 'startOver') {    
-                speechOutput = responses.startOver() + 'What is the root cause of the issue?';
+                speechOutput = responses.startOver() + randomPhrase(rootPrompts);
                  // Set 'i' be the second question.
                  i = 1; 
             } else if (sessionAttributes.i < questions.length) {     
@@ -378,7 +421,7 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 1
 	        else if (prevIntent === ('Question'+1)) {
 	            
-	        	speechOutput = responses.startOver() + "What was the root cause of your issue?";
+	        	speechOutput = responses.startOver() + randomPhrase(rootPrompts);
 	            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	            
 	            sessionAttributes.previousIntent = 'noContinue';	        	         
@@ -387,7 +430,7 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 2
             else if (prevIntent === ('Question'+2)) {
 	        	
-	        	speechOutput = responses.startOver() + "How did you resolve your issue?";
+	        	speechOutput = responses.startOver() + randomPhrase(actionPrompts);
 	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";       	
 
 	        	sessionAttributes.previousIntent = 'noActionTaken';        
@@ -396,7 +439,7 @@ const NoIntentHandler = {
             //Prompt for re-entry of question 3
             else if(prevIntent === ('Question'+3)){
                 
-                speechOutput = responses.startOver() + "How will you prevent this issue from happening again?";
+                speechOutput = responses.startOver() + randomPhrase(preventPrompts);
 	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 	        	
 	        	sessionAttributes.previousIntent = 'noStepsTaken';
@@ -480,9 +523,11 @@ const HelpIntentHandler = {
                 speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
                                 what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
                                 I will guide you through each question.  Are you ready to start now?';
-            }else{
+            }
+            //Self reinstatement
+            else{
                 speakOutput = 'To complete the self-reinstatement process, you must agree that you understand the violated policy,\
-                                agree that you have identified why the policy was violated and taken steps to prevent further violations,\
+                                agree that you have identified why the policy was violated and have taken steps to prevent further violations,\
                                 and indicate you understand further violations could result in permanent loss of selling privileges.\
                                 Simply say yes when prompted to indicate your understanding and agreement.  Are you ready to begin?';
             }
@@ -596,7 +641,11 @@ const FallbackIntentHandler = {
                 speakOutput += ' The steps you have taken to prevent further issues are ' + sessionAttributes.qst3 + '. Is this correct?';
                 break;    
             case 'LaunchRequest':
-                speakOutput += ' Are you ready to begin the appeal process?';
+                if(sessionAttributes.POAFlag === 'true'){
+                    speakOutput += ' Are you ready to fill out your plan of action?';
+                }else{
+                    speakOutput += ' Are you ready to complete the self-reinstatment process?';
+                }
                 break;
             case 'finish':
                 speakOutput += ' Are you satisfied with your appeal entry?';

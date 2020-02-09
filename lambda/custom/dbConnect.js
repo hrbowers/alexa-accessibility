@@ -60,16 +60,17 @@ dbConnect.prototype.getTestValue = () => {
     });
 }
 
-dbConnect.prototype.updateStatus = (status) => {
+dbConnect.prototype.updateStatus = (status,poaId) => {
     return new Promise((resolve,reject) => {
         const params ={
             TableName: 'sample-account-status',
             Key: {
                 'accountId':1
             },
-            UpdateExpression: "set statusCode = :s",
+            UpdateExpression: "set statusCode = :s, poaID = :id",
             ExpressionAttributeValues:{
-                ":s":status
+                ":s":status,
+                ":id":poaID
             }
         }
 
