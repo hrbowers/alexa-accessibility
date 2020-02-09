@@ -1,8 +1,8 @@
 
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
-const responses = require("./response.js");
-const questionsFile = require('./questions.js');
+const responses = require("./Model/response");
+const questionsFile = require('./Model/questions');
 // Retrieve the questions
 const questionsCheck = questionsFile.getQuestionsCheck();
 const questionsReprompt = questionsFile.getQuestionsReprompt();
@@ -124,21 +124,37 @@ const YesIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prevIntent = sessionAttributes.previousIntent;
         var ansObj = sessionAttributes.answer;
-
+        var id = `${sessionAttributes.poaId}`;
         //Check if finished first.
         //Finish and save to dynamo
         if (prevIntent === 'finish'){
             //Collect poaId number and user input for storage into DynamoDb table
-            let dbSave = saveAppeal(`${sessionAttributes.poaId}`,ansObj[0],ansObj[1],ansObj[2]);
+            let dbSave = saveAppeal(id, ansObj[0], ansObj[1], ansObj[2]);
 
             if(dbSave){
-                speechOutput = responses.completion();
+                
+                return dbHelper.updateStatus(4,id)
+                .then((data) =>{
+                    console.log("Update at POA ",data);
+                    speechOutput = responses.completion();
+
+                    //Exit point at end of skill
+                    return handlerInput.responseBuilder
+                    .speak(speechOutput)
+                    .getResponse();
+                })
+                .catch((err)=>{
+                    console.log("Error occured while updating", err);
+                    var speakOutput = 'Error updating status';
+                    return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .getResponse();
+                })
+                
+
             }else{
                 speechOutput = responses.dbFail();
             }
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .getResponse();
         }
 
         //From cancel intent
