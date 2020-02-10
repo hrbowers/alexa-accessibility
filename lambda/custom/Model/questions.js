@@ -48,14 +48,19 @@ const POA_Help = [
         How have you fixed the issue?',
     'Please explain how you have prevented this from happening again.  \
         You can say things like, going forward I will, or I plan to.  \
-        How will you prevent this issue from happening again?'
+        How will you prevent this issue from happening again?',
+    'Please explain '
 ];
+const SR_Header = 'Simply say yes to indicate your understanding and agreement.  If you do not agree with or understand the statement, say no\
+to leave your account suspended and end the self-reinstatement process.';
 const SR_Help = [
-    ' Do you understand the violated policy?',
-    ' Have you identified why the policy was violated and taken steps to prevent further violations?',
-    ' Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations\
+    'To complete the self-reinstatement process, you will be asked a series of yes or no questions. If you can answer yes \
+        to each of the questions, your account will be reinstated.',
+    SR_Header + ' Do you understand the violated policy?',
+    SR_Header + ' Have you identified why the policy was violated and taken steps to prevent further violations?',
+    SR_Header + ' Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations\
     of shopping on Amazon?',
-    ' Do you understand that further violations could result in a permanent loss of your selling privileges?'
+    SR_Header + ' Do you understand that further violations could result in a permanent loss of your selling privileges?'
 ];
 
 let getQuestions = (status) => {

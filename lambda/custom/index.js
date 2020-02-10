@@ -218,7 +218,7 @@ const YesIntentHandler = {
         ////////////    SR Questions    /////////////
         /////////////////////////////////////////////
         else if(sessionAttributes.POAFlag === 'false'){
-            sessionAttributes.previousIntent = sessionAttributes.i;
+            sessionAttributes.previousIntent = 'askQuestion';
             // Get question from array, then increment tracked index (sessionAttributes.i)
             speechOutput = sessionAttributes.questions[sessionAttributes.i++];
             // If all SR questions are asked, finish.
@@ -232,11 +232,11 @@ const YesIntentHandler = {
         else if ((prevIntent === ('verifyQuestion') || prevIntent === ('Launch')) 
                 // If singleAnswerentry is true, then we are here to finish, not to ask another question
                 && sessionAttributes.singleAnswerEntry === 'false'
-                // If we asked all of the questions, no reason to enteri
+                // If we asked all of the questions, no reason to enter
                 && sessionAttributes.i < sessionAttributes.questions.length) {
-            
-            reprompt = responses.reprompt() + sessionAttributes.questions[sessionAttributes.i];         
-            
+           
+            reprompt = responses.reprompt() + sessionAttributes.questions[sessionAttributes.i];      
+            sessionAttributes.previousIntent = 'askQuestion';
             /* Retrieve id number from persistence, increment id, 
                then save new increment back to persistence for next item. */
             if(!sessionAttributes.idChecked) {
@@ -255,7 +255,6 @@ const YesIntentHandler = {
             }
             // Ask the question
             speechOutput = sessionAttributes.questions[sessionAttributes.i++]; 
-            sessionAttributes.previousIntent = 'askQuestion';
         } 
         /////////////////////////////////////////////
         /////////////    START OVER    //////////////
@@ -372,16 +371,14 @@ const HelpIntentHandler = {
         var prev = sessionAttributes.previousIntent;
         var speakOutput = '';
         /////////////////////////////////////////////
-        //////////   SR QUESTION HELP    ////////////
+        /////////////   LAUNCH HELP    //////////////
         /////////////////////////////////////////////
-        if(sessionAttributes.POAFlag === 'false') {
-            speakOutput = 'Simply say yes to indicate your understanding and agreement.  If you do not agree with or understand the statement, say no\
-                            to leave your account suspended and end the self-reinstatement process.';
+        if(prev === 'Launch') {
             var helpMessage = sessionAttributes.helpQuestions;
-            speakOutput += helpMessage[sessionAttributes.i-1];
+            speakOutput = helpMessage[0];
         }
         /////////////////////////////////////////////
-        //////////   POA QUESTION HELP    ///////////
+        ////////////   QUESTION HELP    /////////////
         /////////////////////////////////////////////
         else if(prev === ('askQuestion')) {
             var helpMessage = sessionAttributes.helpQuestions;
