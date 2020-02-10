@@ -231,8 +231,8 @@ const YesIntentHandler = {
             /* Retrieve id number from persistence, increment id, 
                then save new increment back to persistence for next item. */
             if(!sessionAttributes.idChecked) {
+                sessionAttributes.idChecked = true;
                 if(Object.keys(persistentAttributes).length ===0){
-                    sessionAttributes.idChecked = true;
                     sessionAttributes.poaId = 1;
                     persistentAttributes.poaId = 2;
                     attributesManager.setPersistentAttributes(persistentAttributes);
