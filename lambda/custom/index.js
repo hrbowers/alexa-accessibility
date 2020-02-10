@@ -34,20 +34,20 @@ const LaunchRequestHandler = {
         return dbHelper.getTestValue()
         .then((data)=>{
             console.log(data, typeof(data));
-            var speakOutput = '';
+            var speechOutput = '';
             var status = data.Item.statusCode;
             // User does not exist
             if (data.length == 0) {
-                speakOutput = "No account information available";
+                speechOutput = "No account information available";
                 return handlerInput.responseBuilder
-                .speak(speakOutput)
+                .speak(speechOutput)
                 .getResponse();
             }
             // Error - Account Retrieval
             if(status === -1){
-                speakOutput = 'There was an error getting your account status';
+                speechOutput = 'There was an error getting your account status';
                 return handlerInput.responseBuilder
-                .speak(speakOutput)
+                .speak(speechOutput)
                 .getResponse();
             }
             // Get the situation specific questions.
@@ -57,47 +57,47 @@ const LaunchRequestHandler = {
             // POA Questions Required
             if(status === 1){
                 sessionAttributes.POAFlag = 'true';
-                speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
+                speechOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
                     Would you like to fill out the plan of action now?"
             }
             // Self-Reinstatement Questions
             else if(status === 2){
-                speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
+                speechOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
                     Would you like to begin the process now?"
             }
             // User is in good standing
             else{
-                speakOutput = 'Your account is in good standing and does not need attention at this time.'
+                speechOutput = 'Your account is in good standing and does not need attention at this time.'
                 // Exit program
                 return handlerInput.responseBuilder
-                .speak(speakOutput)
+                .speak(speechOutput)
                 .getResponse();
             }
             // Send formed response
             return handlerInput.responseBuilder
-            .speak(speakOutput)
+            .speak(speechOutput)
             .reprompt()
             .getResponse();
         })
         .catch((err)=>{
             console.log("Error occured while getting data", err);
-            var speakOutput = 'Error getting status';
+            var speechOutput = 'Error getting status';
             return handlerInput.responseBuilder
-            .speak(speakOutput)
+            .speak(speechOutput)
             .getResponse();
         })        
     }
 };
-//////////////////////////////////////////////////////////////////////////
-//////////////////////////    QUESTION METHOD   //////////////////////////
-//////////////////////////////////////////////////////////////////////////
 /**
  * Receive user input for the root cause of an issue.
  * Confirms entry before moving on to next question.  Routes
  * through Yes and No intents to either go to the next step or
  * enter an answer again.
  */
-const QuestionsHandler = {
+//////////////////////////////////////////////////////////////////////////
+//////////////////////////    QUESTION METHOD   //////////////////////////
+//////////////////////////////////////////////////////////////////////////
+const VerifyHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
@@ -175,9 +175,9 @@ const YesIntentHandler = {
                 })
                 .catch((err)=>{
                     console.log("Error occured while updating", err);
-                    var speakOutput = 'Error updating status';
+                    var speechOutput = 'Error updating status';
                     return handlerInput.responseBuilder
-                    .speak(speakOutput)
+                    .speak(speechOutput)
                     .getResponse();
                 })
             }else{
@@ -199,20 +199,11 @@ const YesIntentHandler = {
             })
             .catch((err)=>{
                 console.log("Error occured while updating", err);
-                var speakOutput = 'Error updating status';
+                var speechOutput = 'Error updating status';
                 return handlerInput.responseBuilder
-                .speak(speakOutput)
+                .speak(speechOutput)
                 .getResponse();
             }) 
-        }
-        /////////////////////////////////////////////
-        //////////////    CANCEL?    ////////////////
-        /////////////////////////////////////////////
-        else if (prevIntent === 'AMAZON.CancelIntent') {
-            speechOutput = responses.cancel();   
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .getResponse();      
         }
         /////////////////////////////////////////////
         ////////////    SR Questions    /////////////
@@ -264,6 +255,15 @@ const YesIntentHandler = {
             sessionAttributes.i = 0;
             // Ask first question, then increment tracked index (sessionAttributes.i)
             speechOutput = responses.startOver() + sessionAttributes.questions[sessionAttributes.i++];
+        }
+        /////////////////////////////////////////////
+        //////////////    CANCEL?    ////////////////
+        /////////////////////////////////////////////
+        else if (prevIntent === 'AMAZON.CancelIntent') {
+            speechOutput = responses.cancel();   
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .getResponse();      
         }
         /////////////////////////////////////////////
         //////////    SUBMISSION VERIFY   ///////////
@@ -369,39 +369,39 @@ const HelpIntentHandler = {
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prev = sessionAttributes.previousIntent;
-        var speakOutput = '';
+        var speechOutput = '';
         /////////////////////////////////////////////
         /////////////   LAUNCH HELP    //////////////
         /////////////////////////////////////////////
         if(prev === 'Launch') {
             var helpMessage = sessionAttributes.helpQuestions;
-            speakOutput = helpMessage[0];
+            speechOutput = helpMessage[0];
         }
         /////////////////////////////////////////////
         ////////////   QUESTION HELP    /////////////
         /////////////////////////////////////////////
         else if(prev === ('askQuestion')) {
             var helpMessage = sessionAttributes.helpQuestions;
-            speakOutput = helpMessage[sessionAttributes.i];
+            speechOutput = helpMessage[sessionAttributes.i];
         } 
         /////////////////////////////////////////////
         ///////////   POA VERIFY HELP    ////////////
         /////////////////////////////////////////////
         else if(prev === ('verifyQuestion')) {
-            speakOutput = 'Verify your answer entry by saying yes, or no. If you answer no, you will be asked the last question again \
+            speechOutput = 'Verify your answer entry by saying yes, or no. If you answer no, you will be asked the last question again \
             and will have a chance to retry you reply.';
         }
         /////////////////////////////////////////////
         ///////////   POA FINISH HELP    ////////////
         /////////////////////////////////////////////
         else if(prev === 'finish') {
-            speakOutput = 'If you confirm your submission, we review your submission within 72 hours. Confirm by saying yes, or say no to resubmit one of your answers.'
-            speakOutput += questionsFile.getSubmissionText(sessionAttributes.answer);
+            speechOutput = 'If you confirm your submission, we review your submission within 72 hours. Confirm by saying yes, or say no to resubmit one of your answers.'
+            speechOutput += questionsFile.getSubmissionText(sessionAttributes.answer);
             // Keep previousIntent as finish.
         } 
         return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
+            .speak(speechOutput)
+            .reprompt(speechOutput)
             .getResponse();
     }
 };
@@ -421,41 +421,41 @@ const FallbackIntentHandler = {
     //testing response, not permanent
     handle(handlerInput) {
     const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-    var speakOutput = responses.reprompt();
+    var speechOutput = responses.reprompt();
     var helpMessage = sessionAttributes.helpQuestions;
 
     switch(sessionAttributes.previousIntent){
         case sessionAttributes.i:
         case 'askQuestion':
-            speakOutput += helpMessage[sessionAttributes.i];
+            speechOutput += helpMessage[sessionAttributes.i];
             break;
         case ('verifyQuestion'):
             var ansObj = sessionAttributes.answer;
-            speakOutput += questionsCheck[sessionAttributes.i- 1] + ansObj[sessionAttributes.i - 1] + '. Is this correct?';
+            speechOutput += questionsCheck[sessionAttributes.i- 1] + ansObj[sessionAttributes.i - 1] + '. Is this correct?';
             sessionAttributes.previousIntent = 'verifyQuestion';
             break; 
         case 'LaunchRequest':
-            speakOutput += ' Are you ready to begin the appeal process?';
+            speechOutput += ' Are you ready to begin the appeal process?';
             break;
         case 'finish':
-            speakOutput += ' Are you satisfied with your appeal entry?';
+            speechOutput += ' Are you satisfied with your appeal entry?';
             break;
         case 'startOver':
             if(sessionAttributes.singleAnswerEntry === 'true'){
-                speakOutput += questionsCheck[questionsCheck.length-1];
+                speechOutput += questionsCheck[questionsCheck.length-1];
             }else{
-                speakOutput += ' You can say yes to start over, or say no to change just a single answer.';
+                speechOutput += ' You can say yes to start over, or say no to change just a single answer.';
             }
             break;
         case 'AMAZON.CancelIntent':
-            speakOutput += ' Your progress has not been saved, are you sure you want to cancel?';
+            speechOutput += ' Your progress has not been saved, are you sure you want to cancel?';
             break;
         default:
-            speakOutput += ' If you are unsure of what to do, say help.  Or, you can say cancel to complete the process at a later date.';
+            speechOutput += ' If you are unsure of what to do, say help.  Or, you can say cancel to complete the process at a later date.';
     }        
 
     return handlerInput.responseBuilder
-        .speak(speakOutput)
+        .speak(speechOutput)
         .reprompt('Sorry, please try again')
         .getResponse();
     }
@@ -469,13 +469,13 @@ const CancelIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
+        const speechOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
 
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.previousIntent = 'AMAZON.CancelIntent';
 
         return handlerInput.responseBuilder
-            .speak(speakOutput)
+            .speak(speechOutput)
             .reprompt('Are you sure you want to stop now?')
             .getResponse();
     }
@@ -508,9 +508,9 @@ const StopIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Stop triggered';
+        const speechOutput = 'Stop triggered';
         return handlerInput.responseBuilder
-            .speak(speakOutput)
+            .speak(speechOutput)
             .getResponse();
     }
 };
@@ -521,9 +521,9 @@ const SessionEndedRequestHandler = {
     },
     handle(handlerInput) {
         // Any cleanup logic goes here.
-        const speakOutput = 'Session Ended';
+        const speechOutput = 'Session Ended';
         return handlerInput.responseBuilder
-            .speak(speakOutput)
+            .speak(speechOutput)
             .getResponse();
     }
 };
@@ -537,10 +537,10 @@ const IntentReflectorHandler = {
     },
     handle(handlerInput) {
         const intentName = Alexa.getIntentName(handlerInput.requestEnvelope);
-        const speakOutput = `You just triggered ${intentName}`;
+        const speechOutput = `You just triggered ${intentName}`;
 
         return handlerInput.responseBuilder
-            .speak(speakOutput)
+            .speak(speechOutput)
             //.reprompt('add a reprompt if you want to keep the session open for the user to respond')
             .getResponse();
     }
@@ -555,11 +555,11 @@ const ErrorHandler = {
     },
     handle(handlerInput, error) {
         console.log(`~~~~ Error handled: ${error.stack}`);
-        const speakOutput = `Sorry, I had trouble doing what you asked. Please try again.`;
+        const speechOutput = `Sorry, I had trouble doing what you asked. Please try again.`;
 
         return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(speakOutput)
+            .speak(speechOutput)
+            .reprompt(speechOutput)
             .getResponse();
     }
 };
@@ -572,7 +572,7 @@ const skillBuilder = Alexa.SkillBuilders.standard();
 exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
-        QuestionsHandler,
+        VerifyHandler,
         YesIntentHandler,
         NoIntentHandler,
         FallbackIntentHandler,

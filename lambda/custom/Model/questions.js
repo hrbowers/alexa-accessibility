@@ -26,16 +26,6 @@ const PlanOfAction_questionsReprompt = [
     "Please explain how you will prevent this issue from happening again. \
         Start by saying, going forward... or, in the future... followed by your response."
 ];
-const SelfReinstatement_questions = [
-    'In order to reactivate your account, please confirm your agreement and understanding of the \
-        following statements by saying yes. Do you understand the violated policy?',
-    'Have you identified the cause of your policy violation and taken steps to prevent this issue \
-        from happening again?',
-    'Do you agree to maintain your business according to Amazon policy in order to meet customer\'s \
-        expectations of shopping on Amazon?',
-    'Do you understand that further violations could result in a permanent loss of your selling privileges?',
-    'Thank you for completeing the self-reinstatement process. Your account should be reactivated shortly.'
-];
 const POA_Help = [
     'To complete an appeal, you must explain the root cause of your issue, \
         what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
@@ -50,6 +40,16 @@ const POA_Help = [
         You can say things like, going forward I will, or I plan to.  \
         How will you prevent this issue from happening again?',
     'Please explain '
+];
+const SelfReinstatement_questions = [
+    'In order to reactivate your account, please confirm your agreement and understanding of the \
+        following statements by saying yes. Do you understand the violated policy?',
+    'Have you identified the cause of your policy violation and taken steps to prevent this issue \
+        from happening again?',
+    'Do you agree to maintain your business according to Amazon policy in order to meet customer\'s \
+        expectations of shopping on Amazon?',
+    'Do you understand that further violations could result in a permanent loss of your selling privileges?',
+    'Thank you for completeing the self-reinstatement process. Your account should be reactivated shortly.'
 ];
 const SR_Header = 'Simply say yes to indicate your understanding and agreement.  If you do not agree with or understand the statement, say no\
 to leave your account suspended and end the self-reinstatement process.';
