@@ -155,9 +155,18 @@ const YesIntentHandler = {
         var ansObj = sessionAttributes.answer;
         
         /////////////////////////////////////////////
+        //////////////    CANCEL?    ////////////////
+        /////////////////////////////////////////////
+        if (prevIntent === 'AMAZON.CancelIntent') {
+            speechOutput = responses.cancel();   
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .getResponse();      
+        }
+        /////////////////////////////////////////////
         /////////    POA DB SUBMISSION    //////////
         /////////////////////////////////////////////
-        if (prevIntent === 'finish'){
+        else if (prevIntent === 'finish'){
             // User ID
             var id = `${sessionAttributes.poaId}`;
             // Save answer into users dynamoDB table
@@ -213,7 +222,7 @@ const YesIntentHandler = {
             // Get question from array, then increment tracked index (sessionAttributes.i)
             speechOutput = sessionAttributes.questions[sessionAttributes.i++];
             // If all SR questions are asked, finish.
-            if(sessionAttributes.i == sessionAttributes.questions.length) {
+            if(sessionAttributes.i == sessionAttributes.questions.length - 1) {
                 sessionAttributes.previousIntent = 'SR_Finish';
             }
         }
@@ -257,15 +266,6 @@ const YesIntentHandler = {
             speechOutput = responses.startOver() + sessionAttributes.questions[sessionAttributes.i++];
         }
         /////////////////////////////////////////////
-        //////////////    CANCEL?    ////////////////
-        /////////////////////////////////////////////
-        else if (prevIntent === 'AMAZON.CancelIntent') {
-            speechOutput = responses.cancel();   
-            return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .getResponse();      
-        }
-        /////////////////////////////////////////////
         //////////    SUBMISSION VERIFY   ///////////
         /////////////////////////////////////////////
         else {
@@ -294,11 +294,17 @@ const NoIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         // Get previous intent now so we don't have to call on attribute repeatedly
         var prevIntent = sessionAttributes.previousIntent;
-        
+        /////////////////////////////////////////////
+        ///////////   CANCELED CANCEL    ////////////
+        /////////////////////////////////////////////
+        if (prevIntent === 'AMAZON.CancelIntent'){
+            speechOutput = responses.startOver() + "Are you ready?";
+            sessionAttributes.previousIntent = 'verifyQuestion';
+        }
         /////////////////////////////////////////////
         ///    SR - USER SAID NO - END SESSION   ////
         /////////////////////////////////////////////
-        if(sessionAttributes.POAFlag === 'false'){
+        else if(sessionAttributes.POAFlag === 'false'){
             // Tell user that a no to these questions will not reinstate their account
             speechOutput = questionsCheck[questionsCheck.length - 2];
             // End session with final speech
@@ -343,13 +349,7 @@ const NoIntentHandler = {
             speechOutput = questionsCheck[questionsCheck.length - 1];
             sessionAttributes.singleAnswerEntry = 'true';
         }
-        /////////////////////////////////////////////
-        ///////////   CANCELED CANCEL    ////////////
-        /////////////////////////////////////////////
-        else if (prevIntent === 'AMAZON.CancelIntent'){
-            speechOutput = responses.startOver() + "Are you ready?";
-            sessionAttributes.previousIntent = 'askQuestion';
-        }
+        
         //Output message and await response
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -470,8 +470,11 @@ const CancelIntentHandler = {
     },
     handle(handlerInput) {
         const speechOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
-
+        // index was incremented, but now it needs to be returned
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        if(sessionAttributes.previousIntent === 'askQuestion') {
+            sessionAttributes.i--;
+        }
         sessionAttributes.previousIntent = 'AMAZON.CancelIntent';
 
         return handlerInput.responseBuilder
