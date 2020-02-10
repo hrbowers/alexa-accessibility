@@ -2,42 +2,39 @@ const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
 
-
 /* Array of questions for each step in the Plan of Action */
 var questions = [
     //Root cause
     "Great, let's get started. What is the root cause of the issue? You can say things like,\
-the reason was, or the issue was.", 
+the reason was, or the issue was.",
     //Action taken
     "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
-or the steps I took were.", 
+or the steps I took were.",
     //Prevention
     "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
 or I have prevented this by."
 ];
 
 
-
 /* Arrays of different phrases to make dialogue more natural and engaging for Root Cause */
 const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
-                    'How did this issue originate?', 'Please explain the cause of your issues.'];
+    'How did this issue originate?', 'Please explain the cause of your issues.'];
 
 /* Arrays of different phrases to make dialogue more natural and engaging for Steps Taken */
 const actionPrompts = ['Please explain the steps you have taken to resolve the issue.',
-                        'What actions have you taken to resolve the issue?', 'How did you handle the issue?']
+    'What actions have you taken to resolve the issue?', 'How did you handle the issue?']
 
 /* Arrays of different phrases to make dialogue more natural and engaging for Prevention */
 const preventPrompts = ['Please explain how you will prevent this issue from happening in the future.',
-                        'How will you prevent this from happening again?', 'What will you do to ensure this does not happen again?']
+    'How will you prevent this from happening again?', 'What will you do to ensure this does not happen again?']
 
-/* Helper function to select phrases at random */                
-function randomPhrase(myData){
+/* Helper function to select phrases at random */
+function randomPhrase(myData) {
 
     var i = 0;
     i = Math.floor(Math.random() * myData.length);
-    return(myData[i]);
+    return (myData[i]);
 }
-
 
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
@@ -51,7 +48,7 @@ const LaunchRequestHandler = {
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.i = 0;
-        sessionAttributes.previousIntent = ('Question'+0);
+        sessionAttributes.previousIntent = ('Question' + 0);
         sessionAttributes.singleAnswerEntry = 'false';
         sessionAttributes.POAFlag = 'false';
         sessionAttributes.reply = 'false';
@@ -166,20 +163,20 @@ const RootCauseHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
             && (sessionAttributes.previousIntent === 1 ||
-                    sessionAttributes.previousIntent === 'noContinue'||
-                        sessionAttributes.previousIntent === 'startOver');
+                sessionAttributes.previousIntent === 'noContinue' ||
+                sessionAttributes.previousIntent === 'startOver');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.previousIntent = ('Question'+sessionAttributes.i);
+        sessionAttributes.previousIntent = ('Question' + sessionAttributes.i);
 
         sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
         const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
             ". Is this correct?";
 
-        const repromptText =  randomPhrase(rootPrompts) + "Start by saying, the root cause was..."
-        + " or, the reason this happened, followed by your response."
+        const repromptText = randomPhrase(rootPrompts) + "Start by saying, the root cause was..."
+            + " or, the reason this happened, followed by your response."
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -202,12 +199,12 @@ const ActionTakenHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ActionTaken'
             && (sessionAttributes.previousIntent === 2 ||
-                sessionAttributes.previousIntent === 'noActionTaken'||
-                    sessionAttributes.previousIntent === 'startOver');
+                sessionAttributes.previousIntent === 'noActionTaken' ||
+                sessionAttributes.previousIntent === 'startOver');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.previousIntent = ('Question'+sessionAttributes.i);
+        sessionAttributes.previousIntent = ('Question' + sessionAttributes.i);
 
         sessionAttributes.qst2 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
@@ -215,7 +212,7 @@ const ActionTakenHandler = {
             ". Is this correct?";
 
         const repromptText = randomPhrase(actionPrompts) +
-        "Start by saying, the steps I took were... or, I fixed this by, followed by your response.";
+            "Start by saying, the steps I took were... or, I fixed this by, followed by your response.";
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -237,13 +234,13 @@ const StepsTakenHandler = {
 
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
-        && (sessionAttributes.previousIntent === 3 ||
-            sessionAttributes.previousIntent === 'noStepsTaken'||
+            && (sessionAttributes.previousIntent === 3 ||
+                sessionAttributes.previousIntent === 'noStepsTaken' ||
                 sessionAttributes.previousIntent === 'startOver');
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.previousIntent = ('Question'+sessionAttributes.i);
+        sessionAttributes.previousIntent = ('Question' + sessionAttributes.i);
 
         sessionAttributes.qst3 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
 
@@ -251,7 +248,7 @@ const StepsTakenHandler = {
             + sessionAttributes.qst3 + ". Is this correct?";
 
         const repromptText = randomPhrase(preventPrompts) +
-        "Start by saying, going forward... or, in the future... followed by your response."
+            "Start by saying, going forward... or, in the future... followed by your response."
 
         return handlerInput.responseBuilder
             .speak(speechOutput)
@@ -334,9 +331,9 @@ const YesIntentHandler = {
                 .getResponse();
         }
 
-        else if((prevIntent === ('Question'+0) 
-                    || prevIntent === 'startOver')
-                        &&sessionAttributes.POAFlag === 'false'){
+        else if ((prevIntent === ('Question' + 0)
+            || prevIntent === 'startOver')
+            && sessionAttributes.POAFlag === 'false') {
             speechOutput = 'In order to reactivate your account, please confirm your agreement and understanding of the following statements by saying yes. \
                 Do you understand the violated policy?';
             sessionAttributes.previousIntent = 'self1';
@@ -381,35 +378,36 @@ const YesIntentHandler = {
         }
 
         // Prompt for POA Question 1 ~ 3
-        else if ((prevIntent === ('Question'+sessionAttributes.i) 
-                    || prevIntent === 'startOver') 
-                        && sessionAttributes.singleAnswerEntry === 'false'
-                            && sessionAttributes.POAFlag === 'true') {
-            
-          reprompt = responses.reprompt() + randomPhrase(rootPrompts);         
-           
-          //retrieve id number from persistence, increment, and save new increment
-          //back to persistence for next item.
-          if(!sessionAttributes.idChecked) {
-            if(Object.keys(persistentAttributes).length ===0){
-                sessionAttributes.idChecked = true;
-                sessionAttributes.poaId = 1;
-                persistentAttributes.poaId = 2;
-                attributesManager.setPersistentAttributes(persistentAttributes);
-                await attributesManager.savePersistentAttributes();
-            } else {
-                sessionAttributes.poaId = persistentAttributes.poaId;
-                persistentAttributes.poaId += 1;
-                attributesManager.setPersistentAttributes(persistentAttributes);
-                await attributesManager.savePersistentAttributes();
+        else if ((prevIntent === ('Question' + sessionAttributes.i)
+            || prevIntent === 'startOver')
+            && sessionAttributes.singleAnswerEntry === 'false'
+            && sessionAttributes.POAFlag === 'true') {
+
+            reprompt = responses.reprompt() + randomPhrase(rootPrompts);
+
+            //retrieve id number from persistence, increment, and save new increment
+            //back to persistence for next item.
+            if (!sessionAttributes.idChecked) {
+                if (Object.keys(persistentAttributes).length === 0) {
+                    sessionAttributes.idChecked = true;
+                    sessionAttributes.poaId = 1;
+                    persistentAttributes.poaId = 2;
+                    attributesManager.setPersistentAttributes(persistentAttributes);
+                    await attributesManager.savePersistentAttributes();
+                } else {
+                    sessionAttributes.poaId = persistentAttributes.poaId;
+                    persistentAttributes.poaId += 1;
+                    attributesManager.setPersistentAttributes(persistentAttributes);
+                    await attributesManager.savePersistentAttributes();
+                }
             }
-          }
+
             //If starting over, output appropriate response
-            if(prevIntent === 'startOver') {    
+            if (prevIntent === 'startOver') {
                 speechOutput = responses.startOver() + randomPhrase(rootPrompts);
-                 // Set 'i' be the second question.
-                 i = 1; 
-            } else if (sessionAttributes.i < questions.length) {     
+                // Set 'i' be the second question.
+                i = 1;
+            } else if (sessionAttributes.i < questions.length) {
                 speechOutput = questions[sessionAttributes.i++];
                 //sessionAttributes.i = sessionAttributes.i + 1; 
                 sessionAttributes.previousIntent = sessionAttributes.i;
@@ -464,32 +462,32 @@ const NoIntentHandler = {
         }
 
 
-            //Prompt for re-entry of question 1
-	        else if (prevIntent === ('Question'+1)) {
-	            
-	        	speechOutput = responses.startOver() + randomPhrase(rootPrompts);
-	            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
-	            
-	            sessionAttributes.previousIntent = 'noContinue';	        	         
-            }
+        //Prompt for re-entry of question 1
+        else if (prevIntent === ('Question' + 1)) {
 
-            //Prompt for re-entry of question 2
-            else if (prevIntent === ('Question'+2)) {
-	        	
-	        	speechOutput = responses.startOver() + randomPhrase(actionPrompts);
-	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";       	
+            speechOutput = responses.startOver() + randomPhrase(rootPrompts);
+            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
 
-	        	sessionAttributes.previousIntent = 'noActionTaken';        
-            } 
+            sessionAttributes.previousIntent = 'noContinue';
+        }
 
-            //Prompt for re-entry of question 3
-            else if(prevIntent === ('Question'+3)){
-                
-                speechOutput = responses.startOver() + randomPhrase(preventPrompts);
-	        	reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
-	        	
-	        	sessionAttributes.previousIntent = 'noStepsTaken';
-            }
+        //Prompt for re-entry of question 2
+        else if (prevIntent === ('Question' + 2)) {
+
+            speechOutput = responses.startOver() + randomPhrase(actionPrompts);
+            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
+
+            sessionAttributes.previousIntent = 'noActionTaken';
+        }
+
+        //Prompt for re-entry of question 3
+        else if (prevIntent === ('Question' + 3)) {
+
+            speechOutput = responses.startOver() + randomPhrase(preventPrompts);
+            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
+
+            sessionAttributes.previousIntent = 'noStepsTaken';
+        }
 
         //Prompt for re-entry of question 2
         else if (prevIntent === 'ActionTaken') {
@@ -532,8 +530,9 @@ const NoIntentHandler = {
 
             sessionAttributes.singleAnswerEntry = 'true';
         }
-            //User quits at the beginning of the skill
-            else if (prevIntent === ('Question'+0)) {              
+
+        //User quits at the beginning of the skill
+        else if (prevIntent === ('Question' + 0)) {
 
             speechOutput = 'Okay. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
 
@@ -544,13 +543,11 @@ const NoIntentHandler = {
 
         }
 
-            }	     
-            
-            //User cancels, and then decides not to cancel at the confirmation of cancel
-            else if (prevIntent === 'AMAZON.CancelIntent'){
-                speechOutput = responses.startOver() + "Are you ready?";
-                sessionAttributes.previousIntent = ('Question'+0);
-            }
+        //User cancels, and then decides not to cancel at the confirmation of cancel
+        else if (prevIntent === 'AMAZON.CancelIntent') {
+            speechOutput = responses.startOver() + "Are you ready?";
+            sessionAttributes.previousIntent = ('Question' + 0);
+        }
 
         //Output message and await response
         return handlerInput.responseBuilder
@@ -575,26 +572,26 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
 
-        if(prev === ('Question'+1) || prev === 1){
+        if (prev === ('Question' + 1) || prev === 1) {
             speakOutput = 'Please explain why this issue happened.  \
                             You can say things like, the reason this happened was, or the root cause was.  \
                             What is the root cause of the issue?';
-        }else if(prev === ('Question'+2) || prev === 2){
+        } else if (prev === ('Question' + 2) || prev === 2) {
             speakOutput = 'Please explain how you fixed the issue.  \
                             You can say things like, I fixed this by, or the steps I took were.  \
                             How have you fixed the issue?';
-        }else if(prev === ('Question'+3) || prev === 3){
+        } else if (prev === ('Question' + 3) || prev === 3) {
             speakOutput = 'Please explain how you have prevented this from happening again.  \
                             You can say things like, going forward I will, or I plan to.  \
                             How will you prevent this issue from happening again?';
-        }else if(prev === ('Question'+0)){
-            if(sessionAttributes.POAFlag === 'true'){
+        } else if (prev === ('Question' + 0)) {
+            if (sessionAttributes.POAFlag === 'true') {
                 speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
                                 what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
                                 I will guide you through each question.  Are you ready to start now?';
             }
             //Self reinstatement
-            else{
+            else {
 
                 speakOutput = 'To complete the self-reinstatement process, you must agree that you understand the violated policy,\
                                 agree that you have identified why the policy was violated and have taken steps to prevent further violations,\
@@ -679,7 +676,7 @@ const SessionEndedRequestHandler = {
  * FallbackIntentHandler catches all unexpected input from the user and prompts for user
  * re-entry with prompts based on where in the skill process the user is currently at.
  */
-/*
+
 const FallbackIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -688,7 +685,7 @@ const FallbackIntentHandler = {
 
     //testing response, not permanent
     handle(handlerInput) {
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+      /*  const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prev = sessionAttributes.previousIntent;
         var speakOutput = responses.reprompt();
 
@@ -781,9 +778,9 @@ const FallbackIntentHandler = {
             .speak(speakOutput)
             .reprompt('Sorry, please try again')
             .getResponse();
-    }
+    */}
 }
-*/
+
 
 // The intent reflector is used for interaction model testing and debugging.
 // It will simply repeat the intent the user said. You can create custom handlers
