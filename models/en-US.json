@@ -7,7 +7,6 @@
           "name": "AMAZON.CancelIntent",
           "samples": [
             "never mind",
-            "off",
             "cancel appeal",
             "stop what i'm doing"
           ]
@@ -34,6 +33,21 @@
           "name": "AMAZON.NoIntent",
           "samples": [
             "no"
+          ]
+        },
+        {
+          "name": "Reply",
+          "slots": [
+            {
+              "name": "Query",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{Query}"
+              ]
+            }
+          ],
+          "samples": [
+            "Add more information"
           ]
         },
         {
@@ -183,6 +197,48 @@
         }
       ],
       "types": []
-    }
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "Reply",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "Query",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": true,
+              "elicitationRequired": true,
+              "prompts": {
+                "confirmation": "Reply Confirm",
+                "elicitation": "Elicit.Intent-Reply.IntentSlot-Query"
+              }
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "SKILL_RESPONSE"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Intent-Reply.IntentSlot-Query",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Please describe the additional information you would like to add."
+          }
+        ]
+      },
+      {
+        "id": "Reply Confirm",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "You entered {Query}.  Is that correct?"
+          }
+        ]
+      }
+    ]
   }
 }
