@@ -2,40 +2,6 @@ const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
 
-/* Array of questions for each step in the Plan of Action */
-var questions = [
-    //Root cause
-    "Great, let's get started. What is the root cause of the issue? You can say things like,\
-the reason was, or the issue was.",
-    //Action taken
-    "Okay! How have you resolved the issue? You can say things like, I fixed this by,\
-or the steps I took were.",
-    //Prevention
-    "Okay! How have you prevented the issue from happening again? You can say things like, I plan to, \
-or I have prevented this by."
-];
-
-
-/* Arrays of different phrases to make dialogue more natural and engaging for Root Cause */
-const rootPrompts = ['What is the root cause of the issue?', 'What caused this problem?',
-    'How did this issue originate?', 'Please explain the cause of your issues.'];
-
-/* Arrays of different phrases to make dialogue more natural and engaging for Steps Taken */
-const actionPrompts = ['Please explain the steps you have taken to resolve the issue.',
-    'What actions have you taken to resolve the issue?', 'How did you handle the issue?']
-
-/* Arrays of different phrases to make dialogue more natural and engaging for Prevention */
-const preventPrompts = ['Please explain how you will prevent this issue from happening in the future.',
-    'How will you prevent this from happening again?', 'What will you do to ensure this does not happen again?']
-
-/* Helper function to select phrases at random */
-function randomPhrase(myData) {
-
-    var i = 0;
-    i = Math.floor(Math.random() * myData.length);
-    return (myData[i]);
-}
-
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
 const LaunchRequestHandler = {
@@ -47,13 +13,8 @@ const LaunchRequestHandler = {
         //Set initial session attributes to setup initial routing
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
-        sessionAttributes.i = 0;
-        sessionAttributes.previousIntent = ('Question' + 0);
-        sessionAttributes.singleAnswerEntry = 'false';
-        sessionAttributes.POAFlag = 'false';
-        sessionAttributes.reply = 'false';
         sessionAttributes.poaId = 0;
-        sessionAttributes.idChecked = false;
+        sessionAttributes.currentState = '';
 
         //Get test account status
         return dbHelper.getTestValue()
@@ -63,7 +24,7 @@ const LaunchRequestHandler = {
                 var status = data.Item.statusCode;
                 var poaId = data.Item.poaId;
 
-
+                //Account does not exist
                 if (data.length == 0) {
                     speakOutput = "No account information available";
                     return handlerInput.responseBuilder
@@ -71,6 +32,7 @@ const LaunchRequestHandler = {
                         .getResponse();
                 }
 
+                //Error
                 if (status === -1) {
                     speakOutput = 'There was an error getting your account status';
                     return handlerInput.responseBuilder
@@ -78,16 +40,18 @@ const LaunchRequestHandler = {
                         .getResponse();
                 }
 
+                //Prompt the user based on retrieved account status
                 if (status === 1) {
-                    sessionAttributes.POAFlag = 'true';
+                    sessionAttributes.currentState = 'LaunchPOA';
                     speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
-                    Would you like to fill out the plan of action now?"
+                    You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
+                    sessionAttributes.currentState = 'LaunchSR';
                     speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
                     Would you like to begin the process now?"
                 } else if (status === 4) {
-                    sessionAttributes.reply = 'true';
                     sessionAttributes.poaId = poaId;
+                    sessionAttributes.currentState = 'LaunchReply';
                     speakOutput = "Your account is under review for reinstatment.  You can add additional information \
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
@@ -113,6 +77,9 @@ const LaunchRequestHandler = {
     }
 };
 
+/**
+ * Allow the user to append more information to an already submitted POA.
+ */
 const ReplyHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -122,7 +89,7 @@ const ReplyHandler = {
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         const current = handlerInput.requestEnvelope.request.intent;
-        sessionAttributes.previousIntent = 'Reply';
+        sessionAttributes.currentState = 'Reply';
 
         if (handlerInput.requestEnvelope.request.dialogState === 'COMPLETED') {
             return dbHelper.updatePOA(sessionAttributes.poaId, current.slots.Query.value)
@@ -140,7 +107,6 @@ const ReplyHandler = {
                         .speak(speakOutput)
                         .getResponse();
                 })
-
         } else {
             return handlerInput.responseBuilder
                 .addDelegateDirective()
@@ -150,124 +116,59 @@ const ReplyHandler = {
 };
 
 /**
- * Receive user input for the root cause of an issue.
- * Confirms entry before moving on to next question.  Routes
- * through Yes and No intents to either go to the next step or
- * enter an answer again.
+ * Handler triggers the dialog model for handling the plan of action
+ * process.  At successful completion, saves completed POA to
+ * DynamoDB table.
  */
-
-const RootCauseHandler = {
+const POAHandler = {
     canHandle(handlerInput) {
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'RootCause'
-            && (sessionAttributes.previousIntent === 1 ||
-                sessionAttributes.previousIntent === 'noContinue' ||
-                sessionAttributes.previousIntent === 'startOver');
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PlanOfAction'
     },
-    handle(handlerInput) {
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.previousIntent = ('Question' + sessionAttributes.i);
+    async handle(handlerInput) {
+        const { attributesManager, requestEnvelope } = handlerInput;
+        const sessionAttributes = attributesManager.getSessionAttributes();
+        sessionAttributes.currentState = 'POA';
+        var speechOutput = '';
 
-        sessionAttributes.qst1 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
+        //If dialog is complete, save POA
+        if (handlerInput.requestEnvelope.request.dialogState === 'COMPLETED') {
 
-        const speechOutput = "You have entered that the root cause of the issue was " + sessionAttributes.qst1 +
-            ". Is this correct?";
+            sessionAttributes.currentState = 'POAFinished';
+            let d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
+            let d2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
+            let d3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
 
-        const repromptText = randomPhrase(rootPrompts) + "Start by saying, the root cause was..."
-            + " or, the reason this happened, followed by your response."
+            sessionAttributes.d1 = d1;
+            sessionAttributes.d2 = d2;
+            sessionAttributes.d3 = d3;
 
-        return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .reprompt(repromptText)
-            .getResponse();
+            //Confirm final submission via YesIntent and NoIntent.
+            speechOutput += `You entered the cause of the issue was ${d1}, the issue is fixed because ${d2}, and this will not happen again because ${d3}. \
+                                    Is this correct?`
+
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .reprompt()
+                .getResponse();
+
+        } else { //If dialog is not complete, delegate to dialog model            
+            return handlerInput.responseBuilder
+                .addDelegateDirective()
+                .getResponse();
+        }
     }
 }
 
 /**
- * Receive user input for the steps taken to resolve an issue.
- * Confirms entry before moving on to next question.  Routes
- * through Yes and No intents to either go to the next step or
- * enter an answer again.
+ * The yes intent will handle confirmation of completed plans of action.  If the 
+ * POA is approved, data is saved to a DynamoDB table.
+ * 
+ * The yes intent will also handle a cancel request.
+ * 
+ * TODO: Try to refactor to remove the self-reinstatement process from the yes
+ * intent and use the dialog model instead.
  */
-
-const ActionTakenHandler = {
-    canHandle(handlerInput) {
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'ActionTaken'
-            && (sessionAttributes.previousIntent === 2 ||
-                sessionAttributes.previousIntent === 'noActionTaken' ||
-                sessionAttributes.previousIntent === 'startOver');
-    },
-    handle(handlerInput) {
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.previousIntent = ('Question' + sessionAttributes.i);
-
-        sessionAttributes.qst2 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
-
-        const speechOutput = "The steps you have taken are " + sessionAttributes.qst2 +
-            ". Is this correct?";
-
-        const repromptText = randomPhrase(actionPrompts) +
-            "Start by saying, the steps I took were... or, I fixed this by, followed by your response.";
-
-        return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .reprompt(repromptText)
-            .getResponse();
-    }
-}
-
-/**
- * Receive user input for the steps taken to prevent an issue from
- * recurring.  Confirms entry before moving on to finish.  Routes
- * through Yes and No intents to either go to the next step or
- * enter an answer again.
- */
-
-const StepsTakenHandler = {
-    canHandle(handlerInput) {
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-
-        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
-            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'StepsTaken'
-            && (sessionAttributes.previousIntent === 3 ||
-                sessionAttributes.previousIntent === 'noStepsTaken' ||
-                sessionAttributes.previousIntent === 'startOver');
-    },
-    handle(handlerInput) {
-        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.previousIntent = ('Question' + sessionAttributes.i);
-
-        sessionAttributes.qst3 = handlerInput.requestEnvelope.request.intent.slots.Query.value;
-
-        const speechOutput = "The steps you have taken to prevent further issues are "
-            + sessionAttributes.qst3 + ". Is this correct?";
-
-        const repromptText = randomPhrase(preventPrompts) +
-            "Start by saying, going forward... or, in the future... followed by your response."
-
-        return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .reprompt(repromptText)
-            .getResponse();
-    }
-}
-
-/**
- * Many parts of this Alexa skill wants confirmation that what they entered is sufficient.
- * A yes or no is the answer to that question. This intent directs those yes or no's to
- * the proper path.
- **/
-
-/*
-* DevNote: This works, but I think there are better ways to do this using the dialog model
-* tools. Will investigate this next sprint. -Jeremy
-* */
-
 const YesIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -281,17 +182,28 @@ const YesIntentHandler = {
         const attributesManager = handlerInput.attributesManager;
         const persistentAttributes = await attributesManager.getPersistentAttributes() || {};
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        var prevIntent = sessionAttributes.previousIntent;
+        var current = sessionAttributes.currentState;
 
-        //Check if finished first.
-        //Finish and save to dynamo
-        if (prevIntent === 'finish') {
+        //Yes response when confirming submitted POA
+        if (current === 'POAFinished') {
+            //Retrieve and increment POA id from persistence store
+            if (Object.keys(persistentAttributes).length === 0) {
+                sessionAttributes.poaId = 1;
+                persistentAttributes.poaId = 2;
+                attributesManager.setPersistentAttributes(persistentAttributes);
+                await attributesManager.savePersistentAttributes();
+            } else {
+                sessionAttributes.poaId = persistentAttributes.poaId;
+                persistentAttributes.poaId += 1;
+                attributesManager.setPersistentAttributes(persistentAttributes);
+                await attributesManager.savePersistentAttributes();
+            }
 
-            //Collect poaId number and user input for storage into DynamoDb table
+            //Save data values (d1,d2,d3) to POA storage in dynamo
             let id = `${sessionAttributes.poaId}`;
-            let d1 = sessionAttributes.qst1;
-            let d2 = sessionAttributes.qst2;
-            let d3 = sessionAttributes.qst3;
+            let d1 = sessionAttributes.d1;
+            let d2 = sessionAttributes.d2;
+            let d3 = sessionAttributes.d3;
 
             let dbSave = saveAppeal(id, d1, d2, d3);
 
@@ -315,14 +227,13 @@ const YesIntentHandler = {
                             .getResponse();
                     })
 
-
             } else {
                 speechOutput = responses.dbFail();
             }
         }
 
         //From cancel intent
-        else if (prevIntent === 'AMAZON.CancelIntent') {
+        else if (current === 'AMAZON.CancelIntent') {
             speechOutput = responses.cancel();
 
             //Output message and don't reprompt to exit skill
@@ -331,34 +242,26 @@ const YesIntentHandler = {
                 .getResponse();
         }
 
-        else if ((prevIntent === ('Question' + 0)
-            || prevIntent === 'startOver')
-            && sessionAttributes.POAFlag === 'false') {
-            speechOutput = 'In order to reactivate your account, please confirm your agreement and understanding of the following statements by saying yes. \
-                Do you understand the violated policy?';
-            sessionAttributes.previousIntent = 'self1';
-        }
-
         //Prompt for self-reinstatment 2 of 4
-        else if (prevIntent === 'self1') {
+        else if (current === 'self1') {
             speechOutput = 'Have you identified the cause of your policy violation and taken steps to prevent this issue from happening again?';
             sessionAttributes.previousIntent = 'self2';
         }
 
         //Prompt for self-reinstatment 3 of 4
-        else if (prevIntent === 'self2') {
+        else if (current === 'self2') {
             speechOutput = 'Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations of shopping on Amazon?';
             sessionAttributes.previousIntent = 'self3';
         }
 
         //Prompt for self-reinstatment 4 of 4
-        else if (prevIntent === 'self3') {
+        else if (current === 'self3') {
             speechOutput = 'Do you understand that further violations could result in a permanent loss of your selling privileges?';
             sessionAttributes.previousIntent = 'self4';
         }
 
         //Complete self-reinstatement and set account status back to 0 (all clear)
-        else if (prevIntent === 'self4') {
+        else if (current === 'self4') {
             return dbHelper.updateStatus(0, 'noPOA')
                 .then((data) => {
                     console.log("Update at self ", data);
@@ -375,53 +278,6 @@ const YesIntentHandler = {
                         .speak(speakOutput)
                         .getResponse();
                 })
-        }
-
-        // Prompt for POA Question 1 ~ 3
-        else if ((prevIntent === ('Question' + sessionAttributes.i)
-            || prevIntent === 'startOver')
-            && sessionAttributes.singleAnswerEntry === 'false'
-            && sessionAttributes.POAFlag === 'true') {
-
-            reprompt = responses.reprompt() + randomPhrase(rootPrompts);
-
-            //retrieve id number from persistence, increment, and save new increment
-            //back to persistence for next item.
-            if (!sessionAttributes.idChecked) {
-                if (Object.keys(persistentAttributes).length === 0) {
-                    sessionAttributes.idChecked = true;
-                    sessionAttributes.poaId = 1;
-                    persistentAttributes.poaId = 2;
-                    attributesManager.setPersistentAttributes(persistentAttributes);
-                    await attributesManager.savePersistentAttributes();
-                } else {
-                    sessionAttributes.poaId = persistentAttributes.poaId;
-                    persistentAttributes.poaId += 1;
-                    attributesManager.setPersistentAttributes(persistentAttributes);
-                    await attributesManager.savePersistentAttributes();
-                }
-            }
-
-            //If starting over, output appropriate response
-            if (prevIntent === 'startOver') {
-                speechOutput = responses.startOver() + randomPhrase(rootPrompts);
-                // Set 'i' be the second question.
-                i = 1;
-            } else if (sessionAttributes.i < questions.length) {
-                speechOutput = questions[sessionAttributes.i++];
-                //sessionAttributes.i = sessionAttributes.i + 1; 
-                sessionAttributes.previousIntent = sessionAttributes.i;
-            } else {
-                let d1 = sessionAttributes.qst1;
-                let d2 = sessionAttributes.qst2;
-                let d3 = sessionAttributes.qst3;
-
-                speechOutput = `Here is your completed plan of action. \ 
-                    You said the root cause of your issue was ${d1}, you fixed this issue by ${d2}, and this won't happen again because you will ${d3}. \
-                    Is this what you would like to submit?`;
-
-                sessionAttributes.previousIntent = 'finish';
-            }
         }
 
         //Speak output and await reprompt
@@ -443,6 +299,42 @@ const NoIntentHandler = {
 
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var prevIntent = sessionAttributes.previousIntent;
+        var current = sessionAttributes.currentState;
+
+        /**
+         * Uses the dialog directive to re-delegate to the PlanOfAction
+         * intent and re-solicit answers from the user.  For simplicity,
+         * the entire form must be filled out again rather than allowing
+         * for individual answers.
+         */
+        if (current === 'POAFinished') {
+
+            speechOutput = 'Ok, we can start again. '
+
+            return handlerInput.responseBuilder
+                .speak(speechOutput)
+                .addDelegateDirective({
+                    name: 'PlanOfAction',
+                    slots: {
+                        "Q.Three": {
+                            "name": "Q.Three",
+                            "value": "",
+                            "confirmationStatus": "NONE"
+                        },
+                        "Q.One": {
+                            "name": "Q.One",
+                            "value": "",
+                            "confirmationStatus": "NONE"
+                        },
+                        "Q.Two": {
+                            "name": "Q.Two",
+                            "value": "",
+                            "confirmationStatus": "NONE"
+                        }
+                    }
+                })
+                .getResponse();
+        }
 
         //If a no response is received during self-reinstatement, cancel process with
         //appropriate message
@@ -459,88 +351,6 @@ const NoIntentHandler = {
             return handlerInput.responseBuilder
                 .speak(speechOutput)
                 .getResponse();
-        }
-
-
-        //Prompt for re-entry of question 1
-        else if (prevIntent === ('Question' + 1)) {
-
-            speechOutput = responses.startOver() + randomPhrase(rootPrompts);
-            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
-
-            sessionAttributes.previousIntent = 'noContinue';
-        }
-
-        //Prompt for re-entry of question 2
-        else if (prevIntent === ('Question' + 2)) {
-
-            speechOutput = responses.startOver() + randomPhrase(actionPrompts);
-            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
-
-            sessionAttributes.previousIntent = 'noActionTaken';
-        }
-
-        //Prompt for re-entry of question 3
-        else if (prevIntent === ('Question' + 3)) {
-
-            speechOutput = responses.startOver() + randomPhrase(preventPrompts);
-            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
-
-            sessionAttributes.previousIntent = 'noStepsTaken';
-        }
-
-        //Prompt for re-entry of question 2
-        else if (prevIntent === 'ActionTaken') {
-
-            speechOutput = responses.startOver() + "How did you resolve your issue?";
-            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
-
-            sessionAttributes.previousIntent = 'noActionTaken';
-        }
-
-        //Prompt for re-entry of question 3
-        else if (prevIntent === 'StepsTaken') {
-
-            speechOutput = responses.startOver() + "How will you prevent this issue from happening again?";
-            reprompt = responses.reprompt() + "You could say, yes, or you could say, cancel.";
-
-            sessionAttributes.previousIntent = 'noStepsTaken';
-        }
-
-        //If final confirmation is rejected, offer to start over or change a single answer.
-        else if (prevIntent === 'finish') {
-
-            speechOutput = "If you need to change more than one answer, I would recommend starting over from the beginning.\
-                    Would you like to start again from the beginning?  You can say yes to start over,\
-                    say no to change just a single answer, or say cancel to quit and finish your plan of action at a later date.";
-            reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
-
-            sessionAttributes.previousIntent = 'startOver';
-            sessionAttributes.singleAnswerEntry = 'false'
-        }
-
-        //If only re-entering a single answer, briefly remind the user of the question prompts
-        else if (prevIntent === 'startOver') {
-
-            speechOutput = "Ok, you can say, the root cause was, to explain the root cause of the issue.\
-                    Or you can say, i fixed this by, to explain how you resolved the issue.\
-                        Or you can say, i plan to, to explain how you will prevent this issue from happening again.";
-            reprompt = "I didn't quite get that. You could say, yes, or you could say, cancel.";
-
-
-            sessionAttributes.singleAnswerEntry = 'true';
-        }
-
-        //User quits at the beginning of the skill
-        else if (prevIntent === ('Question' + 0)) {
-
-            speechOutput = 'Okay. Please complete the appeal process at your earliest convenience to reinstate your account.  Good bye.';
-
-            //Exit point at skill end
-            return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .getResponse();
-
         }
 
         //User cancels, and then decides not to cancel at the confirmation of cancel
@@ -560,7 +370,6 @@ const NoIntentHandler = {
 /**
  * Custom help messages for the major steps of the skill
  */
-
 const HelpIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -568,50 +377,44 @@ const HelpIntentHandler = {
     },
     handle(handlerInput) {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        var prev = sessionAttributes.previousIntent;
+        var current = sessionAttributes.currentState;
         var speakOutput = '';
 
-
-        if (prev === ('Question' + 1) || prev === 1) {
-            speakOutput = 'Please explain why this issue happened.  \
-                            You can say things like, the reason this happened was, or the root cause was.  \
-                            What is the root cause of the issue?';
-        } else if (prev === ('Question' + 2) || prev === 2) {
-            speakOutput = 'Please explain how you fixed the issue.  \
-                            You can say things like, I fixed this by, or the steps I took were.  \
-                            How have you fixed the issue?';
-        } else if (prev === ('Question' + 3) || prev === 3) {
-            speakOutput = 'Please explain how you have prevented this from happening again.  \
-                            You can say things like, going forward I will, or I plan to.  \
-                            How will you prevent this issue from happening again?';
-        } else if (prev === ('Question' + 0)) {
-            if (sessionAttributes.POAFlag === 'true') {
-                speakOutput = 'To complete an appeal, you must explain the root cause of your issue, \
-                                what you have done to resolve the issue, and how you will prevent this issue from happening again.  \
-                                I will guide you through each question.  Are you ready to start now?';
-            }
-            //Self reinstatement
-            else {
-
-                speakOutput = 'To complete the self-reinstatement process, you must agree that you understand the violated policy,\
-                                agree that you have identified why the policy was violated and have taken steps to prevent further violations,\
-                                and indicate you understand further violations could result in permanent loss of selling privileges.\
-                                Simply say yes when prompted to indicate your understanding and agreement.  Are you ready to begin?';
-            }
-        } else if (prev === 'self1' || prev === 'self2' || prev === 'self3' || prev === 'self4') {
-            speakOutput = 'Simply say yes to indicate your understanding and agreement.  If you do not agree with or understand the statement, say no\
-                            to leave your account suspended and end the self-reinstatement process.';
-
-            if (prev === 'self1') {
-                speakOutput += ' Do you understand the violated policy?';
-            } else if (prev === 'self2') {
-                speakOutput += ' Have you identified why the policy was violated and taken steps to prevent further violations?';
-            } else if (prev === 'self3') {
-                speakOutput += ' Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations\
-                                of shopping on Amazon?';
-            } else {
-                speakOutput += ' Do you understand that further violations could result in a permanent loss of your selling privileges?'
-            }
+        if (current === 'LaunchPOA') {
+            speakOutput = 'You will have to describe the reason the policy was violated, how you fixed your policy violation, \
+                            and how you will prevent further violations. \
+                            Simply say, Plan of Action to fill out your reinstatement form.'
+        } else if (current === 'LaunchSR') {
+            speakOutput = 'You must agree that you understand the policy that was violated. You must also agree that you know why the violation happened and that \
+                            you have taken steps to prevent further violations. You must finally agree that you understand continued violations will result in a loss \
+                            of your marketplace account.  Simply say, reinstate, in order to start the process.'
+        } else if (current === 'LaunchReply') {
+            speakOutput = 'You already have a plan of action under review.  If there is more information you need to add simply say, add more information.'
+        } else if (current === 'POAFinished') {
+            speakOutput = 'If you are satisfied with your plan of action, say yes to submit it for review.  Otherwise, you can say cancel to stop.'
+        }else if(current === 'POA'){
+            speakOutput = 'Please describe why the violation happened, how you fixed the violation, and why there will be no more violations in the future. \
+                            I will prompt you for each piece of information.'
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .addDelegateDirective({
+                    name: "PlanOfAction",
+                    slots: {
+                        "Q.One":{
+                            name: "Q.One",
+                            confirmationStatus: "NONE"
+                        },
+                        "Q.Two":{
+                            name: "Q.Two",
+                            confirmationStatus: "NONE"
+                        },
+                        "Q.Three":{
+                            name: "Q.Three",
+                            confirmationStatus: "NONE"
+                        }
+                    }
+                })
+                .getResponse();
         }
 
         return handlerInput.responseBuilder
@@ -630,7 +433,7 @@ const CancelIntentHandler = {
         const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
 
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        sessionAttributes.previousIntent = 'AMAZON.CancelIntent';
+        sessionAttributes.currentState = 'AMAZON.CancelIntent';
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -676,7 +479,6 @@ const SessionEndedRequestHandler = {
  * FallbackIntentHandler catches all unexpected input from the user and prompts for user
  * re-entry with prompts based on where in the skill process the user is currently at.
  */
-
 const FallbackIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
@@ -685,100 +487,25 @@ const FallbackIntentHandler = {
 
     //testing response, not permanent
     handle(handlerInput) {
-      /*  const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        var prev = sessionAttributes.previousIntent;
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        var current = sessionAttributes.currentState;
         var speakOutput = responses.reprompt();
 
-
-        if (prev === 'Reply') {
-            speakOutput += 'What information would you like to add to your plan of action?'
-        } else if (prev === 'self1') {
-            speakOutput += ' Do you understand the violated policy?';
-        } else if (prev === 'self2') {
-            speakOutput += ' Have you identified the cause of your policy violation and taken steps to prevent this issue from happening again?';
-        } else if (prev === 'self3') {
-            speakOutput += ' Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations of shopping on Amazon?';
-        } else if (prev === 'self4') {
-            speakOutput += ' Do you understand that further violations could result in a permanent loss of your selling privileges?';
-        } else if (prev === 'Continue') {
-            speakOutput += ' Please explain why this issue happened.\
-                    You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
-        } else if (prev === 'RootCause') {
-            speakOutput += ' You have entered that the root cause of the issue was ' + sessionAttributes.qst1 + '. Is this correct?';
-        } else if (prev === 'GoToActionTaken') {
-            speakOutput += ' Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
-        } else if (prev === 'ActionTaken') {
-            speakOutput += ' The steps you have taken are ' + sessionAttributes.qst2 + '. Is this correct?';
-        } else if (prev === 'GoToStepsTaken') {
-            speakOutput += ' Please explain how you have prevented this from happening again.\
-                    You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
-        } else if (prev === 'StepsTaken') {
-            speakOutput += ' The steps you have taken to prevent further issues are ' + sessionAttributes.qst3 + '. Is this correct?';
-        } else if (prev === 'LaunchRequest') {
-            if (sessionAttributes.POAFlag === 'true') {
-                speakOutput += ' Are you ready to fill out your plan of action?';
-            } else if (sessionAttributes.reply === 'true') {
-                speakOutput += ' You can say, add more information, to add additional information to your plan of action.';
-            } else {
-                speakOutput += ' Are you ready to complete the self-reinstatment process?';
-            }
-        } else if (prev === 'finish') {
-            speakOutput += ' Are you satisfied with your appeal entry?';
-        } else if (prev === 'startOver') {
-            if (sessionAttributes.singleAnswerEntry === 'true') {
-                speakOutput += ' You can say, the root cause was, to explain the root cause of the issue.\
-
-        switch(sessionAttributes.previousIntent){
-            case ('Question'+0):
-                speakOutput += ' Please explain why this issue happened.\
-                    You can say things like, the reason this happened was, or the root cause was.  What is the root cause of the issue?';
-                break;
-            case 1:
-                speakOutput += ' You have entered that the root cause of the issue was ' + sessionAttributes.qst1 + '. Is this correct?';
-                break;
-            case ('Question'+1):
-                speakOutput += ' Please explain how you fixed the issue.  You can say things like, I fixed this by, or the steps I took were.  How have you fixed the issue?';
-                break;
-            case 2:
-                speakOutput += ' The steps you have taken are ' + sessionAttributes.qst2 + '. Is this correct?';
-                break;    
-            case ('Question'+2):
-                speakOutput += ' Please explain how you have prevented this from happening again.\
-                    You can say things like, going forward I will, or I plan to.  How will you prevent this issue from happening again?';
-                break;
-            case 3:
-                speakOutput += ' The steps you have taken to prevent further issues are ' + sessionAttributes.qst3 + '. Is this correct?';
-                break;    
-            case 'LaunchRequest':
-                if(sessionAttributes.POAFlag === 'true'){
-                    speakOutput += ' Are you ready to fill out your plan of action?';
-                }else{
-                    speakOutput += ' Are you ready to complete the self-reinstatment process?';
-                }
-                break;
-            case 'finish':
-                speakOutput += ' Are you satisfied with your appeal entry?';
-                break;
-            case 'startOver':
-                if(sessionAttributes.singleAnswerEntry === 'true'){
-                    speakOutput += ' You can say, the root cause was, to explain the root cause of the issue.\
-
-                        Or you can say, i fixed this by, to explain how you resolved the issue.\
-                            Or you can say, i plan to, to explain how you will prevent this issue from happening again.';
-            } else {
-                speakOutput += ' You can say yes to start over, or say no to change just a single answer.';
-            }
-        } else if (prev === 'AMAZON.CancelIntent') {
-            speakOutput += ' Your progress has not been saved, are you sure you want to cancel?';
-        } else {
-            speakOutput += ' If you are unsure of what to do, say help.  Or, you can say cancel to complete the process at a later date.';
+        if (current === 'LaunchPOA') {
+            speakOutput += 'You can say, Plan of Action, to fill out your reinstatement form'
+        } else if (current === 'LaunchSR') {
+            speakOutput += ' You can say, Reinstate, to start the self-reinstatement process';
+        } else if (current === 'LaunchReply') {
+            speakOutput += ' You can say, add more information, to add more information to your plan of action.';
+        } else if (current === 'POAFinished') {
+            speakOutput += ' If you are satisfied with your plan of action, say yes to submit it for review. Otherwise, you can say cancel to stop.';
         }
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
             .reprompt('Sorry, please try again')
             .getResponse();
-    */}
+    }
 }
 
 
@@ -828,9 +555,7 @@ exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
         ReplyHandler,
-        RootCauseHandler,
-        ActionTakenHandler,
-        StepsTakenHandler,
+        POAHandler,
         YesIntentHandler,
         NoIntentHandler,
         FallbackIntentHandler,

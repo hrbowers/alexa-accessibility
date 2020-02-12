@@ -13,7 +13,10 @@
         },
         {
           "name": "AMAZON.HelpIntent",
-          "samples": []
+          "samples": [
+            "help",
+            "I don't understand"
+          ]
         },
         {
           "name": "AMAZON.StopIntent",
@@ -80,6 +83,33 @@
           ]
         },
         {
+          "name": "PlanOfActionBeta",
+          "slots": [
+            {
+              "name": "Q.One",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{Q.One}"
+              ]
+            },
+            {
+              "name": "Q.Two",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{Q.Two}"
+              ]
+            },
+            {
+              "name": "Q.Three",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{Q.Three}"
+              ]
+            }
+          ],
+          "samples": []
+        },
+        {
           "name": "AMAZON.FallbackIntent",
           "samples": []
         }
@@ -107,7 +137,7 @@
         },
         {
           "name": "PlanOfAction",
-          "confirmationRequired": true,
+          "confirmationRequired": false,
           "prompts": {
             "confirmation": "POA Confirm"
           },
@@ -145,7 +175,7 @@
           ]
         }
       ],
-      "delegationStrategy": "ALWAYS"
+      "delegationStrategy": "SKILL_RESPONSE"
     },
     "prompts": [
       {
@@ -189,7 +219,7 @@
         "variations": [
           {
             "type": "PlainText",
-            "value": "Please explain what caused this issue."
+            "value": "Please explain How you fixed the issue."
           }
         ]
       },
@@ -207,7 +237,7 @@
         "variations": [
           {
             "type": "PlainText",
-            "value": "Please explain what caused this issue."
+            "value": "Please explain why this will not happen again."
           }
         ]
       },
