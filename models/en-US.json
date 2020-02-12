@@ -39,6 +39,42 @@
           ]
         },
         {
+          "name": "Self",
+          "slots": [
+            {
+              "name": "CheckOne",
+              "type": "YES_NO",
+              "samples": [
+                "{CheckOne}"
+              ]
+            },
+            {
+              "name": "CheckTwo",
+              "type": "YES_NO",
+              "samples": [
+                "{CheckTwo}"
+              ]
+            },
+            {
+              "name": "CheckThree",
+              "type": "YES_NO",
+              "samples": [
+                "{CheckThree}"
+              ]
+            },
+            {
+              "name": "CheckFour",
+              "type": "YES_NO",
+              "samples": [
+                "{CheckFour}"
+              ]
+            }
+          ],
+          "samples": [
+            "Reinstate"
+          ]
+        },
+        {
           "name": "Reply",
           "slots": [
             {
@@ -83,41 +119,84 @@
           ]
         },
         {
-          "name": "PlanOfActionBeta",
-          "slots": [
-            {
-              "name": "Q.One",
-              "type": "AMAZON.SearchQuery",
-              "samples": [
-                "{Q.One}"
-              ]
-            },
-            {
-              "name": "Q.Two",
-              "type": "AMAZON.SearchQuery",
-              "samples": [
-                "{Q.Two}"
-              ]
-            },
-            {
-              "name": "Q.Three",
-              "type": "AMAZON.SearchQuery",
-              "samples": [
-                "{Q.Three}"
-              ]
-            }
-          ],
-          "samples": []
-        },
-        {
           "name": "AMAZON.FallbackIntent",
           "samples": []
         }
       ],
-      "types": []
+      "types": [
+        {
+          "name": "YES_NO",
+          "values": [
+            {
+              "id": "FALSE",
+              "name": {
+                "value": "No",
+                "synonyms": [
+                  "nope",
+                  "nah"
+                ]
+              }
+            },
+            {
+              "id": "TRUE",
+              "name": {
+                "value": "Yes",
+                "synonyms": [
+                  "ok",
+                  "sure",
+                  "yeah"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     },
     "dialog": {
       "intents": [
+        {
+          "name": "Self",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "CheckOne",
+              "type": "YES_NO",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Self.CheckOne"
+              }
+            },
+            {
+              "name": "CheckTwo",
+              "type": "YES_NO",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Self.CheckTwo"
+              }
+            },
+            {
+              "name": "CheckThree",
+              "type": "YES_NO",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Self.CheckThree"
+              }
+            },
+            {
+              "name": "CheckFour",
+              "type": "YES_NO",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Self.CheckFour"
+              }
+            }
+          ]
+        },
         {
           "name": "Reply",
           "confirmationRequired": false,
@@ -138,9 +217,7 @@
         {
           "name": "PlanOfAction",
           "confirmationRequired": false,
-          "prompts": {
-            "confirmation": "POA Confirm"
-          },
+          "prompts": {},
           "slots": [
             {
               "name": "Q.One",
@@ -251,11 +328,38 @@
         ]
       },
       {
-        "id": "POA Confirm",
+        "id": "Self.CheckOne",
         "variations": [
           {
             "type": "PlainText",
-            "value": "Here is your completed plan of action.  You said the reason this happened was {Q.One}, you fixed this by {Q.Two}, and this won't happen again because {Q.Three}.  Is that correct?"
+            "value": "Do you understand the violated policy?"
+          }
+        ]
+      },
+      {
+        "id": "Self.CheckTwo",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Have you identified the reason this policy was violated and taken steps to prevent it from happening again?"
+          }
+        ]
+      },
+      {
+        "id": "Self.CheckThree",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Do you agree to maintain your business according to Amazon policy in order to meet customer's expectations of shopping on Amazon?"
+          }
+        ]
+      },
+      {
+        "id": "Self.CheckFour",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Do you understand that further violations could result in a permanent loss of your selling privileges?"
           }
         ]
       }
