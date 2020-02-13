@@ -47,8 +47,9 @@ const LaunchRequestHandler = {
                     You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
+                    sessionAttributes.understood = false;
                     speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
-                    Would you like to begin the process now?"
+                    To begin you can say, reinstate.  Or, you can say cancel to reinstate your account at a later date."
                 } else if (status === 4) {
                     sessionAttributes.poaId = poaId;
                     sessionAttributes.currentState = 'LaunchReply';
@@ -161,6 +162,110 @@ const POAHandler = {
 }
 
 /**
+ * Handler triggers the dialog model for handling the self-reinstatement
+ * process.  At completion, update status of account to '0' for
+ * all clear.
+ */
+const SRHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Self'
+    },
+    async handle(handlerInput) {
+        const { attributesManager, requestEnvelope } = handlerInput;
+        const sessionAttributes = attributesManager.getSessionAttributes();
+        const currentIntent = handlerInput.requestEnvelope.request.intent;
+        sessionAttributes.currentState = 'Self';
+        var speechOutput = '';
+
+        //If dialog is complete, end reinstatement and set account status to 0
+        if (requestEnvelope.request.dialogState === 'COMPLETED') {
+            var noAction = 'You must fix the cause of your violation and take steps to ensure it will not happen again.';
+            var noQuality = ' Amazon customers expect the highest level of service. You must agree to provide a level of service that will meetour customer\'s expectations.';
+            var noPermLoss = ' Repeated infractions could possibly result in the permanent loss of your seller account.';
+
+            //If any of the questions received a 'no' response, inform user and end skill w/o updating status
+            if (currentIntent.slots["CheckTwo"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No'
+                || currentIntent.slots["CheckThree"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No'
+                || currentIntent.slots["CheckFour"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
+
+                if (currentIntent.slots["CheckTwo"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
+                    speechOutput += noAction;
+                }
+
+                if (currentIntent.slots["CheckThree"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
+                    speechOutput += noQuality;
+                }
+
+                if (currentIntent.slots["CheckFour"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
+                    speechOutput += noPermLoss;
+                }
+
+                speechOutput += ' Your account will remain suspended until you agree to everything outlined in this self-reinstatement process.  Good bye.'
+
+                return handlerInput.responseBuilder
+                    .speak(speechOutput)
+                    .getResponse();
+
+            } else {
+                return dbHelper.updateStatus(0, 'noPOA')
+                    .then((data) => {
+                        speechOutput = 'Thank you for completing the self-reinstatement process. Your account should be reactivated shortly.';
+                        //Output message and don't reprompt to exit skill
+                        return handlerInput.responseBuilder
+                            .speak(speechOutput)
+                            .getResponse();
+                    })
+                    .catch((err) => {
+                        console.log("Error occured while updating", err);
+                        var speakOutput = 'Error updating status';
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput)
+                            .getResponse();
+                    })
+            }
+        } else if (currentIntent.slots["CheckOne"].hasOwnProperty("value") && sessionAttributes.understood === false) {
+            //Special case: The user must agree with the first question to continue on in the process.
+            //Any other 'no' responses will be handled at the end of the process.
+            //If the user doesn't understand the policy, read it back re prompt for agreement.
+            if (currentIntent.slots["CheckOne"].resolutions.resolutionsPerAuthority[0].values[0].value.name === "No") {
+                return handlerInput.responseBuilder
+                    .speak('Implement Detailed policy read back and re prompt for understanding. Stopping skill.')
+                    .getResponse();
+
+            } else {
+                sessionAttributes.understood = true;
+                return handlerInput.responseBuilder
+                    .addDelegateDirective({
+                        name: "Self",
+                        slots: {
+                            "CheckOne": {
+                                name: "CheckOne",
+                                value: "Yes"
+                            },
+                            "CheckTwo": {
+                                name: "CheckTwo"
+                            },
+                            "CheckThree": {
+                                name: "CheckThree"
+                            },
+                            "CheckFour": {
+                                name: "CheckFour"
+                            }
+                        }
+                    })
+                    .getResponse();
+            }
+        } else {
+            //If dialog is not complete, delegate to dialog model            
+            return handlerInput.responseBuilder
+                .addDelegateDirective()
+                .getResponse();
+        }
+    }
+}
+
+/**
  * The yes intent will handle confirmation of completed plans of action.  If the 
  * POA is approved, data is saved to a DynamoDB table.
  * 
@@ -211,7 +316,6 @@ const YesIntentHandler = {
 
                 return dbHelper.updateStatus(4, id)
                     .then((data) => {
-                        console.log("Update at POA ", data);
                         speechOutput = responses.completion();
 
                         //Exit point at end of skill
@@ -242,45 +346,7 @@ const YesIntentHandler = {
                 .getResponse();
         }
 
-        //Prompt for self-reinstatment 2 of 4
-        else if (current === 'self1') {
-            speechOutput = 'Have you identified the cause of your policy violation and taken steps to prevent this issue from happening again?';
-            sessionAttributes.previousIntent = 'self2';
-        }
-
-        //Prompt for self-reinstatment 3 of 4
-        else if (current === 'self2') {
-            speechOutput = 'Do you agree to maintain your business according to Amazon policy in order to meet customer\'s expectations of shopping on Amazon?';
-            sessionAttributes.previousIntent = 'self3';
-        }
-
-        //Prompt for self-reinstatment 4 of 4
-        else if (current === 'self3') {
-            speechOutput = 'Do you understand that further violations could result in a permanent loss of your selling privileges?';
-            sessionAttributes.previousIntent = 'self4';
-        }
-
-        //Complete self-reinstatement and set account status back to 0 (all clear)
-        else if (current === 'self4') {
-            return dbHelper.updateStatus(0, 'noPOA')
-                .then((data) => {
-                    console.log("Update at self ", data);
-                    speechOutput = 'Thank you for completeing the self-reinstatement process. Your account should be reactivated shortly.';
-                    //Output message and don't reprompt to exit skill
-                    return handlerInput.responseBuilder
-                        .speak(speechOutput)
-                        .getResponse();
-                })
-                .catch((err) => {
-                    console.log("Error occured while updating", err);
-                    var speakOutput = 'Error updating status';
-                    return handlerInput.responseBuilder
-                        .speak(speakOutput)
-                        .getResponse();
-                })
-        }
-
-        //Speak output and await reprompt
+        //Speak output and await input
         return handlerInput.responseBuilder
             .speak(speechOutput)
             .reprompt(reprompt)
@@ -336,23 +402,6 @@ const NoIntentHandler = {
                 .getResponse();
         }
 
-        //If a no response is received during self-reinstatement, cancel process with
-        //appropriate message
-        if (prevIntent === 'self1' ||
-            prevIntent === 'self2' ||
-            prevIntent === 'self3' ||
-            prevIntent === 'self4') {
-            speechOutput = "to complete the self-reinstatement process, you must understand the violated policy,\
-                                Identify why the policy was violated, take steps to prevent further violations,\
-                                and acknowledge that further violations could result in permanent loss of selling privileges.\
-                                Your account will remain suspended until the self-reinstatement process is completed.  Goodbye."
-
-            //Exit point at skill end
-            return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .getResponse();
-        }
-
         //User cancels, and then decides not to cancel at the confirmation of cancel
         else if (prevIntent === 'AMAZON.CancelIntent') {
             speechOutput = responses.startOver() + "Are you ready?";
@@ -392,7 +441,7 @@ const HelpIntentHandler = {
             speakOutput = 'You already have a plan of action under review.  If there is more information you need to add simply say, add more information.'
         } else if (current === 'POAFinished') {
             speakOutput = 'If you are satisfied with your plan of action, say yes to submit it for review.  Otherwise, you can say cancel to stop.'
-        }else if(current === 'POA'){
+        } else if (current === 'POA') {
             speakOutput = 'Please describe why the violation happened, how you fixed the violation, and why there will be no more violations in the future. \
                             I will prompt you for each piece of information.'
             return handlerInput.responseBuilder
@@ -400,17 +449,41 @@ const HelpIntentHandler = {
                 .addDelegateDirective({
                     name: "PlanOfAction",
                     slots: {
-                        "Q.One":{
+                        "Q.One": {
                             name: "Q.One",
                             confirmationStatus: "NONE"
                         },
-                        "Q.Two":{
+                        "Q.Two": {
                             name: "Q.Two",
                             confirmationStatus: "NONE"
                         },
-                        "Q.Three":{
+                        "Q.Three": {
                             name: "Q.Three",
                             confirmationStatus: "NONE"
+                        }
+                    }
+                })
+                .getResponse();
+        } else if (current === 'Self') {
+            speakOutput = 'You must agree that you understand the policy that was violated. You must also agree that you know why the violation happened and that \
+            you have taken steps to prevent further violations. You must finally agree that you understand continued violations will result in a loss \
+            of your marketplace account.'
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .addDelegateDirective({
+                    name: "Self",
+                    slots: {
+                        "CheckOne": {
+                            name: "CheckOne"
+                        },
+                        "CheckTwo": {
+                            name: "CheckTwo"
+                        },
+                        "CheckThree": {
+                            name: "CheckThree"
+                        },
+                        "CheckFour": {
+                            name: "CheckFour"
                         }
                     }
                 })
@@ -499,6 +572,28 @@ const FallbackIntentHandler = {
             speakOutput += ' You can say, add more information, to add more information to your plan of action.';
         } else if (current === 'POAFinished') {
             speakOutput += ' If you are satisfied with your plan of action, say yes to submit it for review. Otherwise, you can say cancel to stop.';
+        }else if (current === 'Self') {
+            speakOutput += ' Say yes to the following questions to reinstate your account.'
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .addDelegateDirective({
+                    name: "Self",
+                    slots: {
+                        "CheckOne": {
+                            name: "CheckOne"
+                        },
+                        "CheckTwo": {
+                            name: "CheckTwo"
+                        },
+                        "CheckThree": {
+                            name: "CheckThree"
+                        },
+                        "CheckFour": {
+                            name: "CheckFour"
+                        }
+                    }
+                })
+                .getResponse();
         }
 
         return handlerInput.responseBuilder
@@ -556,6 +651,7 @@ exports.handler = skillBuilder
         LaunchRequestHandler,
         ReplyHandler,
         POAHandler,
+        SRHandler,
         YesIntentHandler,
         NoIntentHandler,
         FallbackIntentHandler,
