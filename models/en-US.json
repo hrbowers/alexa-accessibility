@@ -7,14 +7,16 @@
           "name": "AMAZON.CancelIntent",
           "samples": [
             "never mind",
-            "off",
             "cancel appeal",
             "stop what i'm doing"
           ]
         },
         {
           "name": "AMAZON.HelpIntent",
-          "samples": []
+          "samples": [
+            "help",
+            "I don't understand"
+          ]
         },
         {
           "name": "AMAZON.StopIntent",
@@ -37,144 +39,83 @@
           ]
         },
         {
-          "name": "RootCause",
+          "name": "Self",
           "slots": [
             {
-              "name": "Query",
-              "type": "AMAZON.SearchQuery"
+              "name": "CheckOne",
+              "type": "YES_NO",
+              "samples": [
+                "{CheckOne}"
+              ]
+            },
+            {
+              "name": "CheckTwo",
+              "type": "YES_NO",
+              "samples": [
+                "{CheckTwo}"
+              ]
+            },
+            {
+              "name": "CheckThree",
+              "type": "YES_NO",
+              "samples": [
+                "{CheckThree}"
+              ]
+            },
+            {
+              "name": "CheckFour",
+              "type": "YES_NO",
+              "samples": [
+                "{CheckFour}"
+              ]
             }
           ],
           "samples": [
-            "The root cause of the issue was {Query}",
-            "The root cause of the issue is {Query}",
-            "The reason this happened was {Query}",
-            "The reason this happened is {Query}",
-            "The reason was {Query}",
-            "The reason is {Query}",
-            "This happened because {Query}",
-            "The root cause was {Query}",
-            "The root cause is {Query}",
-            "The issue was {Query}",
-            "This was an issue because {Query}",
-            "The issue is {Query}",
-            "The issue happened because {Query}",
-            "I caused this by {Query}",
-            "I caused this because {Query}",
-            "We caused this by {Query}",
-            "We caused this because {Query}"
+            "Reinstate"
           ]
         },
         {
-          "name": "ActionTaken",
+          "name": "Reply",
           "slots": [
             {
               "name": "Query",
-              "type": "AMAZON.SearchQuery"
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{Query}"
+              ]
             }
           ],
           "samples": [
-            "The steps I took were {Query}",
-            "The steps I took to fix it were {Query}",
-            "The steps I took to fix this were {Query}",
-            "The steps I took to fix the issue were {Query}",
-            "The step I took was {Query}",
-            "The step I took to fix it was {Query}",
-            "The step I took to fix this was {Query}",
-            "The step I took to fix the issue was {Query}",
-            "The steps I took was {Query}",
-            "The steps I took to fix it was {Query}",
-            "The steps I took to fix this was {Query}",
-            "The steps I took to fix the issue was {Query}",
-            "The step I took were {Query}",
-            "The step I took to fix it were {Query}",
-            "The step I took to fix this were {Query}",
-            "The step I took to fix the issue were {Query}",
-            "I sorted this out by {Query}",
-            "I sorted it out by {Query}",
-            "I sorted the issue out by {Query}",
-            "I solved this by {Query}",
-            "I solved it by {Query}",
-            "I solved the issue by {Query}",
-            "I fixed this by {Query}",
-            "I fixed it by {Query}",
-            "I fixed the issue by {Query}",
-            "I resolved this by {Query}",
-            "I resolved it by {Query}",
-            "I resolved the issue by {Query}",
-            "The steps we took were {Query}",
-            "The steps we took to fix it were {Query}",
-            "The steps we took to fix this were {Query}",
-            "The steps we took to fix the issue were {Query}",
-            "The step we took was {Query}",
-            "The step we took to fix it was {Query}",
-            "The step we took to fix this was {Query}",
-            "The step we took to fix the issue was {Query}",
-            "The steps we took was {Query}",
-            "The steps we took to fix it was {Query}",
-            "The steps we took to fix this was {Query}",
-            "The steps we took to fix the issue was {Query}",
-            "The step we took were {Query}",
-            "The step we took to fix it were {Query}",
-            "The step we took to fix this were {Query}",
-            "The step we took to fix the issue were {Query}",
-            "We sorted this out by {Query}",
-            "We sorted it out by {Query}",
-            "We sorted the issue out by {Query}",
-            "We solved this by {Query}",
-            "We solved it by {Query}",
-            "We solved the issue by {Query}",
-            "We fixed this by {Query}",
-            "We fixed it by {Query}",
-            "We fixed the issue by {Query}",
-            "We resolved this by {Query}",
-            "We resolved it by {Query}",
-            "We resolved the issue by {Query}"
+            "Add more information"
           ]
         },
         {
-          "name": "StepsTaken",
+          "name": "PlanOfAction",
           "slots": [
             {
-              "name": "Query",
-              "type": "AMAZON.SearchQuery"
+              "name": "Q.One",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{Q.One}"
+              ]
+            },
+            {
+              "name": "Q.Two",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{Q.Two}"
+              ]
+            },
+            {
+              "name": "Q.Three",
+              "type": "AMAZON.SearchQuery",
+              "samples": [
+                "{Q.Three}"
+              ]
             }
           ],
-          "samples":[
-            "Going forward {Query}",
-            "Moving forward {Query}",
-            "In the future {Query}",
-            "I plan to {Query}",
-            "We plan to {Query}",
-            "I've prevented this by {Query}",
-            "We've prevented this by {Query}",
-            "I have prevented this by {Query}",
-            "We have prevented this by {Query}",
-            "I've prevented this from happening by {Query}",
-            "We've prevented this from happening by {Query}",
-            "I have prevented this from happening by {Query}",
-            "We have prevented this from happening by {Query}",
-            "I've prevented this from happening again by {Query}",
-            "We've prevented this from happening again by {Query}",
-            "I have prevented this from happening again by {Query}",
-            "We have prevented this from happening again by {Query}",
-            "This won't happen again because {Query}",
-            "This will not happen again because {Query}",
-            "This has been prevented from happening again by {Query}",
-            "This has been prevented from happening again because {Query}",
-            "Preventative steps are",
-            "Preventative steps include",
-            "Prevention methods include {Query}",
-            "Prevention methods are {Query}",
-            "Steps taken include {Query}",
-            "Steps taken are {Query}",
-            "The steps I've taken are {Query}",
-            "The steps I've taken include {Query}",
-            "The steps I have taken are {Query}",
-            "The steps I have taken include {Query}",
-            "The steps we've taken are {Query}",
-            "The steps we've taken include {Query}",
-            "The steps we have taken are {Query}",
-            "The steps we have taken include {Query}"
+          "samples": [
+            "Plan of Action"
           ]
         },
         {
@@ -182,7 +123,246 @@
           "samples": []
         }
       ],
-      "types": []
-    }
+      "types": [
+        {
+          "name": "YES_NO",
+          "values": [
+            {
+              "id": "FALSE",
+              "name": {
+                "value": "No",
+                "synonyms": [
+                  "nope",
+                  "nah"
+                ]
+              }
+            },
+            {
+              "id": "TRUE",
+              "name": {
+                "value": "Yes",
+                "synonyms": [
+                  "ok",
+                  "sure",
+                  "yeah"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "dialog": {
+      "intents": [
+        {
+          "name": "Self",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "CheckOne",
+              "type": "YES_NO",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Self.CheckOne"
+              }
+            },
+            {
+              "name": "CheckTwo",
+              "type": "YES_NO",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Self.CheckTwo"
+              }
+            },
+            {
+              "name": "CheckThree",
+              "type": "YES_NO",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Self.CheckThree"
+              }
+            },
+            {
+              "name": "CheckFour",
+              "type": "YES_NO",
+              "confirmationRequired": false,
+              "elicitationRequired": true,
+              "prompts": {
+                "elicitation": "Self.CheckFour"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reply",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "Query",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": true,
+              "elicitationRequired": true,
+              "prompts": {
+                "confirmation": "Reply Confirm",
+                "elicitation": "Elicit.Intent-Reply.IntentSlot-Query"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PlanOfAction",
+          "confirmationRequired": false,
+          "prompts": {},
+          "slots": [
+            {
+              "name": "Q.One",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": true,
+              "elicitationRequired": true,
+              "prompts": {
+                "confirmation": "Q1 Confirm",
+                "elicitation": "Elicit.Intent-PlanOfAction.IntentSlot-Q1"
+              }
+            },
+            {
+              "name": "Q.Two",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": true,
+              "elicitationRequired": true,
+              "prompts": {
+                "confirmation": "Q2 Confirm",
+                "elicitation": "Elicit.Intent-PlanOfAction.IntentSlot-Q2"
+              }
+            },
+            {
+              "name": "Q.Three",
+              "type": "AMAZON.SearchQuery",
+              "confirmationRequired": true,
+              "elicitationRequired": true,
+              "prompts": {
+                "confirmation": "Q3 Confirm",
+                "elicitation": "Elicit.Intent-PlanOfAction.IntentSlot-Q3"
+              }
+            }
+          ]
+        }
+      ],
+      "delegationStrategy": "SKILL_RESPONSE"
+    },
+    "prompts": [
+      {
+        "id": "Elicit.Intent-Reply.IntentSlot-Query",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Please describe the additional information you would like to add."
+          }
+        ]
+      },
+      {
+        "id": "Reply Confirm",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "You entered {Query}.  Is that correct?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-PlanOfAction.IntentSlot-Q1",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Please explain what caused this issue."
+          }
+        ]
+      },
+      {
+        "id": "Q1 Confirm",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "You entered {Q.One}.  Is that correct?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-PlanOfAction.IntentSlot-Q2",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Please explain How you fixed the issue."
+          }
+        ]
+      },
+      {
+        "id": "Q2 Confirm",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "You entered {Q.Two}.  Is that correct?"
+          }
+        ]
+      },
+      {
+        "id": "Elicit.Intent-PlanOfAction.IntentSlot-Q3",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Please explain why this will not happen again."
+          }
+        ]
+      },
+      {
+        "id": "Q3 Confirm",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "You entered {Q.Three}.  Is that correct?"
+          }
+        ]
+      },
+      {
+        "id": "Self.CheckOne",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Do you understand the violated policy?"
+          }
+        ]
+      },
+      {
+        "id": "Self.CheckTwo",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Have you identified the reason this policy was violated and taken steps to prevent it from happening again?"
+          }
+        ]
+      },
+      {
+        "id": "Self.CheckThree",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Do you agree to maintain your business according to Amazon policy in order to meet customer's expectations of shopping on Amazon?"
+          }
+        ]
+      },
+      {
+        "id": "Self.CheckFour",
+        "variations": [
+          {
+            "type": "PlainText",
+            "value": "Do you understand that further violations could result in a permanent loss of your selling privileges?"
+          }
+        ]
+      }
+    ]
   }
 }
