@@ -15,6 +15,22 @@ const LaunchRequestHandler = {
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.poaId = 0;
         sessionAttributes.currentState = '';
+        
+        // Retrieve the infraction descriptions
+        var infraction_DetailedDescription;
+        var infraction_ShorthandDescription;
+        dbHelper.getInfraction()
+            .then((data) => {
+                infraction_DetailedDescription = data.Item.descriptionL;
+                infraction_ShorthandDescription = data.Item.descriptionS;
+            })
+            .catch((err) => {
+                console.log("Error occured while getting data", err);
+                var speakOutput = 'Error getting infraction';
+                return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .getResponse();
+            })
 
         //Get test account status
         return dbHelper.getTestValue()
@@ -57,7 +73,7 @@ const LaunchRequestHandler = {
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
                 } else {
-                    speakOutput = 'Your account is in good standing and does not need attention at this time.'
+                    speakOutput = 'Your account is in good standing and does not need attention at this time.';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
                         .getResponse();

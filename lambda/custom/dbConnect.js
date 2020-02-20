@@ -60,6 +60,25 @@ dbConnect.prototype.getTestValue = () => {
     });
 }
 
+dbConnect.prototype.getInfraction = () => {
+    return new Promise((resolve, reject) => {
+        const params = {
+            TableName: 'infraction',
+            Key: {
+                'infractionId':0
+            }
+        }
+        docClient.get(params, (err, data) => {
+            if (err) {
+                console.error("Cannot get. Error JSON:", JSON.stringify(err, null, 2));
+                return reject(JSON.stringify(err, null, 2));
+            }
+            console.log("GetInfraction succeeded:", JSON.stringify(data, null, 2),typeof(data));
+            resolve(data)
+        })
+    })
+}
+
 dbConnect.prototype.updateStatus = (status,poaId) => {
     return new Promise((resolve,reject) => {
         const params ={
