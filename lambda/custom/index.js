@@ -15,12 +15,12 @@ const LaunchRequestHandler = {
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.poaId = 0;
         sessionAttributes.currentState = '';
-        
-        // Retrieve the infraction descriptions
         var infraction_DetailedDescription;
         var infraction_ShorthandDescription;
+        
         dbHelper.getInfraction()
             .then((data) => {
+                // Retrieve the infraction descriptions
                 infraction_DetailedDescription = data.Item.descriptionL;
                 infraction_ShorthandDescription = data.Item.descriptionS;
             })
@@ -39,6 +39,8 @@ const LaunchRequestHandler = {
                 var speakOutput = '';
                 var status = data.Item.statusCode;
                 var poaId = data.Item.poaId;
+                sessionAttributes.infraction_ShorthandDescription = infraction_ShorthandDescription;
+                sessionAttributes.infraction_DetailedDescription = infraction_DetailedDescription;
 
                 //Account does not exist
                 if (data.length == 0) {
@@ -59,7 +61,7 @@ const LaunchRequestHandler = {
                 //Prompt the user based on retrieved account status
                 if (status === 1) {
                     sessionAttributes.currentState = 'LaunchPOA';
-                    speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
+                    speakOutput = "Your account has been suspended due to "+ infraction_ShorthandDescription +" and requires a complete plan of action to be reinstated.\
                     You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
@@ -446,7 +448,7 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
         if (current === 'LaunchPOA') {
-            speakOutput = 'You will have to describe the reason the policy was violated, how you fixed your policy violation, \
+            speakOutput = 'Your violation is as follows: '+ sessionAttributes.infraction_DetailedDescription +'. You will have to describe the reason the policy was violated, how you fixed your policy violation, \
                             and how you will prevent further violations. \
                             Simply say, Plan of Action to fill out your reinstatement form.'
         } else if (current === 'LaunchSR') {
