@@ -15,6 +15,22 @@ const LaunchRequestHandler = {
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.poaId = 0;
         sessionAttributes.currentState = '';
+        var infraction_DetailedDescription;
+        var infraction_ShorthandDescription;
+        
+        dbHelper.getInfraction()
+            .then((data) => {
+                // Retrieve the infraction descriptions
+                infraction_DetailedDescription = data.Item.descriptionL;
+                infraction_ShorthandDescription = data.Item.descriptionS;
+            })
+            .catch((err) => {
+                console.log("Error occured while getting data", err);
+                var speakOutput = 'Error getting infraction';
+                return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .getResponse();
+            })
 
         //Get test account status
         return dbHelper.getTestValue()
@@ -23,6 +39,8 @@ const LaunchRequestHandler = {
                 var speakOutput = '';
                 var status = data.Item.statusCode;
                 var poaId = data.Item.poaId;
+                sessionAttributes.infraction_ShorthandDescription = infraction_ShorthandDescription;
+                sessionAttributes.infraction_DetailedDescription = infraction_DetailedDescription;
 
                 //Account does not exist
                 if (data.length == 0) {
@@ -43,7 +61,7 @@ const LaunchRequestHandler = {
                 //Prompt the user based on retrieved account status
                 if (status === 1) {
                     sessionAttributes.currentState = 'LaunchPOA';
-                    speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
+                    speakOutput = "Your account has been suspended due to "+ infraction_ShorthandDescription +" and requires a complete plan of action to be reinstated.\
                     You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
@@ -57,7 +75,7 @@ const LaunchRequestHandler = {
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
                 } else {
-                    speakOutput = 'Your account is in good standing and does not need attention at this time.'
+                    speakOutput = 'Your account is in good standing and does not need attention at this time.';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
                         .getResponse();
@@ -430,7 +448,8 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
         if (current === 'LaunchPOA') {
-            speakOutput = 'You will have to describe the reason the policy was violated, how you fixed your policy violation, \
+            speakOutput = 'Your violation is as follows: '+ sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription 
+                            +'. This is a violation of Amazons policy. You will have to describe the reason the policy was violated, how you fixed your policy violation, \
                             and how you will prevent further violations. \
                             Simply say, Plan of Action to fill out your reinstatement form.'
         } else if (current === 'LaunchSR') {
