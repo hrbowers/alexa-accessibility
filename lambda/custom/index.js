@@ -61,12 +61,12 @@ const LaunchRequestHandler = {
                 //Prompt the user based on retrieved account status
                 if (status === 1) {
                     sessionAttributes.currentState = 'LaunchPOA';
-                    speakOutput = "Your account has been suspended due to "+ infraction_ShorthandDescription +" and requires a complete plan of action to be reinstated.\
+                    speakOutput = "Your account has been suspended due to, "+ infraction_ShorthandDescription +", and requires a complete plan of action to be reinstated.\
                     You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
                     sessionAttributes.understood = false;
-                    speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
+                    speakOutput = "Your account has been suspended due to, "+ infraction_ShorthandDescription +", and is eligible for the self-reinstatement process.\
                     To begin you can say, reinstate.  Or, you can say cancel to reinstate your account at a later date."
                 } else if (status === 4) {
                     sessionAttributes.poaId = poaId;
