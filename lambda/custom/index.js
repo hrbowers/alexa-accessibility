@@ -1,6 +1,7 @@
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
+const remind = require("./reminder");
 
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
@@ -17,7 +18,7 @@ const LaunchRequestHandler = {
         sessionAttributes.currentState = '';
         var infraction_DetailedDescription;
         var infraction_ShorthandDescription;
-        
+
         dbHelper.getInfraction()
             .then((data) => {
                 // Retrieve the infraction descriptions
@@ -61,12 +62,12 @@ const LaunchRequestHandler = {
                 //Prompt the user based on retrieved account status
                 if (status === 1) {
                     sessionAttributes.currentState = 'LaunchPOA';
-                    speakOutput = "Your account has been suspended due to, "+ infraction_ShorthandDescription +", and requires a complete plan of action to be reinstated.\
+                    speakOutput = "Your account has been suspended due to, " + infraction_ShorthandDescription + ", and requires a complete plan of action to be reinstated.\
                     You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
                     sessionAttributes.understood = false;
-                    speakOutput = "Your account has been suspended due to, "+ infraction_ShorthandDescription +", and is eligible for the self-reinstatement process.\
+                    speakOutput = "Your account has been suspended due to, " + infraction_ShorthandDescription + ", and is eligible for the self-reinstatement process.\
                     To begin you can say, reinstate.  Or, you can say cancel to reinstate your account at a later date."
                 } else if (status === 4) {
                     sessionAttributes.poaId = poaId;
@@ -448,8 +449,8 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
         if (current === 'LaunchPOA') {
-            speakOutput = 'Your violation is as follows: '+ sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription 
-                            +'. This is a violation of Amazons policy. You will have to describe the reason the policy was violated, how you fixed your policy violation, \
+            speakOutput = 'Your violation is as follows: ' + sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription
+                + '. This is a violation of Amazons policy. You will have to describe the reason the policy was violated, how you fixed your policy violation, \
                             and how you will prevent further violations. \
                             Simply say, Plan of Action to fill out your reinstatement form.'
         } else if (current === 'LaunchSR') {
@@ -591,7 +592,7 @@ const FallbackIntentHandler = {
             speakOutput += ' You can say, add more information, to add more information to your plan of action.';
         } else if (current === 'POAFinished') {
             speakOutput += ' If you are satisfied with your plan of action, say yes to submit it for review. Otherwise, you can say cancel to stop.';
-        }else if (current === 'Self') {
+        } else if (current === 'Self') {
             speakOutput += ' Say yes to the following questions to reinstate your account.'
             return handlerInput.responseBuilder
                 .speak(speakOutput)
@@ -697,6 +698,61 @@ async function saveAppeal(id, data1, data2, data3) {
             console.log("Error occured while saving data", err);
             return false;
         })
+}
+
+//Helper function to set a reminder
+async function setReminder(handlerInput) {
+    const { attributesManager, serviceClientFactory, requestEnvelope } = handlerInput;
+    const deviceId = Alexa.getDeviceId(requestEnvelope);
+
+    //get timezone
+    try {
+        const upsServiceClient = serviceClientFactory.getUpsServiceClient();
+        const timezone = await upsServiceClient.getSystemTimeZone(deviceId);
+        if (timezone) {
+            console.log("Timezone " + timezone)
+        }
+    } catch (error) {
+        console.log(JSON.stringify(error));
+    }
+
+    //create reminder
+    try {
+        const { permissions } = requestEnvelope.context.System.user;
+
+        if (!(permissions && permissions.consentToken))
+            throw { statusCode: 401, message: "permissions error" };
+
+        const reminderServiceClient = serviceClientFactory.getReminderManagementServiceClient();
+        const remindersList = await reminderServiceClient.getReminders();
+        console.log('Reminders: ' + JSON.stringify(remindersList));
+
+        const previousReminder = sessionAttributes['reminderId'];
+        if (previousReminder) {
+            try {
+                if (remindersList.totalCount !== "0") {
+                    await reminderServiceClient.deleteReminder(previousReminder);
+                    delete sessionAttributes['reminderId'];
+                    console.log('Deleted previous reminder token: ' + previousReminder);
+                }
+            } catch (error) {
+                // fail silently as this means the reminder does not exist or there was a problem with deletion
+                // either way, we can move on and create the new reminder
+                console.log('Failed to delete reminder: ' + previousReminder + ' via ' + JSON.stringify(error));
+            }
+        }
+
+        const reminder = remind.createReminder(timezone, Alexa.getLocale(requestEnvelope));
+
+        const reminderResponse = await reminderServiceClient.createReminder(reminder);
+        console.log('Reminder Created: '+ reminderResponse.alertToken);
+
+        return 0;
+
+    } catch (error) { 
+        console.log(JSON.stringify(error));
+
+    }
 }
 
 

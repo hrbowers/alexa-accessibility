@@ -17,7 +17,7 @@ module.exports = {
         return s3PreSignedUrl;
 
     },
-    createReminder(requestMoment, scheduledMoment, timezone, locale, message){
+    createReminder(requestMoment, scheduledMoment, timezone, locale){
         return{
             requesTime: requestMoment.format('YYYY-MM-DDTH:mm:00.000'),
             trigger: {
@@ -29,7 +29,7 @@ module.exports = {
                 spokenInfo:{
                     content:[{
                         locale: locale,
-                        text: message
+                        text: 'Reminder created'
                     }]
                 }
             },
