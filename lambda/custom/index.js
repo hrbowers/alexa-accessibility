@@ -11,6 +11,9 @@ const LaunchRequestHandler = {
     },
     async handle(handlerInput) {
 
+        let testVal = setReminder(handlerInput);
+        console.log("testVal: "+testVal);
+
         //Set initial session attributes to setup initial routing
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
@@ -702,18 +705,20 @@ async function saveAppeal(id, data1, data2, data3) {
 
 //Helper function to set a reminder
 async function setReminder(handlerInput) {
-    const { attributesManager, serviceClientFactory, requestEnvelope } = handlerInput;
+
+    const { serviceClientFactory, requestEnvelope } = handlerInput;
     const deviceId = Alexa.getDeviceId(requestEnvelope);
+    var timezone;
 
     //get timezone
     try {
         const upsServiceClient = serviceClientFactory.getUpsServiceClient();
-        const timezone = await upsServiceClient.getSystemTimeZone(deviceId);
+        timezone = await upsServiceClient.getSystemTimeZone(deviceId);
         if (timezone) {
             console.log("Timezone " + timezone)
         }
     } catch (error) {
-        console.log(JSON.stringify(error));
+        console.log("Timezone error: "+error);
     }
 
     //create reminder
@@ -727,21 +732,6 @@ async function setReminder(handlerInput) {
         const remindersList = await reminderServiceClient.getReminders();
         console.log('Reminders: ' + JSON.stringify(remindersList));
 
-        const previousReminder = sessionAttributes['reminderId'];
-        if (previousReminder) {
-            try {
-                if (remindersList.totalCount !== "0") {
-                    await reminderServiceClient.deleteReminder(previousReminder);
-                    delete sessionAttributes['reminderId'];
-                    console.log('Deleted previous reminder token: ' + previousReminder);
-                }
-            } catch (error) {
-                // fail silently as this means the reminder does not exist or there was a problem with deletion
-                // either way, we can move on and create the new reminder
-                console.log('Failed to delete reminder: ' + previousReminder + ' via ' + JSON.stringify(error));
-            }
-        }
-
         const reminder = remind.createReminder(timezone, Alexa.getLocale(requestEnvelope));
 
         const reminderResponse = await reminderServiceClient.createReminder(reminder);
@@ -750,7 +740,7 @@ async function setReminder(handlerInput) {
         return 0;
 
     } catch (error) { 
-        console.log(JSON.stringify(error));
+        console.log("Reminder error: "+ error);
 
     }
 }
