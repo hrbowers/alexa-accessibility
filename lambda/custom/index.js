@@ -9,10 +9,7 @@ const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
-    async handle(handlerInput) {
-
-        let testVal = setReminder(handlerInput);
-        console.log("testVal: "+testVal);
+    async handle(handlerInput) {        
 
         //Set initial session attributes to setup initial routing
         const attributesManager = handlerInput.attributesManager;
@@ -79,6 +76,7 @@ const LaunchRequestHandler = {
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
                 } else {
+                    setReminder(handlerInput);
                     speakOutput = 'Your account is in good standing and does not need attention at this time.';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
@@ -741,6 +739,7 @@ async function setReminder(handlerInput) {
 
     } catch (error) { 
         console.log("Reminder error: "+ error);
+        console.log("Reminder error: "+ JSON.stringify(error));
 
     }
 }
