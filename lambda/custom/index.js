@@ -81,9 +81,10 @@ const LaunchRequestHandler = {
                         .getResponse();
                 }
 
+                repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
-                    .reprompt()
+                    .reprompt(repromptMessage)
                     .getResponse();
             })
             .catch((err) => {
@@ -166,9 +167,11 @@ const POAHandler = {
             speechOutput += `You entered the cause of the issue was ${d1}, the issue is fixed because ${d2}, and this will not happen again because ${d3}. \
                                     Is this correct?`
 
+            repromptMessage = `I'm sorry I did not hear a response. Please respond or the session will be closed.`
+
             return handlerInput.responseBuilder
                 .speak(speechOutput)
-                .reprompt()
+                .reprompt(repromptMessage + ' ' + speechOutput)
                 .getResponse();
 
         } else { //If dialog is not complete, delegate to dialog model            
@@ -364,10 +367,11 @@ const YesIntentHandler = {
                 .getResponse();
         }
 
+        repromptMessage = "Sorry, I did not hear a response. Please respond or the session will be closed";
         //Speak output and await input
         return handlerInput.responseBuilder
             .speak(speechOutput)
-            .reprompt(reprompt)
+            .reprompt(repromptMessage)
             .getResponse();
     }
 }
