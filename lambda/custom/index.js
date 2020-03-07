@@ -167,7 +167,7 @@ const POAHandler = {
             speechOutput += `You entered the cause of the issue was ${d1}, the issue is fixed because ${d2}, and this will not happen again because ${d3}. \
                                     Is this correct?`
 
-            repromptMessage = `I'm sorry I did not hear a response. Please respond or the session will be closed.`
+            repromptMessage = 'Sorry, I did not hear a response. Please respond or the session will be closed.'
 
             return handlerInput.responseBuilder
                 .speak(speechOutput)
@@ -430,10 +430,12 @@ const NoIntentHandler = {
             sessionAttributes.previousIntent = ('Question' + 0);
         }
 
+        repromptMessage = 'Sorry, I did not hear a response. Please respond or the session will be closed.';
+
         //Output message and await response
         return handlerInput.responseBuilder
             .speak(speechOutput)
-            .reprompt(reprompt)
+            .reprompt(repromptMessage)
             .getResponse();
     }
 }
@@ -513,9 +515,11 @@ const HelpIntentHandler = {
                 .getResponse();
         }
 
+        repromptMessage = 'Sorry, I did not hear a response. Please respond or the session will be closed.';
+
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt(speakOutput)
+            .reprompt(repromptMessage + ' ' + speakOutput)
             .getResponse();
     }
 };
@@ -619,9 +623,11 @@ const FallbackIntentHandler = {
                 .getResponse();
         }
 
+        repromptMessage = "Sorry, I did not hear a response. Please respond or the session will be closed.";
+
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt('Sorry, please try again')
+            .reprompt(repromptMessage)
             .getResponse();
     }
 }
