@@ -44,8 +44,7 @@ module.exports = {
     
     cancel() {
         var responses = [
-            "Okay. Please complete the appeal process at your earliest convenience to reinstate your account. Good bye.",
-            "No problem. Please complete the appeal process when you can to reinstate your account. Good bye.",
+            "If you choose to cancel, you must complete the appeal process at your earliest convenience to reinstate your account."
         ];
 
         return module.exports.randomize(responses);

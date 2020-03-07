@@ -357,10 +357,12 @@ const YesIntentHandler = {
         //From cancel intent
         else if (current === 'AMAZON.CancelIntent') {
             speechOutput = responses.cancel();
+            repromptMessage = 'Are you sure you would like to cancel?';
 
-            //Output message and don't reprompt to exit skill
+            //Output message and reprompt user to reaffirm cancellation
             return handlerInput.responseBuilder
                 .speak(speechOutput)
+                .reprompt(repromptMessage)
                 .getResponse();
         }
 
