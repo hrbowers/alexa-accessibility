@@ -491,6 +491,7 @@ const HelpIntentHandler = {
             of your marketplace account.'
             return handlerInput.responseBuilder
                 .speak(speakOutput)
+                .reprompt(responses.reprompt())
                 .addDelegateDirective({
                     name: "Self",
                     slots: {
