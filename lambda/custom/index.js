@@ -597,6 +597,7 @@ const FallbackIntentHandler = {
             speakOutput += ' Say yes to the following questions to reinstate your account.'
             return handlerInput.responseBuilder
                 .speak(speakOutput)
+                .reprompt(responses.reprompt())
                 .addDelegateDirective({
                     name: "Self",
                     slots: {
