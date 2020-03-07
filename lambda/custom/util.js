@@ -25,16 +25,14 @@ module.exports.createReminder = function createReminder(requestMoment, scheduled
             scheduledTime: scheduledMoment.format('YYYY-MM-DDTH:mm:00.000'),
             timeZoneId: timezone,
             recurrence:{
-                recurrenceRules:[
-                    "FREQ=DAILY;BYHOUR=13;BYMINUTE=0;BYSECOND=0;INTERVAL=1"
-                ]
+                freq:'DAILY'
             }
         },
         alertInfo: {
             spokenInfo: {
                 content: [{
                     locale: locale,
-                    text: 'Your account has been suspended and requires attention.  You can invoke the necessary skill to fix your account by saying, Alexa, fix my account.'
+                    text: 'Your account has been suspended and requires attention.  You can fix your account by saying, fix my account.'
                 }]
             }
         },

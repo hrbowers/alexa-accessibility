@@ -3,10 +3,9 @@ const util = require('./util');
 
 module.exports.createReminder = function createReminder(timezone, locale) {
     moment.locale(locale);
+    const requestMoment = moment.tz(timezone);
     const createdMoment = moment.tz(timezone);
-    let triggerMoment = createdMoment;
+    const triggerMoment = createdMoment.startOf('day').add(12,'hours');
 
-    console.log("Current Reminders: " + triggerMoment.format('YYYY-MM-DDTH:mm:00.000'));
-
-    return util.createReminder(createdMoment, triggerMoment, timezone, locale);
+    return util.createReminder(requestMoment, triggerMoment, timezone, locale);
 }
