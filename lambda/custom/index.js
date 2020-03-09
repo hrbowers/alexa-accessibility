@@ -18,7 +18,7 @@ const LaunchRequestHandler = {
         var infraction_DetailedDescription;
         var infraction_ShorthandDescription;
         
-        dbHelper.getInfraction()
+        await dbHelper.getInfraction()
             .then((data) => {
                 // Retrieve the infraction descriptions
                 infraction_DetailedDescription = data.Item.descriptionL;
@@ -29,6 +29,7 @@ const LaunchRequestHandler = {
                 var speakOutput = 'Error getting infraction';
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
+                    .withShouldEndSession(true)
                     .getResponse();
             })
 
@@ -47,6 +48,7 @@ const LaunchRequestHandler = {
                     speakOutput = "No account information available";
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 }
 
@@ -55,18 +57,19 @@ const LaunchRequestHandler = {
                     speakOutput = 'There was an error getting your account status';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 }
 
                 //Prompt the user based on retrieved account status
                 if (status === 1) {
                     sessionAttributes.currentState = 'LaunchPOA';
-                    speakOutput = "Your account has been suspended due to "+ infraction_ShorthandDescription +" and requires a complete plan of action to be reinstated.\
+                    speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
                     You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
                     sessionAttributes.understood = false;
-                    speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
+                    speakOutput = "Your account has been suspended due to "+ infraction_ShorthandDescription +" and is eligible for the self-reinstatement process.\
                     To begin you can say, reinstate.  Or, you can say cancel to reinstate your account at a later date."
                 } else if (status === 4) {
                     sessionAttributes.poaId = poaId;
@@ -78,6 +81,7 @@ const LaunchRequestHandler = {
                     speakOutput = 'Your account is in good standing and does not need attention at this time.';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 }
 
@@ -92,6 +96,7 @@ const LaunchRequestHandler = {
                 var speakOutput = 'Error getting status';
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
+                    .withShouldEndSession(true)
                     .getResponse();
             })
     }
@@ -118,6 +123,7 @@ const ReplyHandler = {
                     var speakOutput = 'Your plan of action was successfully updated. Please wait to hear back from Amazon regarding the status of your account reinstatement.';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 })
                 .catch((err) => {
@@ -125,6 +131,7 @@ const ReplyHandler = {
                     var speakOutput = 'Error updating';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 })
         } else {
@@ -226,6 +233,7 @@ const SRHandler = {
 
                 return handlerInput.responseBuilder
                     .speak(speechOutput)
+                    .withShouldEndSession(true)
                     .getResponse();
 
             } else {
@@ -235,6 +243,7 @@ const SRHandler = {
                         //Output message and don't reprompt to exit skill
                         return handlerInput.responseBuilder
                             .speak(speechOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
                     .catch((err) => {
@@ -242,6 +251,7 @@ const SRHandler = {
                         var speakOutput = 'Error updating status';
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
             }
@@ -250,8 +260,28 @@ const SRHandler = {
             //Any other 'no' responses will be handled at the end of the process.
             //If the user doesn't understand the policy, read it back re prompt for agreement.
             if (currentIntent.slots["CheckOne"].resolutions.resolutionsPerAuthority[0].values[0].value.name === "No") {
+                speakOutput = 'Your violation is as follows: '+ sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription 
+                            +'. This is a violation of Amazons policy.'
+                
                 return handlerInput.responseBuilder
-                    .speak('Implement Detailed policy read back and re prompt for understanding. Stopping skill.')
+                    .speak(speakOutput)
+                    .addDelegateDirective({
+                        name: "Self",
+                        slots: {
+                            "CheckOne": {
+                                name: "CheckOne"
+                            },
+                            "CheckTwo": {
+                                name: "CheckTwo"
+                            },
+                            "CheckThree": {
+                                name: "CheckThree"
+                            },
+                            "CheckFour": {
+                                name: "CheckFour"
+                            }
+                        }
+                    })
                     .getResponse();
 
             } else {
@@ -342,6 +372,7 @@ const YesIntentHandler = {
                         //Exit point at end of skill
                         return handlerInput.responseBuilder
                             .speak(speechOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
                     .catch((err) => {
@@ -349,6 +380,7 @@ const YesIntentHandler = {
                         var speakOutput = 'Error updating status';
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
 
@@ -364,6 +396,7 @@ const YesIntentHandler = {
             //Output message and don't reprompt to exit skill
             return handlerInput.responseBuilder
                 .speak(speechOutput)
+                .withShouldEndSession(true)
                 .getResponse();
         }
 
