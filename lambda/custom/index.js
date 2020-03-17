@@ -9,7 +9,7 @@ const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
-    async handle(handlerInput) {        
+    async handle(handlerInput) {
 
         //Set initial session attributes to setup initial routing
         const attributesManager = handlerInput.attributesManager;
@@ -19,7 +19,7 @@ const LaunchRequestHandler = {
         var infraction_DetailedDescription;
         var infraction_ShorthandDescription;
 
-        dbHelper.getInfraction()
+        await dbHelper.getInfraction()
             .then((data) => {
                 // Retrieve the infraction descriptions
                 infraction_DetailedDescription = data.Item.descriptionL;
@@ -40,6 +40,7 @@ const LaunchRequestHandler = {
                 var speakOutput = '';
                 var status = data.Item.statusCode;
                 var poaId = data.Item.poaId;
+                sessionAttributes.status = status;
                 sessionAttributes.infraction_ShorthandDescription = infraction_ShorthandDescription;
                 sessionAttributes.infraction_DetailedDescription = infraction_DetailedDescription;
 
@@ -62,7 +63,7 @@ const LaunchRequestHandler = {
                 //Prompt the user based on retrieved account status
                 if (status === 1) {
                     sessionAttributes.currentState = 'LaunchPOA';
-                    speakOutput = "Your account has been suspended due to, " + infraction_ShorthandDescription + ", and requires a complete plan of action to be reinstated.\
+                    speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
                     You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
@@ -75,29 +76,10 @@ const LaunchRequestHandler = {
                     speakOutput = "Your account is under review for reinstatment.  You can add additional information \
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
-                } else {                    
-                    return dbHelper.updateStatus(1, 'noPOA')
-                    .then((data) => {
-                        setReminder(handlerInput);
-                        speakOutput = 'Your account is in good standing and does not need attention at this time.';
-                        return handlerInput.responseBuilder
-                            .speak(speakOutput)
-                            .getResponse();
-                    })
-                    .catch((err) => {
-                        console.log("Error occured while updating", err);
-                        var speakOutput = 'Error updating status';
-                        return handlerInput.responseBuilder
-                            .speak(speakOutput)
-                            .getResponse();
-                    })
-
-                    /*
-                    speakOutput = 'Your account is in good standing and does not need attention at this time.';
-                        return handlerInput.responseBuilder
-                            .speak(speakOutput)
-                            .getResponse();
-                    */
+                } else {
+                    sessionAttributes.currentState = 'LaunchOK';
+                    speakOutput = 'Your account is in good standing and does not need attention at this time.  Would you like me to notify you if something goes wrong with your account?';
+                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
                 }
 
                 return handlerInput.responseBuilder
@@ -247,10 +229,13 @@ const SRHandler = {
             } else {
                 return dbHelper.updateStatus(0, 'noPOA')
                     .then((data) => {
+                        sessionAttributes.currentState = 'LaunchOK';
                         speakOutput = 'Thank you for completing the self-reinstatement process. Your account should be reactivated shortly.';
+                        speakOutput += ' Would you like to be notified if something else goes wrong with your account?';
                         //Output message and don't reprompt to exit skill
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
+                            .reprompt()
                             .getResponse();
                     })
                     .catch((err) => {
@@ -306,10 +291,8 @@ const SRHandler = {
  * The yes intent will handle confirmation of completed plans of action.  If the 
  * POA is approved, data is saved to a DynamoDB table.
  * 
- * The yes intent will also handle a cancel request.
- * 
- * TODO: Try to refactor to remove the self-reinstatement process from the yes
- * intent and use the dialog model instead.
+ * The yes intent will also handle a cancel request and setting up a reminder to fix
+ * the account.
  */
 const YesIntentHandler = {
     canHandle(handlerInput) {
@@ -353,11 +336,15 @@ const YesIntentHandler = {
 
                 return dbHelper.updateStatus(4, id)
                     .then((data) => {
+                        sessionAttributes.currentState = 'LaunchOK';
                         speakOutput = responses.completion();
+                        //Prompt if the user wants notifications of future issues
+                        speakOutput += ' Would you like to be notified when there are issues with your account?'
 
                         //Exit point at end of skill
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
+                            .reprompt()
                             .getResponse();
                     })
                     .catch((err) => {
@@ -373,11 +360,48 @@ const YesIntentHandler = {
             }
         }
 
-        //From cancel intent
-        else if (current === 'AMAZON.CancelIntent') {
-            speakOutput = responses.cancel();
+        /**
+         * Sets up the reminder to notify the user if anthing goes wrong
+         * with the account in the future.
+         */
+        else if (current === "LaunchOK") {
+            return dbHelper.updateStatus(1, 'noPOA')
+                .then((data) => {
+                    setReminder(handlerInput);
+                    var speakOutput = 'Ok, if something goes wrong I\'ll let you know. Good bye.';
+                    return handlerInput.responseBuilder
+                        .speak(speakOutput)
+                        .getResponse();
 
-            //Output message and don't reprompt to exit skill
+                })
+                .catch((err) => {
+                    console.log("Error occured while updating", err);
+                    var speakOutput = 'Error updating status';
+                    return handlerInput.responseBuilder
+                        .speak(speakOutput)
+                        .getResponse();
+                })
+        }
+
+        /**
+         * From cancel, ask if the user wants a reminder to fix the account.
+         */
+        else if (current === 'AMAZON.CancelIntent') {
+            sessionAttributes.currentState = 'CancelRemind'
+            speakOutput = 'Would you like me to remind you to fix your account?'
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt()
+                .getResponse();
+        }
+
+        /**
+         * Set reminder to fix the account later.
+         */
+        else if (current === 'CancelRemind') {
+            setReminder(handlerInput);
+            var speakOutput = 'Ok, I\'ll remind you to fix your account later. Good bye.';
             return handlerInput.responseBuilder
                 .speak(speakOutput)
                 .getResponse();
@@ -401,7 +425,6 @@ const NoIntentHandler = {
         var reprompt = "";
 
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        var prevIntent = sessionAttributes.previousIntent;
         var current = sessionAttributes.currentState;
 
         /**
@@ -439,10 +462,83 @@ const NoIntentHandler = {
                 .getResponse();
         }
 
-        //User cancels, and then decides not to cancel at the confirmation of cancel
-        else if (prevIntent === 'AMAZON.CancelIntent') {
-            speakOutput = responses.startOver() + "Are you ready?";
-            sessionAttributes.previousIntent = ('Question' + 0);
+        /**
+         * Skill finishes successfully but the user does not want audio notification of account issues.
+         */
+        else if (current === 'LaunchOK') {
+            speakOutput = 'Ok, I will not inform you of any issues with your account. Account notifications will still be sent to your email. Good bye.'
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+        }
+
+        /**
+        * User has canceled the skill and does not want reminders to fix the account.
+        */
+        else if (current === 'CancelRemind') {
+            speakOutput = 'Ok, Please remember to fix your account at your earliest convenience. Good bye.'
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+        }
+
+        /**
+         * User cancels, and then decides not to cancel at the confirmation of cancel.
+         * Re-Delegates to appropriate intent based on sesstionAttributes.status.
+         */
+        else if (current === 'AMAZON.CancelIntent') {
+            speakOutput = responses.startOver();
+
+            //POA
+            if (sessionAttributes.status === 1) {
+                return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .addDelegateDirective({
+                        name: 'PlanOfAction',
+                        slots: {
+                            "Q.Three": {
+                                "name": "Q.Three",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            },
+                            "Q.One": {
+                                "name": "Q.One",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            },
+                            "Q.Two": {
+                                "name": "Q.Two",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            }
+                        }
+                    })
+                    .getResponse();
+            }
+
+            //SR
+            else if (sessionAttributes.status === 2) {
+                return handlerInput.responseBuilder
+                    .addDelegateDirective({
+                        name: "Self",
+                        slots: {
+                            "CheckOne": {
+                                name: "CheckOne"
+                            },
+                            "CheckTwo": {
+                                name: "CheckTwo"
+                            },
+                            "CheckThree": {
+                                name: "CheckThree"
+                            },
+                            "CheckFour": {
+                                name: "CheckFour"
+                            }
+                        }
+                    })
+                    .getResponse();
+            }
+
         }
 
         //Output message and await response
@@ -541,15 +637,22 @@ const CancelIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
-
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.currentState = 'AMAZON.CancelIntent';
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt('Are you sure you want to stop now?')
-            .getResponse();
+        if (sessionAttributes.status === 4) {
+            const speakOutput = 'If you change your mind you can add more information to your plan of action later.  Good bye.';
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .getResponse();
+        }
+        else {
+            const speakOutput = 'The reinstatement process is not complete and your account is still suspended.  Are you sure you want to stop?';
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt('Are you sure you want to stop now?')
+                .getResponse();
+        }
     }
 };
 
@@ -733,7 +836,7 @@ async function setReminder(handlerInput) {
             console.log("Timezone " + timezone)
         }
     } catch (error) {
-        console.log("Timezone error: "+error);
+        console.log("Timezone error: " + error);
     }
 
     //create reminder
@@ -747,13 +850,13 @@ async function setReminder(handlerInput) {
         const remindersList = await reminderServiceClient.getReminders();
         const reminder = remind.createReminder(timezone, Alexa.getLocale(requestEnvelope));
         const reminderResponse = await reminderServiceClient.createReminder(reminder);
-        console.log('Reminder Created: '+ reminderResponse.alertToken);
+        console.log('Reminder Created: ' + reminderResponse.alertToken);
 
         return 0;
 
-    } catch (error) { 
-        console.log("Reminder error: "+ error);
-        console.log("Reminder error: "+ JSON.stringify(error));
+    } catch (error) {
+        console.log("Reminder error: " + error);
+        console.log("Reminder error: " + JSON.stringify(error));
 
     }
 }
