@@ -73,8 +73,8 @@ const LaunchRequestHandler = {
                     sessionAttributes.understood = false;
 
                     speakOutput = "Your account has been suspended due to, " + infraction_ShorthandDescription + ", and is eligible for the self-reinstatement process.\
-
                     To begin you can say, reinstate.  Or, you can say cancel to reinstate your account at a later date."
+                
                 } else if (status === 4) {
                     sessionAttributes.poaId = poaId;
                     sessionAttributes.currentState = 'LaunchReply';
@@ -82,11 +82,9 @@ const LaunchRequestHandler = {
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
                 } else {
-
                     sessionAttributes.currentState = 'LaunchOK';
                     speakOutput = 'Your account is in good standing and does not need attention at this time.  Would you like me to notify you if something goes wrong with your account?';
                     //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
-
                 }
 
                 repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
@@ -182,8 +180,8 @@ const POAHandler = {
 
             return handlerInput.responseBuilder
 
-                .speak(speechOutput)
-                .reprompt(repromptMessage + ' ' + speechOutput)
+                .speak(speakOutput)
+                .reprompt(repromptMessage + ' ' + speakOutput)
                 .getResponse();
 
         } else { //If dialog is not complete, delegate to dialog model            
@@ -237,10 +235,8 @@ const SRHandler = {
                 speakOutput += ' Your account will remain suspended until you agree to everything outlined in this self-reinstatement process.  Good bye.'
 
                 return handlerInput.responseBuilder
-
-                    .speak(speechOutput)
+                    .speak(speakOutput)
                     .withShouldEndSession(true)
-
                     .getResponse();
 
             } else {
@@ -249,10 +245,9 @@ const SRHandler = {
                         sessionAttributes.currentState = 'LaunchOK';
                         speakOutput = 'Thank you for completing the self-reinstatement process. Your account should be reactivated shortly.';
                         speakOutput += ' Would you like to be notified if something else goes wrong with your account?';
-                        //Output message and don't reprompt to exit skill
+                        
                         return handlerInput.responseBuilder
-
-                            .speak(speechOutput)
+                            .speak(speakOutput)
                             .withShouldEndSession(true)
                             .getResponse();
                     })
@@ -380,10 +375,8 @@ const YesIntentHandler = {
                         //Prompt if the user wants notifications of future issues
                         speakOutput += ' Would you like to be notified when there are issues with your account?'
 
-                        //Exit point at end of skill
                         return handlerInput.responseBuilder
-
-                            .speak(speechOutput)
+                            .speak(speakOutput)
                             .withShouldEndSession(true)
                             .getResponse();
                     })
@@ -412,6 +405,7 @@ const YesIntentHandler = {
                     var speakOutput = 'Ok, if something goes wrong I\'ll let you know. Good bye.';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
 
                 })
@@ -420,6 +414,7 @@ const YesIntentHandler = {
                     var speakOutput = 'Error updating status';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 })
         }
@@ -445,7 +440,7 @@ const YesIntentHandler = {
             var speakOutput = 'Ok, I\'ll remind you to fix your account later. Good bye.';
             return handlerInput.responseBuilder
                 
-                .speak(speechOutput)
+                .speak(speakOutput)
                 .withShouldEndSession(true)
                 .getResponse();
         }
@@ -454,7 +449,7 @@ const YesIntentHandler = {
         //Speak output and await input
         return handlerInput.responseBuilder
 
-            .speak(speechOutput)
+            .speak(speakOutput)
             .reprompt(repromptMessage)
             .getResponse();
     }
@@ -514,6 +509,7 @@ const NoIntentHandler = {
             speakOutput = 'Ok, I will not inform you of any issues with your account. Account notifications will still be sent to your email. Good bye.'
             return handlerInput.responseBuilder
                 .speak(speakOutput)
+                .withShouldEndSession(true)
                 .getResponse();
         }
 
@@ -524,6 +520,7 @@ const NoIntentHandler = {
             speakOutput = 'Ok, Please remember to fix your account at your earliest convenience. Good bye.'
             return handlerInput.responseBuilder
                 .speak(speakOutput)
+                .withShouldEndSession(true)
                 .getResponse();
         }
 
@@ -590,8 +587,7 @@ const NoIntentHandler = {
 
         //Output message and await response
         return handlerInput.responseBuilder
-
-            .speak(speechOutput)
+            .speak(speakOutput)
             .reprompt(repromptMessage)
             .getResponse();
     }
@@ -694,6 +690,7 @@ const CancelIntentHandler = {
             const speakOutput = 'If you change your mind you can add more information to your plan of action later.  Good bye.';
             return handlerInput.responseBuilder
                 .speak(speakOutput)
+                .withShouldEndSession(true)
                 .getResponse();
         }
         else {
