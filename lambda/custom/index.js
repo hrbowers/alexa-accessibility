@@ -30,6 +30,7 @@ const LaunchRequestHandler = {
                 var speakOutput = 'Error getting infraction';
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
+                    .withShouldEndSession(true)
                     .getResponse();
             })
 
@@ -49,6 +50,7 @@ const LaunchRequestHandler = {
                     speakOutput = "No account information available";
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 }
 
@@ -57,6 +59,7 @@ const LaunchRequestHandler = {
                     speakOutput = 'There was an error getting your account status';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 }
 
@@ -68,7 +71,9 @@ const LaunchRequestHandler = {
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
                     sessionAttributes.understood = false;
+
                     speakOutput = "Your account has been suspended due to, " + infraction_ShorthandDescription + ", and is eligible for the self-reinstatement process.\
+
                     To begin you can say, reinstate.  Or, you can say cancel to reinstate your account at a later date."
                 } else if (status === 4) {
                     sessionAttributes.poaId = poaId;
@@ -77,14 +82,17 @@ const LaunchRequestHandler = {
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
                 } else {
+
                     sessionAttributes.currentState = 'LaunchOK';
                     speakOutput = 'Your account is in good standing and does not need attention at this time.  Would you like me to notify you if something goes wrong with your account?';
                     //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+
                 }
 
+                repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
-                    .reprompt()
+                    .reprompt(repromptMessage)
                     .getResponse();
             })
             .catch((err) => {
@@ -92,6 +100,7 @@ const LaunchRequestHandler = {
                 var speakOutput = 'Error getting status';
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
+                    .withShouldEndSession(true)
                     .getResponse();
             })
     }
@@ -118,6 +127,7 @@ const ReplyHandler = {
                     var speakOutput = 'Your plan of action was successfully updated. Please wait to hear back from Amazon regarding the status of your account reinstatement.';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 })
                 .catch((err) => {
@@ -125,6 +135,7 @@ const ReplyHandler = {
                     var speakOutput = 'Error updating';
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 })
         } else {
@@ -167,9 +178,12 @@ const POAHandler = {
             speakOutput += `You entered the cause of the issue was ${d1}, the issue is fixed because ${d2}, and this will not happen again because ${d3}. \
                                     Is this correct?`
 
+            repromptMessage = 'Sorry, I did not hear a response. Please respond or the session will be closed.'
+
             return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .reprompt()
+
+                .speak(speechOutput)
+                .reprompt(repromptMessage + ' ' + speechOutput)
                 .getResponse();
 
         } else { //If dialog is not complete, delegate to dialog model            
@@ -223,7 +237,10 @@ const SRHandler = {
                 speakOutput += ' Your account will remain suspended until you agree to everything outlined in this self-reinstatement process.  Good bye.'
 
                 return handlerInput.responseBuilder
-                    .speak(speakOutput)
+
+                    .speak(speechOutput)
+                    .withShouldEndSession(true)
+
                     .getResponse();
 
             } else {
@@ -234,8 +251,9 @@ const SRHandler = {
                         speakOutput += ' Would you like to be notified if something else goes wrong with your account?';
                         //Output message and don't reprompt to exit skill
                         return handlerInput.responseBuilder
-                            .speak(speakOutput)
-                            .reprompt()
+
+                            .speak(speechOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
                     .catch((err) => {
@@ -243,6 +261,7 @@ const SRHandler = {
                         var speakOutput = 'Error updating status';
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
             }
@@ -251,8 +270,28 @@ const SRHandler = {
             //Any other 'no' responses will be handled at the end of the process.
             //If the user doesn't understand the policy, read it back re prompt for agreement.
             if (currentIntent.slots["CheckOne"].resolutions.resolutionsPerAuthority[0].values[0].value.name === "No") {
+                speakOutput = 'Your violation is as follows: '+ sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription 
+                            +'. This is a violation of Amazons policy.'
+                
                 return handlerInput.responseBuilder
-                    .speak('Implement Detailed policy read back and re prompt for understanding. Stopping skill.')
+                    .speak(speakOutput)
+                    .addDelegateDirective({
+                        name: "Self",
+                        slots: {
+                            "CheckOne": {
+                                name: "CheckOne"
+                            },
+                            "CheckTwo": {
+                                name: "CheckTwo"
+                            },
+                            "CheckThree": {
+                                name: "CheckThree"
+                            },
+                            "CheckFour": {
+                                name: "CheckFour"
+                            }
+                        }
+                    })
                     .getResponse();
 
             } else {
@@ -343,8 +382,9 @@ const YesIntentHandler = {
 
                         //Exit point at end of skill
                         return handlerInput.responseBuilder
-                            .speak(speakOutput)
-                            .reprompt()
+
+                            .speak(speechOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
                     .catch((err) => {
@@ -352,6 +392,7 @@ const YesIntentHandler = {
                         var speakOutput = 'Error updating status';
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
 
@@ -403,14 +444,18 @@ const YesIntentHandler = {
             setReminder(handlerInput);
             var speakOutput = 'Ok, I\'ll remind you to fix your account later. Good bye.';
             return handlerInput.responseBuilder
-                .speak(speakOutput)
+                
+                .speak(speechOutput)
+                .withShouldEndSession(true)
                 .getResponse();
         }
 
+        repromptMessage = "Sorry, I did not hear a response. Please respond or the session will be closed";
         //Speak output and await input
         return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(reprompt)
+
+            .speak(speechOutput)
+            .reprompt(repromptMessage)
             .getResponse();
     }
 }
@@ -541,10 +586,13 @@ const NoIntentHandler = {
 
         }
 
+        repromptMessage = 'Sorry, I did not hear a response. Please respond or the session will be closed.';
+
         //Output message and await response
         return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt(reprompt)
+
+            .speak(speechOutput)
+            .reprompt(repromptMessage)
             .getResponse();
     }
 }
@@ -624,9 +672,11 @@ const HelpIntentHandler = {
                 .getResponse();
         }
 
+        repromptMessage = 'Sorry, I did not hear a response. Please respond or the session will be closed.';
+
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt(speakOutput)
+            .reprompt(repromptMessage + ' ' + speakOutput)
             .getResponse();
     }
 };
@@ -737,9 +787,11 @@ const FallbackIntentHandler = {
                 .getResponse();
         }
 
+        repromptMessage = "Sorry, I did not hear a response. Please respond or the session will be closed.";
+
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt('Sorry, please try again')
+            .reprompt(repromptMessage)
             .getResponse();
     }
 }
