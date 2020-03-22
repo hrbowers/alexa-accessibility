@@ -17,12 +17,25 @@ const LaunchRequestHandler = {
         sessionAttributes.currentState = '';
         var infraction_DetailedDescription;
         var infraction_ShorthandDescription;
+        var infractionArray;
         
         await dbHelper.getInfraction()
             .then((data) => {
                 // Retrieve the infraction descriptions
                 infraction_DetailedDescription = data.Item.descriptionL;
                 infraction_ShorthandDescription = data.Item.descriptionS;
+            })
+            .catch((err) => {
+                console.log("Error occured while getting data", err);
+                var speakOutput = 'Error getting infraction';
+                return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .withShouldEndSession(true)
+                    .getResponse();
+            })
+        await dbHelper.getInfractionArray()
+            .then((data) => {
+                sessionAttributes.infractionArray = Object.values(data.Item.infractionArray)[1];
             })
             .catch((err) => {
                 console.log("Error occured while getting data", err);
@@ -42,7 +55,6 @@ const LaunchRequestHandler = {
                 var poaId = data.Item.poaId;
                 sessionAttributes.infraction_ShorthandDescription = infraction_ShorthandDescription;
                 sessionAttributes.infraction_DetailedDescription = infraction_DetailedDescription;
-
                 //Account does not exist
                 if (data.length == 0) {
                     speakOutput = "No account information available";
@@ -64,7 +76,7 @@ const LaunchRequestHandler = {
                 //Prompt the user based on retrieved account status
                 if (status === 1) {
                     sessionAttributes.currentState = 'LaunchPOA';
-                    speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
+                    speakOutput = " Your account has been suspended and requires a complete plan of action to be reinstated.\
                     You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
                 } else if (status === 2) {
                     sessionAttributes.currentState = 'LaunchSR';
@@ -93,7 +105,7 @@ const LaunchRequestHandler = {
             })
             .catch((err) => {
                 console.log("Error occured while getting data", err);
-                var speakOutput = 'Error getting status';
+                var speakOutput = 'Error getting status ' + err;
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .withShouldEndSession(true)
