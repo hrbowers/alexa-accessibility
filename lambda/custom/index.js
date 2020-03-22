@@ -90,7 +90,7 @@ const LaunchRequestHandler = {
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
                 } else {
-                    speakOutput = 'Your account is in good standing and does not need attention at this time.';
+                    speakOutput = 'Your account is in good standing and does not need attention at this time.'
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
@@ -499,8 +499,7 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
         if (current === 'LaunchPOA') {
-            speakOutput = 'Your violation is as follows: '+ sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription 
-                            +'. This is a violation of Amazons policy. You will have to describe the reason the policy was violated, how you fixed your policy violation, \
+            speakOutput = 'You will have to describe the reason the policy was violated, how you fixed your policy violation, \
                             and how you will prevent further violations. \
                             Simply say, Plan of Action to fill out your reinstatement form.'
         } else if (current === 'LaunchSR') {

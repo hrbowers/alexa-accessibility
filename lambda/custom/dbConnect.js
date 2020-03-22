@@ -99,7 +99,6 @@ dbConnect.prototype.getInfractionArray = () => {
     })
 }
 
-
 dbConnect.prototype.updateStatus = (status,poaId) => {
     return new Promise((resolve,reject) => {
         const params ={
