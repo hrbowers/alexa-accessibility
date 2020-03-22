@@ -74,7 +74,7 @@ const LaunchRequestHandler = {
 
                     speakOutput = "Your account has been suspended due to, " + infraction_ShorthandDescription + ", and is eligible for the self-reinstatement process.\
                     To begin you can say, reinstate.  Or, you can say cancel to reinstate your account at a later date."
-                
+
                 } else if (status === 4) {
                     sessionAttributes.poaId = poaId;
                     sessionAttributes.currentState = 'LaunchReply';
@@ -184,10 +184,23 @@ const POAHandler = {
                 .reprompt(repromptMessage + ' ' + speakOutput)
                 .getResponse();
 
-        } else { //If dialog is not complete, delegate to dialog model            
-            return handlerInput.responseBuilder
-                .addDelegateDirective()
-                .getResponse();
+        } else { //If dialog is not complete, delegate to dialog model
+            let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
+            let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
+            let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
+            console.log('t1', temp1);
+            console.log('t2', temp2);
+            console.log('t3', temp3);
+
+            if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
+                return HelpIntentHandler.handle(handlerInput);
+            } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
+                return CancelIntentHandler.handle(handlerInput);
+            } else {
+                return handlerInput.responseBuilder
+                    .addDelegateDirective()
+                    .getResponse();
+            }
         }
     }
 }
@@ -245,7 +258,7 @@ const SRHandler = {
                         sessionAttributes.currentState = 'LaunchOK';
                         speakOutput = 'Thank you for completing the self-reinstatement process. Your account should be reactivated shortly.';
                         speakOutput += ' Would you like to be notified if something else goes wrong with your account?';
-                        
+
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
                             .withShouldEndSession(true)
@@ -265,9 +278,9 @@ const SRHandler = {
             //Any other 'no' responses will be handled at the end of the process.
             //If the user doesn't understand the policy, read it back re prompt for agreement.
             if (currentIntent.slots["CheckOne"].resolutions.resolutionsPerAuthority[0].values[0].value.name === "No") {
-                speakOutput = 'Your violation is as follows: '+ sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription 
-                            +'. This is a violation of Amazons policy.'
-                
+                speakOutput = 'Your violation is as follows: ' + sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription
+                    + '. This is a violation of Amazons policy.'
+
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .addDelegateDirective({
@@ -439,7 +452,7 @@ const YesIntentHandler = {
             setReminder(handlerInput);
             var speakOutput = 'Ok, I\'ll remind you to fix your account later. Good bye.';
             return handlerInput.responseBuilder
-                
+
                 .speak(speakOutput)
                 .withShouldEndSession(true)
                 .getResponse();
@@ -855,7 +868,7 @@ exports.handler = skillBuilder
         ErrorHandler
     )
     .withTableName('poa-id-numbers')
-    .withAutoCreateTable(true)
+    //.withAutoCreateTable(true)
     .lambda();
 
 //Helper function to save new POA data to DynamoDB
