@@ -2,6 +2,7 @@ const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
 const remind = require("./reminder");
+const mail = require("./mailer");
 
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
@@ -185,13 +186,12 @@ const POAHandler = {
                 .getResponse();
 
         } else { //If dialog is not complete, delegate to dialog model
-            let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
-            let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
-            let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
-            console.log('t1', temp1);
-            console.log('t2', temp2);
-            console.log('t3', temp3);
+            
+            let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One'); //Answer to Q1
+            let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');  //Answer to Q2
+            let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');  //Answer to Q3
 
+            //Filter user input to trigger either the help intent or cancel intent if needed
             if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
                 return HelpIntentHandler.handle(handlerInput);
             } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
@@ -259,9 +259,17 @@ const SRHandler = {
                         speakOutput = 'Thank you for completing the self-reinstatement process. Your account should be reactivated shortly.';
                         speakOutput += ' Would you like to be notified if something else goes wrong with your account?';
 
+                        const SR_CONFIRM_MESSAGE = 'The self-reinstatement process was successfully completed and your account is reactivated.  Thank you.';
+
+                        //send confirmation of success to user's email
+                        if(mail.sendConfirmation('jpasimiotestmail@gmail.com','Self-Reinstatement of Seller Account Success',SR_CONFIRM_MESSAGE)){
+                            console.log("Email Success");
+                        }else{
+                            console.log("Email Fail");
+                        }
+
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
-                            .withShouldEndSession(true)
                             .getResponse();
                     })
                     .catch((err) => {
