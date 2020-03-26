@@ -60,12 +60,12 @@ dbConnect.prototype.getTestValue = () => {
     });
 }
 
-dbConnect.prototype.getInfraction = () => {
+dbConnect.prototype.getInfraction = (infractionID) => {
     return new Promise((resolve, reject) => {
         const params = {
             TableName: 'infraction',
             Key: {
-                'infractionId':0
+                'infractionId': infractionID
             }
         }
         docClient.get(params, (err, data) => {
