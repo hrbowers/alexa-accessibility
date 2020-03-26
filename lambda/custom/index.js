@@ -12,6 +12,8 @@ const LaunchRequestHandler = {
     },
     async handle(handlerInput) {
 
+        var sent = mail.handler();
+
         //Set initial session attributes to setup initial routing
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();

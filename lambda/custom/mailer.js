@@ -1,33 +1,34 @@
-const nodemailer = require('nodemailer');
+const aws = require('aws-sdk');
+const ses = new aws.SES({ region: 'us-east-1' });
 
-var mailer = function () { };
+exports.handler = () => {
+    
+    var params = {
+       Destination: {
+           ToAddresses: ["jpasimiotestmail@gmail.com"]
+       },
+       Message: {
+           Body: {
+               Text: { Data: "Test message from Amazon SES."
+                   
+               }
+               
+           },
+           
+           Subject: { Data: "Test Email from Alexa Skill"
+               
+           }
+       },
+       Source: "jeremypasimio@gmail.com"
+   };
 
-mailer.prototype.sendConfirmation = (emailTo, confirmSubject, msg) => {
-    var transporter = nodemailer.createTransport({
-        service: '',
-        auth: {
-            user: '',
-            pass: ''
-        }
-    });
-
-    var mailOptions = {
-        from:'asualexacapstone@gmail.com',
-        to: emailTo,
-        subject: confirmSubject,
-        text: msg
-    }
-
-    transporter.sendMail(mailOptions, function (error, info) {
-        if (error) {
-            console.log(error);
-            return false;
-        } else {
-            console.log('Confirmation sent: ' + info.response);
-        }
-    });
-
-    return true;
-}
-
-module.exports = new mailer();
+   
+    ses.sendEmail(params, function (err, data) {
+       //callback(null, {err: err, data: data});
+       if (err) {
+           console.log(err);
+       } else {           
+           console.log("Mail Sent: " + JSON.stringify(data));
+       }
+   });
+};
