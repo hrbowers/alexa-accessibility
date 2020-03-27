@@ -24,8 +24,8 @@ module.exports.createReminder = function createReminder(requestMoment, scheduled
             type: 'SCHEDULED_ABSOLUTE',
             scheduledTime: scheduledMoment.format('YYYY-MM-DDTH:mm:00.000'),
             timeZoneId: timezone,
-            recurrence:{
-                freq:'DAILY'
+            recurrence: {
+                freq: 'DAILY'
             }
         },
         alertInfo: {
@@ -41,4 +41,3 @@ module.exports.createReminder = function createReminder(requestMoment, scheduled
         }
     }
 }
-

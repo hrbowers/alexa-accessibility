@@ -12,8 +12,6 @@ const LaunchRequestHandler = {
     },
     async handle(handlerInput) {
 
-        var sent = mail.handler();
-
         //Set initial session attributes to setup initial routing
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
@@ -126,6 +124,12 @@ const ReplyHandler = {
                 .then((data) => {
                     console.log(data, typeof (data));
                     var speakOutput = 'Your plan of action was successfully updated. Please wait to hear back from Amazon regarding the status of your account reinstatement.';
+
+                    const REPLY_SUBJECT = 'Plan of Action Updated';
+                    const REPLY_CONFIRM_MESSAGE = responses.makeResponse(current.slots.Query.value);
+
+                    mail.handler(REPLY_SUBJECT,REPLY_CONFIRM_MESSAGE);
+
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
@@ -261,14 +265,10 @@ const SRHandler = {
                         speakOutput = 'Thank you for completing the self-reinstatement process. Your account should be reactivated shortly.';
                         speakOutput += ' Would you like to be notified if something else goes wrong with your account?';
 
+                        const SR_SUBJECT = 'Self-Reinstatement Success';
                         const SR_CONFIRM_MESSAGE = 'The self-reinstatement process was successfully completed and your account is reactivated.  Thank you.';
 
-                        //send confirmation of success to user's email
-                        if(mail.sendConfirmation('jpasimiotestmail@gmail.com','Self-Reinstatement of Seller Account Success',SR_CONFIRM_MESSAGE)){
-                            console.log("Email Success");
-                        }else{
-                            console.log("Email Fail");
-                        }
+                        mail.handler(SR_SUBJECT,SR_CONFIRM_MESSAGE);
 
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
@@ -390,17 +390,23 @@ const YesIntentHandler = {
             let dbSave = saveAppeal(id, d1, d2, d3);
 
             if (dbSave) {
-
                 return dbHelper.updateStatus(4, id)
                     .then((data) => {
                         sessionAttributes.currentState = 'LaunchOK';
+
+                        //email confirmation of poa submission.
+                        const POA_SUBJECT = 'Plan of Action Submitted';
+                        var POA_CONFIRM_MESSAGE = responses.makeResponse(d1,d2,d3);
+
+                        mail.handler(POA_SUBJECT,POA_CONFIRM_MESSAGE);
+
                         speakOutput = responses.completion();
                         //Prompt if the user wants notifications of future issues
                         speakOutput += ' Would you like to be notified when there are issues with your account?'
 
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
-                            .withShouldEndSession(true)
+                            .reprompt()
                             .getResponse();
                     })
                     .catch((err) => {
@@ -478,6 +484,9 @@ const YesIntentHandler = {
     }
 }
 
+/**
+ * Handles various 'no' responses from the user.
+ */
 const NoIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'

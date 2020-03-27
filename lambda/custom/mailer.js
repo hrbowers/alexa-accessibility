@@ -1,7 +1,7 @@
 const aws = require('aws-sdk');
 const ses = new aws.SES({ region: 'us-east-1' });
 
-exports.handler = () => {
+exports.handler = (subject,msg) => {
     
     var params = {
        Destination: {
@@ -9,13 +9,13 @@ exports.handler = () => {
        },
        Message: {
            Body: {
-               Text: { Data: "Test message from Amazon SES."
+               Text: { Data: msg
                    
                }
                
            },
            
-           Subject: { Data: "Test Email from Alexa Skill"
+           Subject: { Data: subject
                
            }
        },
