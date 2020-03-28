@@ -1,6 +1,7 @@
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
+const remind = require("./reminder");
 
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
@@ -18,6 +19,7 @@ const LaunchRequestHandler = {
         sessionAttributes.infractionIndex = 0;
         
         await dbHelper.getInfractionArray()
+
             .then((data) => {
                 sessionAttributes.infractionArray = Object.values(data.Item.infractionArray)[1];
             })
@@ -64,11 +66,14 @@ const LaunchRequestHandler = {
                     + ". If you would like to reinstate your account, begin by saying reinstate my account.";
                     sessionAttributes.currentState = 'LaunchSR';
                 } else {
-                    speakOutput = 'Your account is in good standing and does not need attention at this time.';
+                    speakOutput = 'Your account is in good standing and does not need attention at this time.'
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
+                    sessionAttributes.currentState = 'LaunchOK';
+                    speakOutput = 'Your account is in good standing and does not need attention at this time.  Would you like me to notify you if something goes wrong with your account?';
+                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
                 }
 
                 repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
@@ -142,7 +147,7 @@ const POAHandler = {
         const { attributesManager, requestEnvelope } = handlerInput;
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.currentState = 'POA';
-        var speechOutput = '';
+        var speakOutput = '';
 
         //If dialog is complete, save POA
         if (handlerInput.requestEnvelope.request.dialogState === 'COMPLETED') {
@@ -157,14 +162,15 @@ const POAHandler = {
             sessionAttributes.d3 = d3;
 
             //Confirm final submission via YesIntent and NoIntent.
-            speechOutput += `You entered the cause of the issue was ${d1}, the issue is fixed because ${d2}, and this will not happen again because ${d3}. \
+            speakOutput += `You entered the cause of the issue was ${d1}, the issue is fixed because ${d2}, and this will not happen again because ${d3}. \
                                     Is this correct?`
 
             repromptMessage = 'Sorry, I did not hear a response. Please respond or the session will be closed.'
 
             return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .reprompt(repromptMessage + ' ' + speechOutput)
+
+                .speak(speakOutput)
+                .reprompt(repromptMessage + ' ' + speakOutput)
                 .getResponse();
 
         } else { //If dialog is not complete, delegate to dialog model            
@@ -190,7 +196,7 @@ const SRHandler = {
         const sessionAttributes = attributesManager.getSessionAttributes();
         const currentIntent = handlerInput.requestEnvelope.request.intent;
         sessionAttributes.currentState = 'Self';
-        var speechOutput = '';
+        var speakOutput = '';
 
         //If dialog is complete, end reinstatement and set account status to 0
         if (requestEnvelope.request.dialogState === 'COMPLETED') {
@@ -204,21 +210,21 @@ const SRHandler = {
                 || currentIntent.slots["CheckFour"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
 
                 if (currentIntent.slots["CheckTwo"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
-                    speechOutput += noAction;
+                    speakOutput += noAction;
                 }
 
                 if (currentIntent.slots["CheckThree"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
-                    speechOutput += noQuality;
+                    speakOutput += noQuality;
                 }
 
                 if (currentIntent.slots["CheckFour"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
-                    speechOutput += noPermLoss;
+                    speakOutput += noPermLoss;
                 }
 
-                speechOutput += ' Your account will remain suspended until you agree to everything outlined in this self-reinstatement process.  Good bye.'
+                speakOutput += ' Your account will remain suspended until you agree to everything outlined in this self-reinstatement process.  Good bye.'
 
                 return handlerInput.responseBuilder
-                    .speak(speechOutput)
+                    .speak(speakOutput)
                     .withShouldEndSession(true)
                     .getResponse();
 
@@ -263,7 +269,6 @@ const SRHandler = {
                                 .withShouldEndSession(true)
                                 .getResponse();
                         }
-                        
                     })
                     .catch((err) => {
                         console.log("Error occured while updating", err);
@@ -341,10 +346,8 @@ async function updateStatus() {
  * The yes intent will handle confirmation of completed plans of action.  If the 
  * POA is approved, data is saved to a DynamoDB table.
  * 
- * The yes intent will also handle a cancel request.
- * 
- * TODO: Try to refactor to remove the self-reinstatement process from the yes
- * intent and use the dialog model instead.
+ * The yes intent will also handle a cancel request and setting up a reminder to fix
+ * the account.
  */
 const YesIntentHandler = {
     canHandle(handlerInput) {
@@ -352,7 +355,7 @@ const YesIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.YesIntent';
     },
     async handle(handlerInput) {
-        var speechOutput = "";
+        var speakOutput = "";
         var reprompt = "";
 
         //Get current set of attributes to route to the correct response
@@ -388,11 +391,13 @@ const YesIntentHandler = {
 
                 return dbHelper.updateStatus(4, id)
                     .then((data) => {
-                        speechOutput = responses.completion();
+                        sessionAttributes.currentState = 'LaunchOK';
+                        speakOutput = responses.completion();
+                        //Prompt if the user wants notifications of future issues
+                        speakOutput += ' Would you like to be notified when there are issues with your account?'
 
-                        //Exit point at end of skill
                         return handlerInput.responseBuilder
-                            .speak(speechOutput)
+                            .speak(speakOutput)
                             .withShouldEndSession(true)
                             .getResponse();
                     })
@@ -406,17 +411,57 @@ const YesIntentHandler = {
                     })
 
             } else {
-                speechOutput = responses.dbFail();
+                speakOutput = responses.dbFail();
             }
         }
 
-        //From cancel intent
-        else if (current === 'AMAZON.CancelIntent') {
-            speechOutput = responses.cancel();
+        /**
+         * Sets up the reminder to notify the user if anthing goes wrong
+         * with the account in the future.
+         */
+        else if (current === "LaunchOK") {
+            return dbHelper.updateStatus(1, 'noPOA')
+                .then((data) => {
+                    setReminder(handlerInput);
+                    var speakOutput = 'Ok, if something goes wrong I\'ll let you know. Good bye.';
+                    return handlerInput.responseBuilder
+                        .speak(speakOutput)
+                        .withShouldEndSession(true)
+                        .getResponse();
 
-            //Output message and don't reprompt to exit skill
+                })
+                .catch((err) => {
+                    console.log("Error occured while updating", err);
+                    var speakOutput = 'Error updating status';
+                    return handlerInput.responseBuilder
+                        .speak(speakOutput)
+                        .withShouldEndSession(true)
+                        .getResponse();
+                })
+        }
+
+        /**
+         * From cancel, ask if the user wants a reminder to fix the account.
+         */
+        else if (current === 'AMAZON.CancelIntent') {
+            sessionAttributes.currentState = 'CancelRemind'
+            speakOutput = 'Would you like me to remind you to fix your account?'
+
             return handlerInput.responseBuilder
-                .speak(speechOutput)
+                .speak(speakOutput)
+                .reprompt()
+                .getResponse();
+        }
+
+        /**
+         * Set reminder to fix the account later.
+         */
+        else if (current === 'CancelRemind') {
+            setReminder(handlerInput);
+            var speakOutput = 'Ok, I\'ll remind you to fix your account later. Good bye.';
+            return handlerInput.responseBuilder
+                
+                .speak(speakOutput)
                 .withShouldEndSession(true)
                 .getResponse();
         }
@@ -424,7 +469,8 @@ const YesIntentHandler = {
         repromptMessage = "Sorry, I did not hear a response. Please respond or the session will be closed";
         //Speak output and await input
         return handlerInput.responseBuilder
-            .speak(speechOutput)
+
+            .speak(speakOutput)
             .reprompt(repromptMessage)
             .getResponse();
     }
@@ -436,11 +482,10 @@ const NoIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NoIntent';
     },
     handle(handlerInput) {
-        var speechOutput = "There is an error";
+        var speakOutput = "There is an error";
         var reprompt = "";
 
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        var prevIntent = sessionAttributes.previousIntent;
         var current = sessionAttributes.currentState;
 
         /**
@@ -451,10 +496,10 @@ const NoIntentHandler = {
          */
         if (current === 'POAFinished') {
 
-            speechOutput = 'Ok, we can start again. '
+            speakOutput = 'Ok, we can start again. '
 
             return handlerInput.responseBuilder
-                .speak(speechOutput)
+                .speak(speakOutput)
                 .addDelegateDirective({
                     name: 'PlanOfAction',
                     slots: {
@@ -478,17 +523,92 @@ const NoIntentHandler = {
                 .getResponse();
         }
 
-        //User cancels, and then decides not to cancel at the confirmation of cancel
-        else if (prevIntent === 'AMAZON.CancelIntent') {
-            speechOutput = responses.startOver() + "Are you ready?";
-            sessionAttributes.previousIntent = ('Question' + 0);
+        /**
+         * Skill finishes successfully but the user does not want audio notification of account issues.
+         */
+        else if (current === 'LaunchOK') {
+            speakOutput = 'Ok, I will not inform you of any issues with your account. Account notifications will still be sent to your email. Good bye.'
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+
+        /**
+        * User has canceled the skill and does not want reminders to fix the account.
+        */
+        else if (current === 'CancelRemind') {
+            speakOutput = 'Ok, Please remember to fix your account at your earliest convenience. Good bye.'
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+
+        /**
+         * User cancels, and then decides not to cancel at the confirmation of cancel.
+         * Re-Delegates to appropriate intent based on sesstionAttributes.status.
+         */
+        else if (current === 'AMAZON.CancelIntent') {
+            speakOutput = responses.startOver();
+
+            //POA
+            if (sessionAttributes.status === 1) {
+                return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .addDelegateDirective({
+                        name: 'PlanOfAction',
+                        slots: {
+                            "Q.Three": {
+                                "name": "Q.Three",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            },
+                            "Q.One": {
+                                "name": "Q.One",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            },
+                            "Q.Two": {
+                                "name": "Q.Two",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            }
+                        }
+                    })
+                    .getResponse();
+            }
+
+            //SR
+            else if (sessionAttributes.status === 2) {
+                return handlerInput.responseBuilder
+                    .addDelegateDirective({
+                        name: "Self",
+                        slots: {
+                            "CheckOne": {
+                                name: "CheckOne"
+                            },
+                            "CheckTwo": {
+                                name: "CheckTwo"
+                            },
+                            "CheckThree": {
+                                name: "CheckThree"
+                            },
+                            "CheckFour": {
+                                name: "CheckFour"
+                            }
+                        }
+                    })
+                    .getResponse();
+            }
+
         }
 
         repromptMessage = 'Sorry, I did not hear a response. Please respond or the session will be closed.';
 
         //Output message and await response
         return handlerInput.responseBuilder
-            .speak(speechOutput)
+            .speak(speakOutput)
             .reprompt(repromptMessage)
             .getResponse();
     }
@@ -508,8 +628,8 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
         if (current === 'LaunchPOA') {
-            speakOutput = 'Your violation is as follows: '+ sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription 
-                            +'. This is a violation of Amazons policy. You will have to describe the reason the policy was violated, how you fixed your policy violation, \
+            speakOutput = 'Your violation is as follows: ' + sessionAttributes.infraction_ShorthandDescription + '. ' + sessionAttributes.infraction_DetailedDescription
+                + '. This is a violation of Amazons policy. You will have to describe the reason the policy was violated, how you fixed your policy violation, \
                             and how you will prevent further violations. \
                             Simply say, Plan of Action to fill out your reinstatement form.'
         } else if (current === 'LaunchSR') {
@@ -584,15 +704,23 @@ const CancelIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
-
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.currentState = 'AMAZON.CancelIntent';
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt('Are you sure you want to stop now?')
-            .getResponse();
+        if (sessionAttributes.status === 4) {
+            const speakOutput = 'If you change your mind you can add more information to your plan of action later.  Good bye.';
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+        else {
+            const speakOutput = 'The reinstatement process is not complete and your account is still suspended.  Are you sure you want to stop?';
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt('Are you sure you want to stop now?')
+                .getResponse();
+        }
     }
 };
 
@@ -653,7 +781,7 @@ const FallbackIntentHandler = {
             speakOutput += ' You can say, add more information, to add more information to your plan of action.';
         } else if (current === 'POAFinished') {
             speakOutput += ' If you are satisfied with your plan of action, say yes to submit it for review. Otherwise, you can say cancel to stop.';
-        }else if (current === 'Self') {
+        } else if (current === 'Self') {
             speakOutput += ' Say yes to the following questions to reinstate your account.'
             return handlerInput.responseBuilder
                 .speak(speakOutput)
@@ -761,6 +889,46 @@ async function saveAppeal(id, data1, data2, data3) {
             console.log("Error occured while saving data", err);
             return false;
         })
+}
+
+//Helper function to set a reminder
+async function setReminder(handlerInput) {
+
+    const { serviceClientFactory, requestEnvelope } = handlerInput;
+    const deviceId = Alexa.getDeviceId(requestEnvelope);
+    var timezone;
+
+    //get timezone
+    try {
+        const upsServiceClient = serviceClientFactory.getUpsServiceClient();
+        timezone = await upsServiceClient.getSystemTimeZone(deviceId);
+        if (timezone) {
+            console.log("Timezone " + timezone)
+        }
+    } catch (error) {
+        console.log("Timezone error: " + error);
+    }
+
+    //create reminder
+    try {
+        const { permissions } = requestEnvelope.context.System.user;
+
+        if (!(permissions && permissions.consentToken))
+            throw { statusCode: 401, message: "permissions error" };
+
+        const reminderServiceClient = serviceClientFactory.getReminderManagementServiceClient();
+        const remindersList = await reminderServiceClient.getReminders();
+        const reminder = remind.createReminder(timezone, Alexa.getLocale(requestEnvelope));
+        const reminderResponse = await reminderServiceClient.createReminder(reminder);
+        console.log('Reminder Created: ' + reminderResponse.alertToken);
+
+        return 0;
+
+    } catch (error) {
+        console.log("Reminder error: " + error);
+        console.log("Reminder error: " + JSON.stringify(error));
+
+    }
 }
 
 
