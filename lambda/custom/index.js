@@ -68,19 +68,19 @@ const LaunchRequestHandler = {
                     + ". If you would like to reinstate your account, begin by saying reinstate my account.";
                     sessionAttributes.currentState = 'LaunchSR';
                 } else {
-                    speakOutput = 'Your account is in good standing and does not need attention at this time.'
+                    sessionAttributes.currentState = 'LaunchOK';
+                    speakOutput = c.LAUNCH_STATUS_OK;
+                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
-                    sessionAttributes.currentState = 'LaunchOK';
-                    speakOutput = c.LAUNCH_STATUS_OK;                    
                 }
 
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .reprompt(c.REPROMPT)
-                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+                     //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
                     .getResponse();
             })
             .catch((err) => {
@@ -177,22 +177,22 @@ const POAHandler = {
                 .reprompt(c.REPROMPT + ' ' + speakOutput)
                 .getResponse();
 
-        } else { //If dialog is not complete, delegate to dialog model
-            
-            let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One'); //Answer to Q1
-            let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');  //Answer to Q2
-            let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');  //Answer to Q3
+        } else { //If dialog is not complete, delegate to dialog model  
+        
+        let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One'); //Answer to Q1   
+        let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');  //Answer to Q2
+        let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');  //Answer to Q3
 
-            //Filter user input to trigger either the help intent or cancel intent if needed
-            if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
-                return HelpIntentHandler.handle(handlerInput);
-            } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
-                return CancelIntentHandler.handle(handlerInput);
-            } else {
-                return handlerInput.responseBuilder
-                    .addDelegateDirective()
-                    .getResponse();
-            }
+        //Filter user input to trigger either the help intent or cancel intent if needed
+        if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
+            return HelpIntentHandler.handle(handlerInput);
+        } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
+            return CancelIntentHandler.handle(handlerInput);
+        } else {
+            return handlerInput.responseBuilder
+                .addDelegateDirective()
+                .getResponse();
+        }
         }
     }
 }
@@ -247,6 +247,7 @@ const SRHandler = {
                         // Increment the infraction array index
                         var index = ++sessionAttributes.infractionIndex;
                         var length = sessionAttributes.infractionArray.length;
+                        
                         if(index < length) {
                             speechOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
 
@@ -256,8 +257,8 @@ const SRHandler = {
                                     sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
                                     sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
 
-                                    speechOutput += ' Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
-                                    + 'to resolve this infraction, begin by saying reinstate my account.';
+                                    speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
+                                    + 'to resolve this infraction, begin by saying reinstate my account.' + index + ' ' + length;
                                     sessionAttributes.currentState = 'LaunchSR';
 
                                     repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
@@ -276,10 +277,10 @@ const SRHandler = {
                                 })
                         } else {
                             sessionAttributes.currentState = 'LaunchOK';
-                            speakOutput = c.SR_SUCCESS;
+                            speechOutput = c.SR_SUCCESS;
 
                             mail.handler(c.SR_SUBJECT,c.SR_CONFIRM_MESSAGE);
-
+                            
                             //Output message and don't reprompt to exit skill
                             return handlerInput.responseBuilder
                                 .speak(speechOutput)
@@ -305,7 +306,7 @@ const SRHandler = {
                                 sessionAttributes.infraction_ShorthandDescription + '. ' + 
                                 sessionAttributes.infraction_DetailedDescription +
                                 '. This is a violation of Amazons policy.'
-
+                
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .addDelegateDirective({
@@ -477,23 +478,23 @@ const YesIntentHandler = {
                 .getResponse();
         }
 
-        /**
+         /**
          * Set reminder to fix the account later.
          */
         else if (current === 'CancelRemind') {
             util.setReminder(handlerInput);
             var speakOutput = c.REMIND_OK_FROM_CANCEL;
-            
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .withShouldEndSession(true)
-                .getResponse();
-        }
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt(c.REPROMPT)
+            .withShouldEndSession(true)
             .getResponse();
+        }
+
+        return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(c.REPROMPT)
+                .getResponse();
     }
 }
 
