@@ -23,7 +23,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "b322e28f-b403-4a1f-9d40-d647691d5586",
+            "revisionId": "20bc53fb-f173-4faf-88ad-c3e1237262df",
             "runtime": "nodejs10.x"
           }
         ]
@@ -81,7 +81,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "8c0cd948-d3f0-488b-b435-709a4ff98b84",
+            "revisionId": "ab5e9326-d85a-4855-9386-f8066644b8c9",
             "runtime": "nodejs12.x"
           }
         ]

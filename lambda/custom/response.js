@@ -65,7 +65,8 @@ module.exports = {
     
         return response;
     },
-    makeResponse(d1) {
+
+    makeReplyResponse(d1) {
         var response = 'Your plan of action has been successfully updated with the following information:'+
                         '\n\n'+ d1 + 
                         '\n\n You will be notified when your account is reinstated.  Thank you for being an Amazon Marketplace Seller.';

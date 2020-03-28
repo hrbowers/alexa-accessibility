@@ -24,7 +24,6 @@ exports.handler = (subject,msg) => {
 
    
     ses.sendEmail(params, function (err, data) {
-       //callback(null, {err: err, data: data});
        if (err) {
            console.log(err);
        } else {           
