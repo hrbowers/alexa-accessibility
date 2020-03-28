@@ -5,7 +5,7 @@ exports.handler = (subject,msg) => {
     
     var params = {
        Destination: {
-           ToAddresses: ["jpasimiotestmail@gmail.com"]
+           ToAddresses: ["asualexacapstone@gmail.com"]
        },
        Message: {
            Body: {
@@ -19,7 +19,7 @@ exports.handler = (subject,msg) => {
                
            }
        },
-       Source: "jeremypasimio@gmail.com"
+       Source: "jpasimiotestmail@gmail.com"
    };
 
    
