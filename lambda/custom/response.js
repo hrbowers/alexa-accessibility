@@ -54,5 +54,23 @@ module.exports = {
     randomize(arr) {
         var index = Math.floor(Math.random() * (arr.length));
         return arr[index];
+    },
+    
+    makeResponse(d1, d2, d3) {
+        var response = 'Your plan of action has been successfully submitted for review. A summary of your plan of action is included below.'+
+                        '\n\nThe root cause of the issue: '+ d1 + 
+                        '\nThe steps you took to fix the issue: ' + d2 + 
+                        '\nThe steps you took to prevent this from happening again: '+ d3 + 
+                        '\n\n You will be notified when your account is reinstated.  Thank you for being an Amazon Marketplace Seller.';
+    
+        return response;
+    },
+
+    makeReplyResponse(d1) {
+        var response = 'Your plan of action has been successfully updated with the following information:'+
+                        '\n\n'+ d1 + 
+                        '\n\n You will be notified when your account is reinstated.  Thank you for being an Amazon Marketplace Seller.';
+    
+        return response;
     }
 }
