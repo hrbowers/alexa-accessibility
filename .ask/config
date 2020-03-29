@@ -39,7 +39,7 @@
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "629bc032193ca1838f855eed53f6c0fc"
+            "eTag": "f5cf33eaa0a2de0c30e7570f52c7babb"
           }
         },
         "lambda": [
@@ -52,7 +52,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "3dfc32b8-4908-4cd9-928e-3434c404ae8a",
+            "revisionId": "cda29993-05b5-4398-a436-af0c6331373d",
             "runtime": "nodejs10.x"
           }
         ]

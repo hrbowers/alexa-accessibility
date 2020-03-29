@@ -258,7 +258,7 @@ const SRHandler = {
                                     sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
 
                                     speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
-                                    + 'to resolve this infraction, begin by saying reinstate my account.' + index + ' ' + length;
+                                    + 'to resolve this infraction, begin by saying reinstate my account.';
                                     sessionAttributes.currentState = 'LaunchSR';
 
                                     repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
@@ -284,7 +284,6 @@ const SRHandler = {
                             //Output message and don't reprompt to exit skill
                             return handlerInput.responseBuilder
                                 .speak(speechOutput)
-                                .withShouldEndSession(true)
                                 .getResponse();
                         }
                     })
