@@ -19,7 +19,7 @@ const LaunchRequestHandler = {
         sessionAttributes.poaId = 0;
         sessionAttributes.currentState = '';
         sessionAttributes.infractionIndex = 0;
-        
+
         await dbHelper.getInfractionArray()
             .then((data) => {
                 sessionAttributes.infractionArray = Object.values(data.Item.infractionArray)[1];
@@ -33,7 +33,7 @@ const LaunchRequestHandler = {
                     .getResponse();
             })
 
-            await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
+        await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
             .then((data) => {
                 // Retrieve the infraction descriptions
                 sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
@@ -62,6 +62,7 @@ const LaunchRequestHandler = {
                         .withShouldEndSession(true)
                         .getResponse();
                 }
+          
                 if(sessionAttributes.infractionArray.length > 0){
                     if(sessionAttributes.infraction_ShorthandDescription === 'Under Review'){
                     speakOutput = sessionAttributes.infraction_DetailedDescription;
@@ -87,17 +88,12 @@ const LaunchRequestHandler = {
                 } else {
                     sessionAttributes.currentState = 'LaunchOK';
                     speakOutput = c.LAUNCH_STATUS_OK;
-                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
-                    return handlerInput.responseBuilder
-                        .speak(speakOutput)
-                        .withShouldEndSession(true)
-                        .getResponse();
                 }
 
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .reprompt(c.REPROMPT)
-                     //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
                     .getResponse();
             })
             .catch((err) => {
@@ -132,7 +128,7 @@ const ReplyHandler = {
                     var speakOutput = c.REPLY_SUCCESS;
 
                     var REPLY_CONFIRM_MESSAGE = responses.makeReplyResponse(current.slots.Query.value);
-                    mail.handler(c.REPLY_SUBJECT,REPLY_CONFIRM_MESSAGE);
+                    mail.handler(c.REPLY_SUBJECT, REPLY_CONFIRM_MESSAGE);
 
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
@@ -195,21 +191,21 @@ const POAHandler = {
                 .getResponse();
 
         } else { //If dialog is not complete, delegate to dialog model  
-        
-        let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One'); //Answer to Q1   
-        let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');  //Answer to Q2
-        let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');  //Answer to Q3
 
-        //Filter user input to trigger either the help intent or cancel intent if needed
-        if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
-            return HelpIntentHandler.handle(handlerInput);
-        } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
-            return CancelIntentHandler.handle(handlerInput);
-        } else {
-            return handlerInput.responseBuilder
-                .addDelegateDirective()
-                .getResponse();
-        }
+            let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One'); //Answer to Q1   
+            let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');  //Answer to Q2
+            let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');  //Answer to Q3
+
+            //Filter user input to trigger either the help intent or cancel intent if needed
+            if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
+                return HelpIntentHandler.handle(handlerInput);
+            } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
+                return CancelIntentHandler.handle(handlerInput);
+            } else {
+                return handlerInput.responseBuilder
+                    .addDelegateDirective()
+                    .getResponse();
+            }
         }
     }
 }
@@ -264,8 +260,8 @@ const SRHandler = {
                         // Increment the infraction array index
                         var index = ++sessionAttributes.infractionIndex;
                         var length = sessionAttributes.infractionArray.length;
-                        
-                        if(index < length) {
+
+                        if (index < length) {
                             speechOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
 
                             return dbHelper.getInfraction(sessionAttributes.infractionArray[index])
@@ -286,12 +282,11 @@ const SRHandler = {
                                         sessionAttributes.currentState = 'LaunchPOA';
                                     } 
 
-                                    repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
                                     return handlerInput.responseBuilder
                                         .speak(speechOutput)
-                                        .reprompt(repromptMessage)
+                                        .reprompt(c.REPROMPT)
                                         .getResponse();
-                                        })
+                                })
                                 .catch((err) => {
                                     console.log("Error occured while getting data", err);
                                     var speakOutput = 'Error getting infraction';
@@ -304,8 +299,8 @@ const SRHandler = {
                             sessionAttributes.currentState = 'LaunchOK';
                             speechOutput = c.SR_SUCCESS;
 
-                            mail.handler(c.SR_SUBJECT,c.SR_CONFIRM_MESSAGE);
-                            
+                            mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
+
                             //Output message and don't reprompt to exit skill
                             return handlerInput.responseBuilder
                                 .speak(speechOutput)
@@ -326,11 +321,11 @@ const SRHandler = {
             //Any other 'no' responses will be handled at the end of the process.
             //If the user doesn't understand the policy, read it back re prompt for agreement.
             if (currentIntent.slots["CheckOne"].resolutions.resolutionsPerAuthority[0].values[0].value.name === "No") {
-                speakOutput = 'Your violation is as follows: ' + 
-                                sessionAttributes.infraction_ShorthandDescription + '. ' + 
-                                sessionAttributes.infraction_DetailedDescription +
-                                '. This is a violation of Amazons policy.'
-                
+                speakOutput = 'Your violation is as follows: ' +
+                    sessionAttributes.infraction_ShorthandDescription + '. ' +
+                    sessionAttributes.infraction_DetailedDescription +
+                    '. This is a violation of Amazons policy.'
+
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .addDelegateDirective({
@@ -384,8 +379,8 @@ const SRHandler = {
     }
 }
 async function updateStatus() {
-    
-} 
+
+}
 /**
  * The yes intent will handle confirmation of completed plans of action.  If the 
  * POA is approved, data is saved to a DynamoDB table.
@@ -542,23 +537,23 @@ const YesIntentHandler = {
                 .getResponse();
         }
 
-         /**
-         * Set reminder to fix the account later.
-         */
+        /**
+        * Set reminder to fix the account later.
+        */
         else if (current === 'CancelRemind') {
             util.setReminder(handlerInput);
             var speakOutput = c.REMIND_OK_FROM_CANCEL;
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .withShouldEndSession(true)
-            .getResponse();
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
         }
 
         return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .reprompt(c.REPROMPT)
-                .getResponse();
+            .speak(speakOutput)
+            .reprompt(c.REPROMPT)
+            .getResponse();
     }
 }
 
@@ -715,10 +710,10 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
         if (current === 'LaunchPOA') {
-            speakOutput = 'Your violation is as follows: ' + 
-                            sessionAttributes.infraction_ShorthandDescription + '. ' + 
-                            sessionAttributes.infraction_DetailedDescription + '. '+
-                            c.HELP_FROM_LAUNCH;
+            speakOutput = 'Your violation is as follows: ' +
+                sessionAttributes.infraction_ShorthandDescription + '. ' +
+                sessionAttributes.infraction_DetailedDescription + '. ' +
+                c.HELP_FROM_LAUNCH;
         } else if (current === 'LaunchSR') {
             speakOutput = c.HELP_SR;
         } else if (current === 'LaunchReply') {
