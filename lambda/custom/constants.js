@@ -1,5 +1,5 @@
 module.exports = {
-    LAUNCH_STATUS_OK: 'Your account is in good standing and does not need attention at this time.\
+    LAUNCH_STATUS_OK: 'Your marketplace seller account is in good standing and does not need attention at this time.\
     Would you like me to notify you if something goes wrong with your account?',
 
     LAUNCH_STATUS_4: 'Your account is under review for reinstatment.  You can add additional information \

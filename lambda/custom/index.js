@@ -53,6 +53,7 @@ const LaunchRequestHandler = {
             .then((data) => {
                 console.log(data, typeof (data));
                 var speakOutput = '';
+                sessionAttributes.locale = data.Item.locale;
 
                 //Account does not exist
                 if (data.length == 0) {
@@ -72,12 +73,12 @@ const LaunchRequestHandler = {
                         .withShouldEndSession(true)
                         .getResponse();
                     } else if(sessionAttributes.status === false) {
-                        speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
+                        speakOutput = `Your ${sessionAttributes.locale} Marketplace Seller account status is currently, suspended. The number of infractions you have is, ` + sessionAttributes.infractionArray.length
                         + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " and is eligible for the self-reinstatement process."
                         + ". If you would like to reinstate your account, begin by saying reinstate my account.";
                         sessionAttributes.currentState = 'LaunchSR';
                     } else if(sessionAttributes.status === true) {
-                        speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
+                        speakOutput = `Your ${sessionAttributes.locale} Marketplace Seller account status is currently, suspended. The number of infractions you have is, ` + sessionAttributes.infractionArray.length
                         + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " which requires a complete plan of action."
                         + ". If you would like to reinstate your account, begin by saying plan of action.";
                         sessionAttributes.currentState = 'LaunchPOA';
