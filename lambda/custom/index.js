@@ -262,7 +262,8 @@ const SRHandler = {
                         var length = sessionAttributes.infractionArray.length;
 
                         if (index < length) {
-                            speechOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
+                            speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
+                            mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
 
                             return dbHelper.getInfraction(sessionAttributes.infractionArray[index])
                                 .then((data) => {
@@ -272,18 +273,18 @@ const SRHandler = {
                                     sessionAttributes.status = data.Item.poa;
 
                                     if(sessionAttributes.status === false){
-                                        speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and is also'
+                                        speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and is also'
                                         + ' eligible for self-reinstatement. If you would like '
                                         + 'to resolve this infraction, begin by saying reinstate my account.';
                                         sessionAttributes.currentState = 'LaunchSR';
                                     } else if(sessionAttributes.status === true) {
-                                        speechOutput += "Your next infraction is " + sessionAttributes.infraction_ShorthandDescription + ", which requires a complete plan of action."
+                                        speakOutput += "Your next infraction is " + sessionAttributes.infraction_ShorthandDescription + ", which requires a complete plan of action."
                                         + ". If you would like to reinstate your account, begin by saying plan of action.";
                                         sessionAttributes.currentState = 'LaunchPOA';
                                     } 
 
                                     return handlerInput.responseBuilder
-                                        .speak(speechOutput)
+                                        .speak(speakOutput)
                                         .reprompt(c.REPROMPT)
                                         .getResponse();
                                 })
@@ -297,13 +298,13 @@ const SRHandler = {
                                 })
                         } else {
                             sessionAttributes.currentState = 'LaunchOK';
-                            speechOutput = c.SR_SUCCESS;
+                            speakOutput = c.SR_SUCCESS;
 
                             mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
 
                             //Output message and don't reprompt to exit skill
                             return handlerInput.responseBuilder
-                                .speak(speechOutput)
+                                .speak(speakOutput)
                                 .getResponse();
                         }
                     })
@@ -432,7 +433,11 @@ const YesIntentHandler = {
                         var index = ++sessionAttributes.infractionIndex;
                         var length = sessionAttributes.infractionArray.length;
                         if(index < length) {
-                            speechOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
+                            speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
+                            
+                            //email confirmation of poa submission.                        
+                            var POA_CONFIRM_MESSAGE = responses.makeResponse(d1,d2,d3);
+                            mail.handler(c.POA_SUBJECT,POA_CONFIRM_MESSAGE);
 
                             return dbHelper.getInfraction(sessionAttributes.infractionArray[index])
                                 .then((data1) => {
@@ -442,7 +447,7 @@ const YesIntentHandler = {
                                     sessionAttributes.status = data1.Item.poa;
 
                                     if(sessionAttributes.status === false){
-                                        speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and is'
+                                        speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and is'
                                         + ' eligible for self-reinstatement. If you would like '
                                         + 'to resolve this infraction, begin by saying reinstate my account.';
                                         sessionAttributes.currentState = 'LaunchSR';
@@ -454,7 +459,7 @@ const YesIntentHandler = {
 
                                     repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
                                     return handlerInput.responseBuilder
-                                        .speak(speechOutput)
+                                        .speak(speakOutput)
                                         .reprompt(repromptMessage)
                                         .getResponse();
                                         })
@@ -492,7 +497,6 @@ const YesIntentHandler = {
                             .withShouldEndSession(true)
                             .getResponse();
                     })
-
             } else {
                 speakOutput = responses.dbFail();
             }
@@ -686,7 +690,6 @@ const NoIntentHandler = {
                     })
                     .getResponse();
             }
-
         }
 
         return handlerInput.responseBuilder
