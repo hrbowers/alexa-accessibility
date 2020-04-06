@@ -8,12 +8,31 @@ const c = require("./constants");
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
 const LaunchRequestHandler = {
-    canHandle(handlerInput) {
+    canHandle(handlerInput){
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
+    },
+    handle(handlerInput){
+        
+        return handlerInput.responseBuilder
+            .withStandardCard(
+                'Amazon Seller Services',
+                'Welcome to the seller services skill.  Say \'Get account status\' to get started.'
+            )
+            .speak(c.WELCOME)
+            .reprompt()
+            .getResponse();
+    }
+}
+
+const EntryHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
+            Alexa.getIntentName(handlerInput.requestEnvelope) === 'Entry';
     },
     async handle(handlerInput) {
 
         //Set initial session attributes to setup initial routing
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.poaId = 0;
@@ -76,7 +95,15 @@ const LaunchRequestHandler = {
                         speakOutput = `Your ${sessionAttributes.locale} Marketplace Seller account status is currently, suspended. The number of infractions you have is, ` + sessionAttributes.infractionArray.length
                         + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " and is eligible for the self-reinstatement process."
                         + ". If you would like to reinstate your account, begin by saying reinstate my account.";
+
                         sessionAttributes.currentState = 'LaunchSR';
+
+                        responseBuilder.withStandardCard(
+                            'Your account is suspended.',
+                            `You have ${sessionAttributes.infractionArray.length} infraction(s) on your account.` +
+                            ` Your first infraction is ${sessionAttributes.infraction_ShorthandDescription}.  You can self-reinstate this infraction by saying 'Reinstate'.`
+
+                        );
                     } else if(sessionAttributes.status === true) {
                         speakOutput = `Your ${sessionAttributes.locale} Marketplace Seller account status is currently, suspended. The number of infractions you have is, ` + sessionAttributes.infractionArray.length
                         + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " which requires a complete plan of action."
@@ -91,7 +118,11 @@ const LaunchRequestHandler = {
                     speakOutput = c.LAUNCH_STATUS_OK;
                 }
 
-                return handlerInput.responseBuilder
+                return handlerInput.responseBuilder                    
+                    .withStandardCard(
+                        'Entry Test',
+                        'Entry Test Text'
+                    )
                     .speak(speakOutput)
                     .reprompt(c.REPROMPT)
                     //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
@@ -375,6 +406,7 @@ const SRHandler = {
         } else {
             //If dialog is not complete, delegate to dialog model            
             return handlerInput.responseBuilder
+                .withStandardCard('SR Test', 'SR Test Information')
                 .addDelegateDirective()
                 .getResponse();
         }
@@ -458,10 +490,9 @@ const YesIntentHandler = {
                                         sessionAttributes.currentState = 'LaunchPOA';
                                     }
 
-                                    repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
                                     return handlerInput.responseBuilder
                                         .speak(speakOutput)
-                                        .reprompt(repromptMessage)
+                                        .reprompt(c.REPROMPT)
                                         .getResponse();
                                         })
                                 .catch((err) => {
@@ -941,6 +972,7 @@ const skillBuilder = Alexa.SkillBuilders.standard();
 exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
+        EntryHandler,
         ReplyHandler,
         POAHandler,
         SRHandler,

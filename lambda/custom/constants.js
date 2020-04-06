@@ -1,4 +1,6 @@
 module.exports = {
+    WELCOME: 'Welcome to Amazon seller services.  You can say, get account status, to check the status of your seller account.',
+
     LAUNCH_STATUS_OK: 'Your marketplace seller account is in good standing and does not need attention at this time.\
     Would you like me to notify you if something goes wrong with your account?',
 

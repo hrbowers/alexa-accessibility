@@ -1,7 +1,12 @@
 {
   "interactionModel": {
     "languageModel": {
-      "invocationName": "fix my account",
+      "invocationName": "seller services",
+      "modelConfiguration":{
+        "fallbackIntentSensitivity":{
+          "level":"LOW"
+        }
+      },
       "intents": [
         {
           "name": "AMAZON.CancelIntent",
@@ -36,6 +41,12 @@
           "name": "AMAZON.NoIntent",
           "samples": [
             "no"
+          ]
+        },
+        {
+          "name": "Entry",
+          "samples": [
+            "Get account status"
           ]
         },
         {
@@ -121,6 +132,46 @@
         {
           "name": "AMAZON.FallbackIntent",
           "samples": []
+        },
+        {
+            "name": "AMAZON.MoreIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.NavigateSettingsIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.NextIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.PageUpIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.PageDownIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.PreviousIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.ScrollRightIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.ScrollDownIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.ScrollLeftIntent",
+            "samples": []
+        },
+        {
+            "name": "AMAZON.ScrollUpIntent",
+            "samples": []
         }
       ],
       "types": [
