@@ -3,6 +3,12 @@ const dbHelper = require("./dbConnect");
 const responses = require("./response");
 const remind = require("./reminder");
 
+//RAY US101
+var d1Name = "Root Cause";
+var d2Name = "Action Taken";
+var d3Name = "Preventative Measures";
+
+
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
 const LaunchRequestHandler = {
@@ -81,7 +87,15 @@ const LaunchRequestHandler = {
                     speakOutput = "Your account is under review for reinstatment.  You can add additional information \
                     to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
                     action unchanged."
-                } else {
+                } 
+                //RAY US101_________________________________________________
+                else if (status == 5) {
+                    sessionAttributes.poaId = poaId;
+                    sessionAttributes.currentState = "LaunchResume";
+                    speakOutput = "Your incomplete POA was saved and can be added to by saying, resume. \
+                    You can also say Cancel, if you would like to return later."
+                }
+                else {
                     sessionAttributes.currentState = 'LaunchOK';
                     speakOutput = 'Your account is in good standing and does not need attention at this time.  Would you like me to notify you if something goes wrong with your account?';
                     //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
@@ -693,6 +707,14 @@ const CancelIntentHandler = {
                 .withShouldEndSession(true)
                 .getResponse();
         }
+        else if (sessionAttributes.status === 5) {
+            const speakOutput = 'Your plan of action is not complete, your completed answers are being \
+            saved and can be added to later. Good bye.';
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
         else {
             const speakOutput = 'The reinstatement process is not complete and your account is still suspended.  Are you sure you want to stop?';
             return handlerInput.responseBuilder
@@ -715,7 +737,20 @@ const StopIntentHandler = {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.StopIntent');
     },
+
     handle(handlerInput) {
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.currentState = 'AMAZON.StopIntent';
+
+        if (sessionAttributes.status === 5) {
+            const speakOutput = 'Your plan of action is not complete, your completed answers are being \
+            saved and can be added to later. Good bye.';
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+
         const speakOutput = 'Stop triggered';
         return handlerInput.responseBuilder
             .speak(speakOutput)
@@ -869,6 +904,8 @@ async function saveAppeal(id, data1, data2, data3) {
             return false;
         })
 }
+
+//Save partial appeal
 
 //Helper function to set a reminder
 async function setReminder(handlerInput) {
