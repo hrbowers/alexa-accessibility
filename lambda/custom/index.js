@@ -3,12 +3,6 @@ const dbHelper = require("./dbConnect");
 const responses = require("./response");
 const remind = require("./reminder");
 
-//RAY US101
-var d1Name = "Root Cause";
-var d2Name = "Action Taken";
-var d3Name = "Preventative Measures";
-
-
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
 const LaunchRequestHandler = {
@@ -198,7 +192,14 @@ const POAHandler = {
                 .reprompt(repromptMessage + ' ' + speakOutput)
                 .getResponse();
 
-        } else { //If dialog is not complete, delegate to dialog model            
+        } else { //If dialog is not complete, delegate to dialog model  
+            let id = `${sessionAttributes.poaId}`
+            let d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
+            let d2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
+            let d3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
+
+            saveField1(id, d1);
+            
             return handlerInput.responseBuilder
                 .addDelegateDirective()
                 .getResponse();
@@ -707,13 +708,46 @@ const CancelIntentHandler = {
                 .withShouldEndSession(true)
                 .getResponse();
         }
-        else if (sessionAttributes.status === 5) {
-            const speakOutput = 'Your plan of action is not complete, your completed answers are being \
+        else if (sessionAttributes.currentState === 'POA') {
+
+            if (Alexa.getSlotValue(requestEnvelope, 'Q.Two') === null){
+                let dbSave = saveAppeal(id, sessionAttributes.d1, "empty", "empty")
+
+                if (dbSave) {
+
+                    return dbHelper.updateStatus(5, id)
+                        .then((data) => {
+                            sessionAttributes.currentState = 'LaunchOK';
+                            speakOutput = responses.completion();
+                            //Prompt if the user wants notifications of future issues
+                            speakOutput += 'Your plan of action is not complete, your completed answers are being \
+                            saved and can be added to later. Good bye.';
+    
+                            return handlerInput.responseBuilder
+                                .speak(speakOutput)
+                                .withShouldEndSession(true)
+                                .getResponse();
+                        })
+                        .catch((err) => {
+                            console.log("Error occured while updating", err);
+                            var speakOutput = 'Error updating status';
+                            return handlerInput.responseBuilder
+                                .speak(speakOutput)
+                                .withShouldEndSession(true)
+                                .getResponse();
+                        })
+    
+                } else {
+                    speakOutput = responses.dbFail();
+                }
+            }
+
+            /*const speakOutput = 'Your plan of action is not complete, your completed answers are being \
             saved and can be added to later. Good bye.';
             return handlerInput.responseBuilder
                 .speak(speakOutput)
                 .withShouldEndSession(true)
-                .getResponse();
+                .getResponse();*/
         }
         else {
             const speakOutput = 'The reinstatement process is not complete and your account is still suspended.  Are you sure you want to stop?';
@@ -896,6 +930,17 @@ exports.handler = skillBuilder
 //Helper function to save new POA data to DynamoDB
 async function saveAppeal(id, data1, data2, data3) {
     return dbHelper.addPoa(id, data1, data2, data3)
+        .then((data) => {
+            return true;
+        })
+        .catch((err) => {
+            console.log("Error occured while saving data", err);
+            return false;
+        })
+}
+
+async function saveField1(id, data) {
+    return dbHelper.addField1(id, data)
         .then((data) => {
             return true;
         })

@@ -128,4 +128,94 @@ dbConnect.prototype.updatePOA = (poaId,reply) => {
     });
 }
 
+dbConnect.prototype.addField1 = (poaID,data) => {
+
+    return new Promise((resolve, reject) => {
+
+        //Parameters for the POA
+        const params = {
+            TableName: tableName,
+            Item: {
+                //Partition ID is the primary key
+                'poaId': poaID,
+                //User enteries added as item attributes
+                //todo1, todo2, and todo3 are placeholders
+                'rootCause': data
+            }
+        };
+
+        //store params into the table
+        docClient.put(params, (err, data) => {
+            if (err) {
+                console.log("Error inserting into table: ", JSON.stringify(err))
+                return reject("Insertion Error");
+            }
+
+            console.log("Successfully inserted: ", JSON.stringify(data));
+            resolve(data);
+        });//end put
+
+    });//end promise
+}
+
+dbConnect.prototype.addField2 = (poaID,data) => {
+
+    return new Promise((resolve, reject) => {
+
+        //Parameters for the POA
+        const params = {
+            TableName: tableName,
+            Item: {
+                //Partition ID is the primary key
+                'poaId': poaID,
+                //User enteries added as item attributes
+                //todo1, todo2, and todo3 are placeholders
+                'actionTaken': data
+            }
+        };
+
+        //store params into the table
+        docClient.put(params, (err, data) => {
+            if (err) {
+                console.log("Error inserting into table: ", JSON.stringify(err))
+                return reject("Insertion Error");
+            }
+
+            console.log("Successfully inserted: ", JSON.stringify(data));
+            resolve(data);
+        });//end put
+
+    });//end promise
+}
+
+dbConnect.prototype.addField3 = (poaID,data) => {
+
+    return new Promise((resolve, reject) => {
+
+        //Parameters for the POA
+        const params = {
+            TableName: tableName,
+            Item: {
+                //Partition ID is the primary key
+                'poaId': poaID,
+                //User enteries added as item attributes
+                //todo1, todo2, and todo3 are placeholders
+                'preventativeMeasure': data
+            }
+        };
+
+        //store params into the table
+        docClient.put(params, (err, data) => {
+            if (err) {
+                console.log("Error inserting into table: ", JSON.stringify(err))
+                return reject("Insertion Error");
+            }
+
+            console.log("Successfully inserted: ", JSON.stringify(data));
+            resolve(data);
+        });//end put
+
+    });//end promise
+}
+
 module.exports = new dbConnect();
