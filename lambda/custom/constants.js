@@ -19,7 +19,7 @@ module.exports = {
     NO_ACTION: ' You must fix the cause of your violation and take steps to ensure it will not happen again.',
 
     NO_QUALITY: ' Amazon customers expect the highest level of service.\
-    You must agree to provide a level of service that will meetour customer\'s expectations.',
+    You must agree to provide a level of service that will meet our customer\'s expectations.',
 
     NO_PERMANENT_LOSS: ' Repeated infractions could possibly result in the permanent loss of your seller account.',
 

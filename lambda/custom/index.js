@@ -303,6 +303,26 @@ const SRHandler = {
 
                 speakOutput += c.SR_FAIL;
 
+                responseBuilder.addRenderTemplateDirective({
+                    type: "BodyTemplate1",
+                    backButton: "HIDDEN",
+                    title: "Account Status",
+                    textContent: {
+                        primaryText: {
+                            text: "Self-Reinstatement: Failed",
+                            type: "PlainText"
+                        },
+                        secondaryText: {
+                            text: 'You must agree to all statements by saying \'yes\' when prompted.',
+                            type: "PlainText"
+                        },
+                        tertiaryText: {
+                            text: '',
+                            type: "PlainText"
+                        }
+                    }
+                });
+
                 return responseBuilder
                     .speak(speakOutput)
                     .withShouldEndSession(true)
@@ -325,17 +345,42 @@ const SRHandler = {
                                     sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
                                     sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
                                     sessionAttributes.status = data.Item.poa;
+                                    var tertiary = '';
 
                                     if (sessionAttributes.status === false) {
                                         speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and is also'
                                             + ' eligible for self-reinstatement. If you would like '
                                             + 'to resolve this infraction, begin by saying reinstate my account.';
+                                        tertiary = `Your next infraction is ${sessionAttributes.infraction_ShorthandDescription} and is also eligible for self-reinstatement.`
+
                                         sessionAttributes.currentState = 'LaunchSR';
-                                    } else if (sessionAttributes.status === true) {
+                                    } else if (sessionAttributes.status === true) {                                        
                                         speakOutput += "Your next infraction is " + sessionAttributes.infraction_ShorthandDescription + ", which requires a complete plan of action."
                                             + ". If you would like to reinstate your account, begin by saying plan of action.";
+                                        tertiary = `Your next infraction is ${sessionAttributes.infraction_ShorthandDescription} and requires a complete Plan of Action.`
+                                        
                                         sessionAttributes.currentState = 'LaunchPOA';
                                     }
+
+                                    responseBuilder.addRenderTemplateDirective({
+                                        type: "BodyTemplate1",
+                                        backButton: "HIDDEN",
+                                        title: "Account Status",
+                                        textContent: {
+                                            primaryText: {
+                                                text: "Self-Reinstatement: Complete",
+                                                type: "PlainText"
+                                            },
+                                            secondaryText: {
+                                                text: `Number of remaining infractions: ${length}`,
+                                                type: "PlainText"
+                                            },
+                                            tertiaryText: {
+                                                text: tertiary,
+                                                type: "PlainText"
+                                            }
+                                        }
+                                    });
 
                                     return responseBuilder
                                         .speak(speakOutput)
@@ -354,7 +399,28 @@ const SRHandler = {
                             sessionAttributes.currentState = 'LaunchOK';
                             speakOutput = c.SR_SUCCESS;
 
+                            //Email success confirmation
                             mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
+
+                            responseBuilder.addRenderTemplateDirective({
+                                type: "BodyTemplate1",
+                                backButton: "HIDDEN",
+                                title: "Account Status",
+                                textContent: {
+                                    primaryText: {
+                                        text: "Self-Reinstatement: Complete",
+                                        type: "PlainText"
+                                    },
+                                    secondaryText: {
+                                        text: `Your account should be reinstated shortly.  A confirmation has been sent to your email.`,
+                                        type: "PlainText"
+                                    },
+                                    tertiaryText: {
+                                        text: '(If you have a Plan of Action under review your reinstatement may be delayed.)',
+                                        type: "PlainText"
+                                    }
+                                }
+                            });
 
                             return responseBuilder
                                 .speak(speakOutput)
@@ -427,26 +493,8 @@ const SRHandler = {
             }
         } else {
             //If dialog is not complete, delegate to dialog model 
-            var visText = '';
-            if (!currentIntent.slots["CheckOne"].hasOwnProperty("value")) {
-                visText = `Do you understand the violated policy ${sessionAttributes.infraction_ShorthandDescription}?`;
-
-                responseBuilder              
-                    .addElicitSlotDirective("CheckOne")
-                    .getResponse();
-            } else if (!currentIntent.slots["CheckTwo"].hasOwnProperty("value")) {
-                visText = "Have you identified the reason this policy was violated and taken steps to prevent it from happening again?";
-                
-            } else if (!currentIntent.slots["CheckThree"].hasOwnProperty("value")) {
-                visText = "Do you agree to maintain your business according to Amazon policy in order to meet customer's expectations of shopping on Amazon?";
-                
-            } else {
-                visText = "Do you understand that further violations could result in a permanent loss of your selling privileges?";
-                
-            }
-
             return responseBuilder
-                
+                .addDelegateDirective()
                 .getResponse();
         }
     }
@@ -468,9 +516,9 @@ const YesIntentHandler = {
     },
     async handle(handlerInput) {
         var speakOutput = "";
-        var reprompt = "";
 
         //Get current set of attributes to route to the correct response
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const persistentAttributes = await attributesManager.getPersistentAttributes() || {};
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -517,17 +565,41 @@ const YesIntentHandler = {
                                     sessionAttributes.infraction_DetailedDescription = data1.Item.descriptionL;
                                     sessionAttributes.infraction_ShorthandDescription = data1.Item.descriptionS;
                                     sessionAttributes.status = data1.Item.poa;
+                                    var tertiary;
 
                                     if (sessionAttributes.status === false) {
                                         speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and is'
                                             + ' eligible for self-reinstatement. If you would like '
                                             + 'to resolve this infraction, begin by saying reinstate my account.';
+                                        tertiary = `Your next infraction is ${sessionAttributes.infraction_ShorthandDescription} and is eligible for self-reinstatement.`
                                         sessionAttributes.currentState = 'LaunchSR';
                                     } else if (sessionAttributes.status === true) {
                                         speakOutput = "Your next infraction is " + sessionAttributes.infraction_ShorthandDescription + " which also requires a complete plan of action."
                                             + ". If you would like to reinstate your account, begin by saying plan of action.";
+                                        tertiary = `Your next infraction is ${sessionAttributes.infraction_ShorthandDescription} and requires a complete Plan of Action.`
+                                        
                                         sessionAttributes.currentState = 'LaunchPOA';
                                     }
+
+                                    responseBuilder.addRenderTemplateDirective({
+                                        type: "BodyTemplate1",
+                                        backButton: "HIDDEN",
+                                        title: "Account Status",
+                                        textContent: {
+                                            primaryText: {
+                                                text: "Plan of Action: Complete",
+                                                type: "PlainText"
+                                            },
+                                            secondaryText: {
+                                                text: `Number of remaining infractions: ${length}`,
+                                                type: "PlainText"
+                                            },
+                                            tertiaryText: {
+                                                text: tertiary,
+                                                type: "PlainText"
+                                            }
+                                        }
+                                    });
 
                                     return handlerInput.responseBuilder
                                         .speak(speakOutput)
@@ -552,6 +624,26 @@ const YesIntentHandler = {
                             speakOutput = responses.completion();
                             //Prompt if the user wants notifications of future issues
                             speakOutput += c.POA_REMIND;
+
+                            responseBuilder.addRenderTemplateDirective({
+                                type: "BodyTemplate1",
+                                backButton: "HIDDEN",
+                                title: "Account Status",
+                                textContent: {
+                                    primaryText: {
+                                        text: "Plan of Action: Complete",
+                                        type: "PlainText"
+                                    },
+                                    secondaryText: {
+                                        text: 'You have finished the Plan of Action.  You will be contacted when its review is complete.',
+                                        type: "PlainText"
+                                    },
+                                    tertiaryText: {
+                                        text: '',
+                                        type: "PlainText"
+                                    }
+                                }
+                            });
 
                             return handlerInput.responseBuilder
                                 .speak(speakOutput)
@@ -583,6 +675,26 @@ const YesIntentHandler = {
                     util.setReminder(handlerInput);
                     var speakOutput = c.REMIND_OK;
 
+                    responseBuilder.addRenderTemplateDirective({
+                        type: "BodyTemplate1",
+                        backButton: "HIDDEN",
+                        title: "Account Status",
+                        textContent: {
+                            primaryText: {
+                                text: "Reminder: Set",
+                                type: "PlainText"
+                            },
+                            secondaryText: {
+                                text: c.REMIND_OK,
+                                type: "PlainText"
+                            },
+                            tertiaryText: {
+                                text: '',
+                                type: "PlainText"
+                            }
+                        }
+                    });
+
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
@@ -606,6 +718,26 @@ const YesIntentHandler = {
             sessionAttributes.currentState = 'CancelRemind'
             speakOutput = c.REMIND_PRMOPT_FROM_CANCEL;
 
+            responseBuilder.addRenderTemplateDirective({
+                type: "BodyTemplate1",
+                backButton: "HIDDEN",
+                title: "Account Status",
+                textContent: {
+                    primaryText: {
+                        text: "Reminder: Pending",
+                        type: "PlainText"
+                    },
+                    secondaryText: {
+                        text: c.REMIND_PRMOPT_FROM_CANCEL,
+                        type: "PlainText"
+                    },
+                    tertiaryText: {
+                        text: '',
+                        type: "PlainText"
+                    }
+                }
+            });
+
             return handlerInput.responseBuilder
                 .speak(speakOutput)
                 .reprompt()
@@ -618,6 +750,26 @@ const YesIntentHandler = {
         else if (current === 'CancelRemind') {
             util.setReminder(handlerInput);
             var speakOutput = c.REMIND_OK_FROM_CANCEL;
+
+            responseBuilder.addRenderTemplateDirective({
+                type: "BodyTemplate1",
+                backButton: "HIDDEN",
+                title: "Account Status",
+                textContent: {
+                    primaryText: {
+                        text: "Reminder: Set",
+                        type: "PlainText"
+                    },
+                    secondaryText: {
+                        text: c.REMIND_OK_FROM_CANCEL,
+                        type: "PlainText"
+                    },
+                    tertiaryText: {
+                        text: '',
+                        type: "PlainText"
+                    }
+                }
+            });
 
             return handlerInput.responseBuilder
                 .speak(speakOutput)
@@ -687,6 +839,26 @@ const NoIntentHandler = {
         else if (current === 'LaunchOK') {
             speakOutput = c.REMIND_NO;
 
+            responseBuilder.addRenderTemplateDirective({
+                type: "BodyTemplate1",
+                backButton: "HIDDEN",
+                title: "Account Status",
+                textContent: {
+                    primaryText: {
+                        text: "Reminder: Declined",
+                        type: "PlainText"
+                    },
+                    secondaryText: {
+                        text: "You will not receive audio reminders.",
+                        type: "PlainText"
+                    },
+                    tertiaryText: {
+                        text: 'Notifications will be emailed to you.',
+                        type: "PlainText"
+                    }
+                }
+            });
+
             return handlerInput.responseBuilder
                 .speak(speakOutput)
                 .withShouldEndSession(true)
@@ -698,6 +870,26 @@ const NoIntentHandler = {
         */
         else if (current === 'CancelRemind') {
             speakOutput = c.REMIND_NO_FROM_CANCEL;
+
+            responseBuilder.addRenderTemplateDirective({
+                type: "BodyTemplate1",
+                backButton: "HIDDEN",
+                title: "Account Status",
+                textContent: {
+                    primaryText: {
+                        text: "Reminder: Declined",
+                        type: "PlainText"
+                    },
+                    secondaryText: {
+                        text: c.REMIND_NO_FROM_CANCEL,
+                        type: "PlainText"
+                    },
+                    tertiaryText: {
+                        text: '',
+                        type: "PlainText"
+                    }
+                }
+            });
 
             return handlerInput.responseBuilder
                 .speak(speakOutput)
@@ -861,6 +1053,26 @@ const CancelIntentHandler = {
         if (sessionAttributes.status === 4) {
             const speakOutput = c.CANCEL_STATUS_4;
 
+            responseBuilder.addRenderTemplateDirective({
+                type: "BodyTemplate1",
+                backButton: "HIDDEN",
+                title: "Account Status",
+                textContent: {
+                    primaryText: {
+                        text: "Action Cancelled",
+                        type: "PlainText"
+                    },
+                    secondaryText: {
+                        text: c.CANCEL_STATUS_4,
+                        type: "PlainText"
+                    },
+                    tertiaryText: {
+                        text: '',
+                        type: "PlainText"
+                    }
+                }
+            });
+
             return handlerInput.responseBuilder
                 .speak(speakOutput)
                 .withShouldEndSession(true)
@@ -868,6 +1080,26 @@ const CancelIntentHandler = {
         }
         else {
             const speakOutput = c.CANCEL_CONFIRM;
+
+            responseBuilder.addRenderTemplateDirective({
+                type: "BodyTemplate1",
+                backButton: "HIDDEN",
+                title: "Account Status",
+                textContent: {
+                    primaryText: {
+                        text: "Action Cancelled",
+                        type: "PlainText"
+                    },
+                    secondaryText: {
+                        text: c.CANCEL_CONFIRM,
+                        type: "PlainText"
+                    },
+                    tertiaryText: {
+                        text: '',
+                        type: "PlainText"
+                    }
+                }
+            });
 
             return handlerInput.responseBuilder
                 .speak(speakOutput)
