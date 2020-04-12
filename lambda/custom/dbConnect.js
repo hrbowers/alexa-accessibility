@@ -151,4 +151,35 @@ dbConnect.prototype.updateStatus = (status,poaId) => {
     });
 }
 
+dbConnect.prototype.updateInfractionArray = (array, index, accountId) => {
+    var newArray = [];
+    var j = 0;
+    for(var i = index + 1; i < array.length; i++) {
+        newArray[j++] = array[i];
+    }
+    for(var i = 0; i < index + 1; i++) {
+        newArray[j++] = -1;
+    }
+    return new Promise((resolve,reject) => {
+        const params ={
+            TableName: 'sample-account-status',
+            Key: {
+                'accountId':accountId
+            },
+            UpdateExpression: "set infractionArray = :N",
+            ExpressionAttributeValues:{
+                ":N": newArray,
+            }
+        }
+
+        docClient.update(params,(err,data) => {
+            if(err) {
+                console.error("Error updating: ", JSON.stringify(err,null,2));
+                return reject(JSON.stringify(err,null,2))
+            }
+            console.log("Update successful: ",JSON.stringify(data));
+            resolve(data)
+        })
+    });
+}
 module.exports = new dbConnect();
