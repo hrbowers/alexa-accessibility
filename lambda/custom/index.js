@@ -19,11 +19,12 @@ const LaunchRequestHandler = {
         sessionAttributes.poaId = 0;
         sessionAttributes.currentState = '';
         sessionAttributes.infractionIndex = 0;
+        sessionAttributes.poa = false;
         
         await dbHelper.getInfractionArray()
 
             .then((data) => {
-                sessionAttributes.infractionArray = Object.values(data.Item.infractionArray)[1];
+                sessionAttributes.infractionArray = data.Item.infractionArray;
             })
             .catch((err) => {
                 console.log("Error occured while getting data", err);
@@ -39,6 +40,7 @@ const LaunchRequestHandler = {
                 // Retrieve the infraction descriptions
                 sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
                 sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
+                sessionAttributes.poa = data.Item.poa;
             })
             .catch((err) => {
                 console.log("Error occured while getting data", err);
@@ -62,11 +64,20 @@ const LaunchRequestHandler = {
                         .withShouldEndSession(true)
                         .getResponse();
                 }
-                if(sessionAttributes.infractionArray.length > 0){
+                if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
+                    speechOutput += '. The rest of your infractions are under review. Good bye.';
+                    return handlerInput.responseBuilder
+                    .speak(speechOutput)
+                 } else if(sessionAttributes.infractionArray.length > 0 && sessionAttributes.poa == false){
                     speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
                     + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription 
                     + ". If you would like to reinstate your account, begin by saying reinstate my account.";
                     sessionAttributes.currentState = 'LaunchSR';
+                } else if (sessionAttributes.infractionArray.length > 0 && sessionAttributes.poa == true){
+                    speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
+                    + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription 
+                    + "and requires a complete plan of action. If you would like to reinstate your account, begin by saying plan of action.";
+                    sessionAttributes.currentState = 'LaunchPOA';
                 } else {
                     sessionAttributes.currentState = 'LaunchOK';
                     speakOutput = c.LAUNCH_STATUS_OK;
@@ -254,22 +265,34 @@ const SRHandler = {
                             return dbHelper.getInfraction(sessionAttributes.infractionArray[index])
                                 .then((data) => {
                                     // Retrieve the infraction descriptions
-                                    sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
-                                    sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
-
-                                    speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
-                                    + 'to resolve this infraction, begin by saying reinstate my account.';
-                                    sessionAttributes.currentState = 'LaunchSR';
-
-                                    repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
-                                    return handlerInput.responseBuilder
-                                        .speak(speechOutput)
-                                        .reprompt(repromptMessage)
-                                        .getResponse();
-                                        })
+                                    return dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 2)
+                                    .then((data1) => {
+                                        sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
+                                        sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
+                                        sessionAttributes.poa = data.Item.poa;
+                                        if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
+                                            speechOutput += '. The rest of your infractions are under review. Good bye.';
+                                            return handlerInput.responseBuilder
+                                            .speak(speechOutput)
+                                         } else if(sessionAttributes.poa == false) {
+                                            speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
+                                            + 'to resolve this infraction, begin by saying reinstate my account.';
+                                            sessionAttributes.currentState = 'LaunchSR';
+                                        } else {
+                                            speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + 'and requires a complete plan of action. If you would like '
+                                            + 'to resolve this infraction, begin by saying plan of action.';
+                                            sessionAttributes.currentState = 'LaunchPOA';
+                                        }
+                                        repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
+                                        return handlerInput.responseBuilder
+                                            .speak(speechOutput)
+                                            .reprompt(repromptMessage)
+                                            .getResponse();
+                                            })
+                                    })
                                 .catch((err) => {
                                     console.log("Error occured while getting data", err);
-                                    var speakOutput = 'Error getting infraction';
+                                    var speakOutput = 'Error getting infraction ' + err;
                                     return handlerInput.responseBuilder
                                         .speak(speakOutput)
                                         .withShouldEndSession(true)
@@ -409,24 +432,66 @@ const YesIntentHandler = {
             if (dbSave) {
                 return dbHelper.updateStatus(4, id)
                     .then((data) => {
-                        sessionAttributes.currentState = 'LaunchOK';
+                        return dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 2)
+                            .then((data1) => {
+                                var index = ++sessionAttributes.infractionIndex;
+                                var length = sessionAttributes.infractionArray.length;
+                                //email confirmation of poa submission.                        
+                                var POA_CONFIRM_MESSAGE = responses.makeResponse(d1,d2,d3);
+                                mail.handler(c.POA_SUBJECT,POA_CONFIRM_MESSAGE);
 
-                        //email confirmation of poa submission.                        
-                        var POA_CONFIRM_MESSAGE = responses.makeResponse(d1,d2,d3);
-                        mail.handler(c.POA_SUBJECT,POA_CONFIRM_MESSAGE);
+                                if(index < length) {
+                                    speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
 
-                        speakOutput = responses.completion();
-                        //Prompt if the user wants notifications of future issues
-                        speakOutput += c.POA_REMIND;
+                                    return dbHelper.getInfraction(sessionAttributes.infractionArray[index])
+                                        .then((data2) => {
+                                        // Retrieve the infraction descriptions
+                                            sessionAttributes.infraction_DetailedDescription = data2.Item.descriptionL;
+                                            sessionAttributes.infraction_ShorthandDescription = data2.Item.descriptionS;
+                                            sessionAttributes.poa = data2.Item.poa;
+                                            if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
+                                                speechOutput += '. The rest of your infractions are under review. Good bye.';
+                                                return handlerInput.responseBuilder
+                                                .speak(speechOutput)
+                                            } else if(sessionAttributes.poa == false) {
+                                                speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
+                                                + 'to resolve this infraction, begin by saying reinstate my account.';
+                                                sessionAttributes.currentState = 'LaunchSR';
+                                            } else {
+                                                speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + 'and requires a complete plan of action. If you would like '
+                                                + 'to resolve this infraction, begin by saying plan of action.';
+                                                sessionAttributes.currentState = 'LaunchPOA';
+                                            }
+                                            repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
+                                            return handlerInput.responseBuilder
+                                                .speak(speechOutput)
+                                                .reprompt(repromptMessage)
+                                                .getResponse();
+                                                })
+                                        .catch((err) => {
+                                            console.log("Error occured while getting data", err);
+                                            var speakOutput = 'Error getting infraction ' + err;
+                                            return handlerInput.responseBuilder
+                                                .speak(speakOutput)
+                                                .withShouldEndSession(true)
+                                                .getResponse();
+                                        })
+                                } else {
+                                        sessionAttributes.currentState = 'LaunchOK';
+                                        speakOutput = responses.completion();
+                                        //Prompt if the user wants notifications of future issues
+                                        speakOutput += c.POA_REMIND;
+                                }
 
-                        return handlerInput.responseBuilder
-                            .speak(speakOutput)
-                            .reprompt()
-                            .getResponse();
+                                return handlerInput.responseBuilder
+                                    .speak(speakOutput)
+                                    .reprompt()
+                                    .getResponse();
+                                })
                     })
                     .catch((err) => {
                         console.log("Error occured while updating", err);
-                        var speakOutput = 'Error updating status';
+                        var speakOutput = 'Error updating status ' + err;
                         return handlerInput.responseBuilder
                             .speak(speakOutput)
                             .withShouldEndSession(true)
