@@ -104,3 +104,25 @@ module.exports.supportsDisplay = function supportsDisplay(handlerInput){
     handlerInput.requestEnvelope.context.System.device.supportedInterfaces.Display;
   return hasDisplay;
 }
+
+module.exports.makeCard = function makeCard(title,primary,secondary,tertiary){
+    return {
+        type: "BodyTemplate1",
+        backButton: "HIDDEN",
+        title: title,
+        textContent: {
+            primaryText: {
+                text: primary,
+                type: "PlainText"
+            },
+            secondaryText: {
+                text: secondary,
+                type: "PlainText"
+            },
+            tertiaryText: {
+                text: tertiary,
+                type: "PlainText"
+            }
+        }
+    }
+}

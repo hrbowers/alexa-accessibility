@@ -14,21 +14,7 @@ const LaunchRequestHandler = {
     handle(handlerInput) {
 
         return handlerInput.responseBuilder
-            .addRenderTemplateDirective({
-                type: "BodyTemplate1",
-                backButton: "HIDDEN",
-                title: "Amazon Seller Services",
-                textContent: {
-                    primaryText: {
-                        text: "Welcome to Amazon Seller Services",
-                        type: "PlainText"
-                    },
-                    secondaryText: {
-                        text: "You can say, 'Get account status' to get started.",
-                        type: "PlainText"
-                    }
-                }
-            })
+            .addRenderTemplateDirective(util.makeCard('Amazon Seller Services',"Welcome to Amazon Seller Services","You can say, 'Get account status' to get started.",''))
             .speak(c.WELCOME)
             .reprompt()
             .getResponse();
@@ -50,40 +36,13 @@ const EntryHandler = {
         sessionAttributes.currentState = '';
         sessionAttributes.infractionIndex = 0;
 
-        await dbHelper.getInfractionArray()
-            .then((data) => {
-                sessionAttributes.infractionArray = Object.values(data.Item.infractionArray)[1];
-            })
-            .catch((err) => {
-                console.log("Error occured while getting data", err);
-                var speakOutput = 'Error getting infraction';
-                return handlerInput.responseBuilder
-                    .speak(speakOutput)
-                    .withShouldEndSession(true)
-                    .getResponse();
-            })
-
-        await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
-            .then((data) => {
-                // Retrieve the infraction descriptions
-                sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
-                sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
-                sessionAttributes.status = data.Item.poa;
-            })
-            .catch((err) => {
-                console.log("Error occured while getting data", err);
-                var speakOutput = 'Error getting infraction';
-                return handlerInput.responseBuilder
-                    .speak(speakOutput)
-                    .withShouldEndSession(true)
-                    .getResponse();
-            })
         //Get test account status
-        return dbHelper.getTestValue()
+        await dbHelper.getTestValue()
             .then((data) => {
                 console.log(data, typeof (data));
                 var speakOutput = '';
                 sessionAttributes.locale = data.Item.locale;
+                sessionAttributes.infractionArray = Object.values(data.Item.infractionArray)[1];
 
                 //Account does not exist
                 if (data.length == 0) {
@@ -93,61 +52,6 @@ const EntryHandler = {
                         .withShouldEndSession(true)
                         .getResponse();
                 }
-
-                if (sessionAttributes.infractionArray.length > 0) {
-                    if (sessionAttributes.infraction_ShorthandDescription === 'Under Review') {
-                        speakOutput = sessionAttributes.infraction_DetailedDescription;
-
-                        return handlerInput.responseBuilder
-                            .speak(speakOutput)
-                            .withShouldEndSession(true)
-                            .getResponse();
-                    } else if (sessionAttributes.status === false) {
-                        speakOutput = `Your ${sessionAttributes.locale} Marketplace Seller account status is currently, suspended. The number of infractions you have is, ` + sessionAttributes.infractionArray.length
-                            + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " and is eligible for the self-reinstatement process."
-                            + ". If you would like to reinstate your account, begin by saying reinstate my account.";
-
-                        sessionAttributes.currentState = 'LaunchSR';
-
-                        responseBuilder.addRenderTemplateDirective({
-                            type: "BodyTemplate1",
-                            backButton: "HIDDEN",
-                            title: "Account Status",
-                            textContent: {
-                                primaryText: {
-                                    text: "Status: Suspended",
-                                    type: "PlainText"
-                                },
-                                secondaryText: {
-                                    text: `Number of infractions: ${sessionAttributes.infractionArray.length}`,
-                                    type: "PlainText"
-                                },
-                                tertiaryText: {
-                                    text: `Your first infraction is ${sessionAttributes.infraction_ShorthandDescription}. You can say, 'Reinstate' to self-reinstate your account.`,
-                                    type: "PlainText"
-                                }
-                            }
-                        });
-
-                    } else if (sessionAttributes.status === true) {
-                        speakOutput = `Your ${sessionAttributes.locale} Marketplace Seller account status is currently, suspended. The number of infractions you have is, ` + sessionAttributes.infractionArray.length
-                            + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " which requires a complete plan of action."
-                            + ". If you would like to reinstate your account, begin by saying plan of action.";
-                        sessionAttributes.currentState = 'LaunchPOA';
-                    } else {
-                        speakOutput = "Could not determine the status";
-                    }
-
-                } else {
-                    sessionAttributes.currentState = 'LaunchOK';
-                    speakOutput = c.LAUNCH_STATUS_OK;
-                }
-
-                return responseBuilder
-                    .speak(speakOutput)
-                    .reprompt(c.REPROMPT)
-                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
-                    .getResponse();
             })
             .catch((err) => {
                 console.log("Error occured while getting data", err);
@@ -157,6 +61,72 @@ const EntryHandler = {
                     .withShouldEndSession(true)
                     .getResponse();
             })
+
+        if (sessionAttributes.infractionArray.length > 0) {
+
+            //If infraction(s) exist, get first infraction
+            await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
+                .then((data) => {
+                    // Retrieve the infraction descriptions
+                    sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
+                    sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
+                    sessionAttributes.status = data.Item.poa;
+                    console.log("Status: " + sessionAttributes.status);
+                })
+                .catch((err) => {
+                    console.log("Error occured while getting data", err);
+                    var speakOutput = 'Error getting infraction';
+                    return handlerInput.responseBuilder
+                        .speak(speakOutput)
+                        .withShouldEndSession(true)
+                        .getResponse();
+                })
+
+            if (sessionAttributes.infraction_ShorthandDescription === 'Under Review') {
+                speakOutput = sessionAttributes.infraction_DetailedDescription;
+
+                return handlerInput.responseBuilder
+                    .speak(speakOutput)
+                    .withShouldEndSession(true)
+                    .getResponse();
+            } else if (sessionAttributes.status === false) {
+                speakOutput = `Your ${sessionAttributes.locale} Marketplace Seller account status is currently, suspended. The number of infractions you have is, ` + sessionAttributes.infractionArray.length
+                    + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " and is eligible for the self-reinstatement process."
+                    + ". If you would like to reinstate your account, begin by saying reinstate my account.";
+
+                sessionAttributes.currentState = 'LaunchSR';
+                sessionAttributes.understood = false;
+
+                responseBuilder.addRenderTemplateDirective(util.makeCard("Account Status",
+                                                                            "Status: Suspended",
+                                                                            `Number of infractions: ${sessionAttributes.infractionArray.length}`,
+                                                                            `Your first infraction is ${sessionAttributes.infraction_ShorthandDescription}. You can say, 'Reinstate' to self-reinstate your account.`));
+
+            } else if (sessionAttributes.status === true) {
+                speakOutput = `Your ${sessionAttributes.locale} Marketplace Seller account status is currently, suspended. The number of infractions you have is, ` + sessionAttributes.infractionArray.length
+                    + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " which requires a complete plan of action."
+                    + ". If you would like to reinstate your account, begin by saying plan of action.";
+                sessionAttributes.currentState = 'LaunchPOA';
+
+                responseBuilder.addRenderTemplateDirective(util.makeCard("Account Status",
+                "Status: Suspended",
+                `Number of infractions: ${sessionAttributes.infractionArray.length}`,
+                `Your first infraction is ${sessionAttributes.infraction_ShorthandDescription}. You can say, 'Plan of Action' to self-reinstate your account.`));
+
+            } else {
+                speakOutput = "Could not determine the status. " + sessionAttributes.status;
+            }
+
+        } else {
+            sessionAttributes.currentState = 'LaunchOK';
+            speakOutput = c.LAUNCH_STATUS_OK;
+        }
+
+        return responseBuilder
+            .speak(speakOutput)
+            .reprompt(c.REPROMPT)
+            //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+            .getResponse();
     }
 };
 
@@ -169,6 +139,7 @@ const ReplyHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Reply'
     },
     async handle(handlerInput) {
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         const current = handlerInput.requestEnvelope.request.intent;
@@ -182,6 +153,10 @@ const ReplyHandler = {
 
                     var REPLY_CONFIRM_MESSAGE = responses.makeReplyResponse(current.slots.Query.value);
                     mail.handler(c.REPLY_SUBJECT, REPLY_CONFIRM_MESSAGE);
+
+                    responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
+                                                                                `You added to your Plan of Action: ${current.slots.Query.value}`,
+                                                                                '',''));
 
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
@@ -215,9 +190,10 @@ const POAHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PlanOfAction'
     },
     async handle(handlerInput) {
-        const { attributesManager, requestEnvelope } = handlerInput;
+        const { attributesManager, requestEnvelope } = handlerInput;        
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.currentState = 'POA';
+        const responseBuilder = handlerInput.responseBuilder;
         var speakOutput = '';
 
         //If dialog is complete, save POA
@@ -238,7 +214,12 @@ const POAHandler = {
                 and this will not happen again because ${d3}. \
                 Is this correct?`
 
-            return handlerInput.responseBuilder
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Plan of Action Summary",
+                                                        `Cause of the issue: ${d1}`,
+                                                        `Issue solution: ${d2}`,
+                                                        `Preventative measures: ${d3}`));
+
+            return responseBuilder
                 .speak(speakOutput)
                 .reprompt(c.REPROMPT + ' ' + speakOutput)
                 .getResponse();
@@ -334,6 +315,7 @@ const SRHandler = {
                         // Increment the infraction array index
                         var index = ++sessionAttributes.infractionIndex;
                         var length = sessionAttributes.infractionArray.length;
+                        var remaining = length-index;
 
                         if (index < length) {
                             speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
@@ -354,33 +336,17 @@ const SRHandler = {
                                         tertiary = `Your next infraction is ${sessionAttributes.infraction_ShorthandDescription} and is also eligible for self-reinstatement.`
 
                                         sessionAttributes.currentState = 'LaunchSR';
-                                    } else if (sessionAttributes.status === true) {                                        
+                                        sessionAttributes.understood = false;
+
+                                    } else if (sessionAttributes.status === true) {
                                         speakOutput += "Your next infraction is " + sessionAttributes.infraction_ShorthandDescription + ", which requires a complete plan of action."
                                             + ". If you would like to reinstate your account, begin by saying plan of action.";
                                         tertiary = `Your next infraction is ${sessionAttributes.infraction_ShorthandDescription} and requires a complete Plan of Action.`
-                                        
+
                                         sessionAttributes.currentState = 'LaunchPOA';
                                     }
 
-                                    responseBuilder.addRenderTemplateDirective({
-                                        type: "BodyTemplate1",
-                                        backButton: "HIDDEN",
-                                        title: "Account Status",
-                                        textContent: {
-                                            primaryText: {
-                                                text: "Self-Reinstatement: Complete",
-                                                type: "PlainText"
-                                            },
-                                            secondaryText: {
-                                                text: `Number of remaining infractions: ${length}`,
-                                                type: "PlainText"
-                                            },
-                                            tertiaryText: {
-                                                text: tertiary,
-                                                type: "PlainText"
-                                            }
-                                        }
-                                    });
+                                    responseBuilder.addRenderTemplateDirective(util.makeCard("Self-Reinstate","Self-Reinstatement: Complete",`Number of remaining infractions: ${remaining}`,tertiary));
 
                                     return responseBuilder
                                         .speak(speakOutput)
@@ -402,25 +368,10 @@ const SRHandler = {
                             //Email success confirmation
                             mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
 
-                            responseBuilder.addRenderTemplateDirective({
-                                type: "BodyTemplate1",
-                                backButton: "HIDDEN",
-                                title: "Account Status",
-                                textContent: {
-                                    primaryText: {
-                                        text: "Self-Reinstatement: Complete",
-                                        type: "PlainText"
-                                    },
-                                    secondaryText: {
-                                        text: `Your account should be reinstated shortly.  A confirmation has been sent to your email.`,
-                                        type: "PlainText"
-                                    },
-                                    tertiaryText: {
-                                        text: '(If you have a Plan of Action under review your reinstatement may be delayed.)',
-                                        type: "PlainText"
-                                    }
-                                }
-                            });
+                            responseBuilder.addRenderTemplateDirective(util.makeCard("Self-Reinstatement",
+                                                                                    "Self-Reinstatement: Complete",
+                                                                                    `Your account should be reinstated shortly.  A confirmation has been sent to your email.`,
+                                                                                    '(If you have a Plan of Action under review your reinstatement may be delayed.)'));
 
                             return responseBuilder
                                 .speak(speakOutput)
@@ -438,6 +389,7 @@ const SRHandler = {
                     })
             }
         } else if (currentIntent.slots["CheckOne"].hasOwnProperty("value") && sessionAttributes.understood === false) {
+            console.log('Print this');
             //Special case: The user must agree with the first question to continue on in the process.
             //Any other 'no' responses will be handled at the end of the process.
             //If the user doesn't understand the policy, read it back re prompt for agreement.
@@ -552,6 +504,7 @@ const YesIntentHandler = {
                     .then((data) => {
                         var index = ++sessionAttributes.infractionIndex;
                         var length = sessionAttributes.infractionArray.length;
+                        var remaining = length-index;
                         if (index < length) {
                             speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
 
@@ -573,35 +526,22 @@ const YesIntentHandler = {
                                             + 'to resolve this infraction, begin by saying reinstate my account.';
                                         tertiary = `Your next infraction is ${sessionAttributes.infraction_ShorthandDescription} and is eligible for self-reinstatement.`
                                         sessionAttributes.currentState = 'LaunchSR';
+                                        sessionAttributes.understood = false;
+
                                     } else if (sessionAttributes.status === true) {
                                         speakOutput = "Your next infraction is " + sessionAttributes.infraction_ShorthandDescription + " which also requires a complete plan of action."
                                             + ". If you would like to reinstate your account, begin by saying plan of action.";
                                         tertiary = `Your next infraction is ${sessionAttributes.infraction_ShorthandDescription} and requires a complete Plan of Action.`
-                                        
+
                                         sessionAttributes.currentState = 'LaunchPOA';
                                     }
 
-                                    responseBuilder.addRenderTemplateDirective({
-                                        type: "BodyTemplate1",
-                                        backButton: "HIDDEN",
-                                        title: "Account Status",
-                                        textContent: {
-                                            primaryText: {
-                                                text: "Plan of Action: Complete",
-                                                type: "PlainText"
-                                            },
-                                            secondaryText: {
-                                                text: `Number of remaining infractions: ${length}`,
-                                                type: "PlainText"
-                                            },
-                                            tertiaryText: {
-                                                text: tertiary,
-                                                type: "PlainText"
-                                            }
-                                        }
-                                    });
+                                    responseBuilder.addRenderTemplateDirective(util.makeCard("Plan of Action",
+                                                                                "Plan of Action: Complete",
+                                                                                `Number of remaining infractions: ${remaining}`,
+                                                                                tertiary));
 
-                                    return handlerInput.responseBuilder
+                                    return responseBuilder
                                         .speak(speakOutput)
                                         .reprompt(c.REPROMPT)
                                         .getResponse();
@@ -625,32 +565,15 @@ const YesIntentHandler = {
                             //Prompt if the user wants notifications of future issues
                             speakOutput += c.POA_REMIND;
 
-                            responseBuilder.addRenderTemplateDirective({
-                                type: "BodyTemplate1",
-                                backButton: "HIDDEN",
-                                title: "Account Status",
-                                textContent: {
-                                    primaryText: {
-                                        text: "Plan of Action: Complete",
-                                        type: "PlainText"
-                                    },
-                                    secondaryText: {
-                                        text: 'You have finished the Plan of Action.  You will be contacted when its review is complete.',
-                                        type: "PlainText"
-                                    },
-                                    tertiaryText: {
-                                        text: '',
-                                        type: "PlainText"
-                                    }
-                                }
-                            });
+                            responseBuilder.addRenderTemplateDirective(util.makeCard("Plan of Action",
+                                                                        "Plan of Action: Complete",
+                                                                        'You have finished the Plan of Action.  You will be contacted when its review is complete.',''));
 
-                            return handlerInput.responseBuilder
+                            return responseBuilder
                                 .speak(speakOutput)
                                 .reprompt()
                                 .getResponse();
                         }
-
                     })
                     .catch((err) => {
                         console.log("Error occured while updating", err);
@@ -675,27 +598,9 @@ const YesIntentHandler = {
                     util.setReminder(handlerInput);
                     var speakOutput = c.REMIND_OK;
 
-                    responseBuilder.addRenderTemplateDirective({
-                        type: "BodyTemplate1",
-                        backButton: "HIDDEN",
-                        title: "Account Status",
-                        textContent: {
-                            primaryText: {
-                                text: "Reminder: Set",
-                                type: "PlainText"
-                            },
-                            secondaryText: {
-                                text: c.REMIND_OK,
-                                type: "PlainText"
-                            },
-                            tertiaryText: {
-                                text: '',
-                                type: "PlainText"
-                            }
-                        }
-                    });
+                    responseBuilder.addRenderTemplateDirective(util.makeCard("Notifications","Reminder: Set",c.REMIND_OK,''));
 
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
@@ -718,27 +623,9 @@ const YesIntentHandler = {
             sessionAttributes.currentState = 'CancelRemind'
             speakOutput = c.REMIND_PRMOPT_FROM_CANCEL;
 
-            responseBuilder.addRenderTemplateDirective({
-                type: "BodyTemplate1",
-                backButton: "HIDDEN",
-                title: "Account Status",
-                textContent: {
-                    primaryText: {
-                        text: "Reminder: Pending",
-                        type: "PlainText"
-                    },
-                    secondaryText: {
-                        text: c.REMIND_PRMOPT_FROM_CANCEL,
-                        type: "PlainText"
-                    },
-                    tertiaryText: {
-                        text: '',
-                        type: "PlainText"
-                    }
-                }
-            });
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Notifications","Reminder: Pending",c.REMIND_PRMOPT_FROM_CANCEL,''));
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(speakOutput)
                 .reprompt()
                 .getResponse();
@@ -751,27 +638,9 @@ const YesIntentHandler = {
             util.setReminder(handlerInput);
             var speakOutput = c.REMIND_OK_FROM_CANCEL;
 
-            responseBuilder.addRenderTemplateDirective({
-                type: "BodyTemplate1",
-                backButton: "HIDDEN",
-                title: "Account Status",
-                textContent: {
-                    primaryText: {
-                        text: "Reminder: Set",
-                        type: "PlainText"
-                    },
-                    secondaryText: {
-                        text: c.REMIND_OK_FROM_CANCEL,
-                        type: "PlainText"
-                    },
-                    tertiaryText: {
-                        text: '',
-                        type: "PlainText"
-                    }
-                }
-            });
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Notifications","Reminder: Set",c.REMIND_OK_FROM_CANCEL,''));
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(speakOutput)
                 .withShouldEndSession(true)
                 .getResponse();
@@ -795,6 +664,7 @@ const NoIntentHandler = {
     handle(handlerInput) {
         var speakOutput = "There is an error";
 
+        const responseBuilder = handlerInput.responseBuilder;
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var current = sessionAttributes.currentState;
 
@@ -842,7 +712,7 @@ const NoIntentHandler = {
             responseBuilder.addRenderTemplateDirective({
                 type: "BodyTemplate1",
                 backButton: "HIDDEN",
-                title: "Account Status",
+                title: "Would you notifications?",
                 textContent: {
                     primaryText: {
                         text: "Reminder: Declined",
@@ -859,7 +729,7 @@ const NoIntentHandler = {
                 }
             });
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(speakOutput)
                 .withShouldEndSession(true)
                 .getResponse();
@@ -871,27 +741,9 @@ const NoIntentHandler = {
         else if (current === 'CancelRemind') {
             speakOutput = c.REMIND_NO_FROM_CANCEL;
 
-            responseBuilder.addRenderTemplateDirective({
-                type: "BodyTemplate1",
-                backButton: "HIDDEN",
-                title: "Account Status",
-                textContent: {
-                    primaryText: {
-                        text: "Reminder: Declined",
-                        type: "PlainText"
-                    },
-                    secondaryText: {
-                        text: c.REMIND_NO_FROM_CANCEL,
-                        type: "PlainText"
-                    },
-                    tertiaryText: {
-                        text: '',
-                        type: "PlainText"
-                    }
-                }
-            });
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Notifications","Reminder: Declined",c.REMIND_NO_FROM_CANCEL,''));
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(speakOutput)
                 .withShouldEndSession(true)
                 .getResponse();
@@ -974,12 +826,18 @@ const HelpIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var current = sessionAttributes.currentState;
         var speakOutput = '';
+        const responseBuilder = handlerInput.responseBuilder;
 
         if (current === 'LaunchPOA') {
             speakOutput = 'Your violation is as follows: ' +
                 sessionAttributes.infraction_ShorthandDescription + '. ' +
                 sessionAttributes.infraction_DetailedDescription + '. ' +
                 c.HELP_FROM_LAUNCH;
+
+                responseBuilder.addRenderTemplateDirective(util.makeCard("Violation Details",
+                                                                        sessionAttributes.infraction_ShorthandDescription,
+                                                                        sessionAttributes.infraction_DetailedDescription,
+                                                                        c.HELP_FROM_LAUNCH));
         } else if (current === 'LaunchSR') {
             speakOutput = c.HELP_SR;
         } else if (current === 'LaunchReply') {
@@ -988,53 +846,29 @@ const HelpIntentHandler = {
             speakOutput = c.HELP_POA_END;
         } else if (current === 'POA') {
             speakOutput = c.HELP_POA;
-
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .addDelegateDirective({
-                    name: "PlanOfAction",
-                    slots: {
-                        "Q.One": {
-                            name: "Q.One",
-                            confirmationStatus: "NONE"
-                        },
-                        "Q.Two": {
-                            name: "Q.Two",
-                            confirmationStatus: "NONE"
-                        },
-                        "Q.Three": {
-                            name: "Q.Three",
-                            confirmationStatus: "NONE"
-                        }
-                    }
-                })
-                .getResponse();
         } else if (current === 'Self') {
             speakOutput = c.HELP_SR;
+        } else if (current === 'Help') {
+            speakOutput = 'You can get in touch with Amazon Seller Central by calling, 1, 8 6 6, 2 1 6, 1 0 7 2. \
+                            Say, get account status, to start over.'
 
-            return handlerInput.responseBuilder
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Help",
+                                                                    'You can get in touch with Amazon Seller Central by calling:',
+                                                                    '1-866-216-1072',''));
+
+            return responseBuilder
                 .speak(speakOutput)
-                .addDelegateDirective({
-                    name: "Self",
-                    slots: {
-                        "CheckOne": {
-                            name: "CheckOne"
-                        },
-                        "CheckTwo": {
-                            name: "CheckTwo"
-                        },
-                        "CheckThree": {
-                            name: "CheckThree"
-                        },
-                        "CheckFour": {
-                            name: "CheckFour"
-                        }
-                    }
-                })
+                .reprompt(c.REPROMPT + ' ' + speakOutput)
                 .getResponse();
         }
 
-        return handlerInput.responseBuilder
+        sessionAttributes.currentState = 'Help';
+
+        responseBuilder.addRenderTemplateDirective(util.makeCard("Help",speakOutput,'',''));
+
+        speakOutput += ' If you need more assisstance you can say help again.'
+
+        return responseBuilder
             .speak(speakOutput)
             .reprompt(c.REPROMPT + ' ' + speakOutput)
             .getResponse();
@@ -1047,33 +881,16 @@ const CancelIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
+        const responseBuilder = handlerInput.responseBuilder;
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.currentState = 'AMAZON.CancelIntent';
 
         if (sessionAttributes.status === 4) {
             const speakOutput = c.CANCEL_STATUS_4;
 
-            responseBuilder.addRenderTemplateDirective({
-                type: "BodyTemplate1",
-                backButton: "HIDDEN",
-                title: "Account Status",
-                textContent: {
-                    primaryText: {
-                        text: "Action Cancelled",
-                        type: "PlainText"
-                    },
-                    secondaryText: {
-                        text: c.CANCEL_STATUS_4,
-                        type: "PlainText"
-                    },
-                    tertiaryText: {
-                        text: '',
-                        type: "PlainText"
-                    }
-                }
-            });
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel","Action Cancelled", c.CANCEL_STATUS_4,''));
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(speakOutput)
                 .withShouldEndSession(true)
                 .getResponse();
@@ -1081,27 +898,9 @@ const CancelIntentHandler = {
         else {
             const speakOutput = c.CANCEL_CONFIRM;
 
-            responseBuilder.addRenderTemplateDirective({
-                type: "BodyTemplate1",
-                backButton: "HIDDEN",
-                title: "Account Status",
-                textContent: {
-                    primaryText: {
-                        text: "Action Cancelled",
-                        type: "PlainText"
-                    },
-                    secondaryText: {
-                        text: c.CANCEL_CONFIRM,
-                        type: "PlainText"
-                    },
-                    tertiaryText: {
-                        text: '',
-                        type: "PlainText"
-                    }
-                }
-            });
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel","Action Cancelled",c.CANCEL_CONFIRM,''));
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(speakOutput)
                 .reprompt('Are you sure you want to stop now?')
                 .getResponse();

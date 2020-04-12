@@ -61,26 +61,6 @@ dbConnect.prototype.getInfraction = (infractionID) => {
         })
     })
 }
-// Ideally we'd pass an account ID into this and utilize that to determine whos
-// information we are gathering.
-dbConnect.prototype.getInfractionArray = () => {
-    return new Promise((resolve,reject) => {
-        const params = {
-            TableName: 'sample-account-status',
-            Key: {
-                'accountId':2
-            }
-        }
-        docClient.get(params, (err, data) => {
-            if (err) {
-                console.error("Can not get. Error JSON:", JSON.stringify(err, null, 2));
-                return reject(JSON.stringify(err, null, 2))
-            } 
-            console.log("GetItem succeeded:", JSON.stringify(data, null, 2),typeof(data));
-            resolve(data)            
-        })
-    })
-}
 
 dbConnect.prototype.updatePOA = (poaId,reply) => {
     return new Promise((resolve,reject) => {
@@ -111,7 +91,7 @@ dbConnect.prototype.getTestValue = () => {
         const params = {
             TableName: 'sample-account-status',
             Key: {
-                'accountId':2
+                'accountId':1
             }
         }
         docClient.get(params, (err, data) => {

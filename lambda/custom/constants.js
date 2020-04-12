@@ -59,7 +59,7 @@ module.exports = {
     HELP_POA_END: 'If you are satisfied with your plan of action, say yes to submit it for review.  Otherwise, you can say cancel to stop.',
 
     HELP_POA: 'Please describe why the violation happened, how you fixed the violation, and why there will be no more violations in the future. \
-    I will prompt you for each piece of information.',
+    I will prompt you for each piece of information.  Simply say, Plan of Action, to get started.',
 
     CANCEL_STATUS_4: 'If you change your mind you can add more information to your plan of action later.  Good bye.',
 
