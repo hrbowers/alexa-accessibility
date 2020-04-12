@@ -20,9 +20,8 @@ const LaunchRequestHandler = {
         sessionAttributes.currentState = '';
         sessionAttributes.infractionIndex = 0;
         sessionAttributes.poa = false;
-        
-        await dbHelper.getInfractionArray()
 
+        await dbHelper.getInfractionArray()
             .then((data) => {
                 sessionAttributes.infractionArray = data.Item.infractionArray;
             })
@@ -35,7 +34,7 @@ const LaunchRequestHandler = {
                     .getResponse();
             })
 
-            await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
+        await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
             .then((data) => {
                 // Retrieve the infraction descriptions
                 sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
@@ -86,12 +85,29 @@ const LaunchRequestHandler = {
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
+                    } else if(sessionAttributes.status === false) {
+                        speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
+                        + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " and is eligible for the self-reinstatement process."
+                        + ". If you would like to reinstate your account, begin by saying reinstate my account.";
+                        sessionAttributes.currentState = 'LaunchSR';
+                    } else if(sessionAttributes.status === true) {
+                        speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
+                        + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " which requires a complete plan of action."
+                        + ". If you would like to reinstate your account, begin by saying plan of action.";
+                        sessionAttributes.currentState = 'LaunchPOA';
+                    } else {
+                        speakOutput = "Could not determine the status";
+                    }
+                    
+                } else {
+                    sessionAttributes.currentState = 'LaunchOK';
+                    speakOutput = c.LAUNCH_STATUS_OK;
                 }
 
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .reprompt(c.REPROMPT)
-                     //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
                     .getResponse();
             })
             .catch((err) => {
@@ -126,7 +142,7 @@ const ReplyHandler = {
                     var speakOutput = c.REPLY_SUCCESS;
 
                     var REPLY_CONFIRM_MESSAGE = responses.makeReplyResponse(current.slots.Query.value);
-                    mail.handler(c.REPLY_SUBJECT,REPLY_CONFIRM_MESSAGE);
+                    mail.handler(c.REPLY_SUBJECT, REPLY_CONFIRM_MESSAGE);
 
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
@@ -189,21 +205,21 @@ const POAHandler = {
                 .getResponse();
 
         } else { //If dialog is not complete, delegate to dialog model  
-        
-        let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One'); //Answer to Q1   
-        let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');  //Answer to Q2
-        let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');  //Answer to Q3
 
-        //Filter user input to trigger either the help intent or cancel intent if needed
-        if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
-            return HelpIntentHandler.handle(handlerInput);
-        } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
-            return CancelIntentHandler.handle(handlerInput);
-        } else {
-            return handlerInput.responseBuilder
-                .addDelegateDirective()
-                .getResponse();
-        }
+            let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One'); //Answer to Q1   
+            let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');  //Answer to Q2
+            let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');  //Answer to Q3
+
+            //Filter user input to trigger either the help intent or cancel intent if needed
+            if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
+                return HelpIntentHandler.handle(handlerInput);
+            } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
+                return CancelIntentHandler.handle(handlerInput);
+            } else {
+                return handlerInput.responseBuilder
+                    .addDelegateDirective()
+                    .getResponse();
+            }
         }
     }
 }
@@ -258,9 +274,10 @@ const SRHandler = {
                         // Increment the infraction array index
                         var index = ++sessionAttributes.infractionIndex;
                         var length = sessionAttributes.infractionArray.length;
-                        
-                        if(index < length) {
-                            speechOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
+
+                        if (index < length) {
+                            speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
+                            mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
 
                             return dbHelper.getInfraction(sessionAttributes.infractionArray[index])
                                 .then((data) => {
@@ -300,13 +317,13 @@ const SRHandler = {
                                 })
                         } else {
                             sessionAttributes.currentState = 'LaunchOK';
-                            speechOutput = c.SR_SUCCESS;
+                            speakOutput = c.SR_SUCCESS;
 
-                            mail.handler(c.SR_SUBJECT,c.SR_CONFIRM_MESSAGE);
-                            
+                            mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
+
                             //Output message and don't reprompt to exit skill
                             return handlerInput.responseBuilder
-                                .speak(speechOutput)
+                                .speak(speakOutput)
                                 .getResponse();
                         }
                     })
@@ -324,11 +341,11 @@ const SRHandler = {
             //Any other 'no' responses will be handled at the end of the process.
             //If the user doesn't understand the policy, read it back re prompt for agreement.
             if (currentIntent.slots["CheckOne"].resolutions.resolutionsPerAuthority[0].values[0].value.name === "No") {
-                speakOutput = 'Your violation is as follows: ' + 
-                                sessionAttributes.infraction_ShorthandDescription + '. ' + 
-                                sessionAttributes.infraction_DetailedDescription +
-                                '. This is a violation of Amazons policy.'
-                
+                speakOutput = 'Your violation is as follows: ' +
+                    sessionAttributes.infraction_ShorthandDescription + '. ' +
+                    sessionAttributes.infraction_DetailedDescription +
+                    '. This is a violation of Amazons policy.'
+
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .addDelegateDirective({
@@ -382,8 +399,8 @@ const SRHandler = {
     }
 }
 async function updateStatus() {
-    
-} 
+
+}
 /**
  * The yes intent will handle confirmation of completed plans of action.  If the 
  * POA is approved, data is saved to a DynamoDB table.
@@ -497,7 +514,6 @@ const YesIntentHandler = {
                             .withShouldEndSession(true)
                             .getResponse();
                     })
-
             } else {
                 speakOutput = responses.dbFail();
             }
@@ -542,23 +558,23 @@ const YesIntentHandler = {
                 .getResponse();
         }
 
-         /**
-         * Set reminder to fix the account later.
-         */
+        /**
+        * Set reminder to fix the account later.
+        */
         else if (current === 'CancelRemind') {
             util.setReminder(handlerInput);
             var speakOutput = c.REMIND_OK_FROM_CANCEL;
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .withShouldEndSession(true)
-            .getResponse();
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
         }
 
         return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .reprompt(c.REPROMPT)
-                .getResponse();
+            .speak(speakOutput)
+            .reprompt(c.REPROMPT)
+            .getResponse();
     }
 }
 
@@ -691,7 +707,6 @@ const NoIntentHandler = {
                     })
                     .getResponse();
             }
-
         }
 
         return handlerInput.responseBuilder
@@ -715,10 +730,10 @@ const HelpIntentHandler = {
         var speakOutput = '';
 
         if (current === 'LaunchPOA') {
-            speakOutput = 'Your violation is as follows: ' + 
-                            sessionAttributes.infraction_ShorthandDescription + '. ' + 
-                            sessionAttributes.infraction_DetailedDescription + '. '+
-                            c.HELP_FROM_LAUNCH;
+            speakOutput = 'Your violation is as follows: ' +
+                sessionAttributes.infraction_ShorthandDescription + '. ' +
+                sessionAttributes.infraction_DetailedDescription + '. ' +
+                c.HELP_FROM_LAUNCH;
         } else if (current === 'LaunchSR') {
             speakOutput = c.HELP_SR;
         } else if (current === 'LaunchReply') {
