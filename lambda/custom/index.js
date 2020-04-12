@@ -3,6 +3,13 @@ const dbHelper = require("./dbConnect");
 const responses = require("./response");
 const remind = require("./reminder");
 
+var incPOA = 0;
+
+var d1 = "";
+var d2 = "";
+var d3 = "";
+var id = "";
+
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
 const LaunchRequestHandler = {
@@ -193,12 +200,14 @@ const POAHandler = {
                 .getResponse();
 
         } else { //If dialog is not complete, delegate to dialog model  
-            let id = `${sessionAttributes.poaId}`
-            let d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
-            let d2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
-            let d3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
+            incPOA = 1;
+            id = `${sessionAttributes.poaId}`
+            d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
+            d2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
+            d3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
 
-            saveField1(id, d1);
+            /*saveField(id, d1);
+            saveField2(id, d2);*/
             
             return handlerInput.responseBuilder
                 .addDelegateDirective()
@@ -708,47 +717,63 @@ const CancelIntentHandler = {
                 .withShouldEndSession(true)
                 .getResponse();
         }
-        else if (sessionAttributes.currentState === 'POA') {
+        else if (incPOA === 1) {
+            
+            console.log("This value: " + d1);
+            console.log("This value: " + d2);
+            console.log("This value: " + d3);
+            console.log("This value: " + id);
 
-            if (Alexa.getSlotValue(requestEnvelope, 'Q.Two') === null){
-                let dbSave = saveAppeal(id, sessionAttributes.d1, "empty", "empty")
-
-                if (dbSave) {
-
-                    return dbHelper.updateStatus(5, id)
-                        .then((data) => {
-                            sessionAttributes.currentState = 'LaunchOK';
-                            speakOutput = responses.completion();
-                            //Prompt if the user wants notifications of future issues
-                            speakOutput += 'Your plan of action is not complete, your completed answers are being \
-                            saved and can be added to later. Good bye.';
-    
-                            return handlerInput.responseBuilder
-                                .speak(speakOutput)
-                                .withShouldEndSession(true)
-                                .getResponse();
-                        })
-                        .catch((err) => {
-                            console.log("Error occured while updating", err);
-                            var speakOutput = 'Error updating status';
-                            return handlerInput.responseBuilder
-                                .speak(speakOutput)
-                                .withShouldEndSession(true)
-                                .getResponse();
-                        })
-    
-                } else {
-                    speakOutput = responses.dbFail();
-                }
+            if (d1 = ''){
+                d1 = "empty";
+            }
+            if (d2 = ''){
+                d2 = "empty";
+            }
+            if (d3 = ''){
+                d3 = "empty";
             }
 
-            /*const speakOutput = 'Your plan of action is not complete, your completed answers are being \
+            let dbSave = saveAppeal(id, d1, d2, d3);
+
+            if (dbSave) {
+
+                return dbHelper.updateStatus(4, id)
+                    .then((data) => {
+                        sessionAttributes.currentState = 'LaunchOK';
+                        speakOutput = responses.completion();
+                        //Prompt if the user wants notifications of future issues
+                        speakOutput += ' Would you like to be notified when there are issues with your account?'
+
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+                    .catch((err) => {
+                        console.log("Error occured while updating", err);
+                        var speakOutput = 'Error updating status';
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+
+            } else {
+                speakOutput = responses.dbFail();
+            }
+        
+
+
+            const speakOutput = 'Your plan of action is not complete, your completed answers are being \
             saved and can be added to later. Good bye.';
             return handlerInput.responseBuilder
                 .speak(speakOutput)
                 .withShouldEndSession(true)
-                .getResponse();*/
+                .getResponse();
+        
         }
+        
         else {
             const speakOutput = 'The reinstatement process is not complete and your account is still suspended.  Are you sure you want to stop?';
             return handlerInput.responseBuilder
@@ -939,8 +964,19 @@ async function saveAppeal(id, data1, data2, data3) {
         })
 }
 
-async function saveField1(id, data) {
-    return dbHelper.addField1(id, data)
+async function saveField(id, data1){
+    return dbHelper.addField(id, data1)
+        .then((data) => {
+            return true;
+        })
+        .catch((err) => {
+            console.log("Error occured while saving data", err);
+            return false;
+        })
+}
+
+async function saveField2(id, data1){
+    return dbHelper.addField(id, data1)
         .then((data) => {
             return true;
         })
