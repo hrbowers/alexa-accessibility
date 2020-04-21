@@ -64,9 +64,9 @@ const LaunchRequestHandler = {
                         .getResponse();
                 }
                 if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
-                    speechOutput += '. The rest of your infractions are under review. Good bye.';
+                    speakOutput += '. The rest of your infractions are under review. Good bye.';
                     return handlerInput.responseBuilder
-                    .speak(speechOutput)
+                    .speak(speakOutput)
                  } else if(sessionAttributes.infractionArray.length > 0 && sessionAttributes.poa == false){
                     speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
                     + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription 
@@ -275,6 +275,7 @@ const SRHandler = {
                         var index = ++sessionAttributes.infractionIndex;
                         var length = sessionAttributes.infractionArray.length;
 
+
                         if (index < length) {
                             speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
                             mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
@@ -288,21 +289,21 @@ const SRHandler = {
                                         sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
                                         sessionAttributes.poa = data.Item.poa;
                                         if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
-                                            speechOutput += '. The rest of your infractions are under review. Good bye.';
+                                            speakOutput += '. The rest of your infractions are under review. Good bye.';
                                             return handlerInput.responseBuilder
-                                            .speak(speechOutput)
+                                            .speak(speakOutput)
                                          } else if(sessionAttributes.poa == false) {
-                                            speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
+                                            speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
                                             + 'to resolve this infraction, begin by saying reinstate my account.';
                                             sessionAttributes.currentState = 'LaunchSR';
                                         } else {
-                                            speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + 'and requires a complete plan of action. If you would like '
+                                            speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and requires a complete plan of action. If you would like '
                                             + 'to resolve this infraction, begin by saying plan of action.';
                                             sessionAttributes.currentState = 'LaunchPOA';
                                         }
                                         repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
                                         return handlerInput.responseBuilder
-                                            .speak(speechOutput)
+                                            .speak(speakOutput)
                                             .reprompt(repromptMessage)
                                             .getResponse();
                                             })
@@ -406,7 +407,7 @@ async function updateStatus() {
  * POA is approved, data is saved to a DynamoDB table.
  * 
  * The yes intent will also handle a cancel request and setting up a reminder to fix
- * the account.
+ * the account
  */
 const YesIntentHandler = {
     canHandle(handlerInput) {
@@ -467,21 +468,21 @@ const YesIntentHandler = {
                                             sessionAttributes.infraction_ShorthandDescription = data2.Item.descriptionS;
                                             sessionAttributes.poa = data2.Item.poa;
                                             if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
-                                                speechOutput += '. The rest of your infractions are under review. Good bye.';
+                                                speakOutput += '. The rest of your infractions are under review. Good bye.';
                                                 return handlerInput.responseBuilder
-                                                .speak(speechOutput)
+                                                .speak(speakOutput)
                                             } else if(sessionAttributes.poa == false) {
-                                                speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
+                                                speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
                                                 + 'to resolve this infraction, begin by saying reinstate my account.';
                                                 sessionAttributes.currentState = 'LaunchSR';
                                             } else {
-                                                speechOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + 'and requires a complete plan of action. If you would like '
+                                                speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and requires a complete plan of action. If you would like '
                                                 + 'to resolve this infraction, begin by saying plan of action.';
                                                 sessionAttributes.currentState = 'LaunchPOA';
                                             }
                                             repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
                                             return handlerInput.responseBuilder
-                                                .speak(speechOutput)
+                                                .speak(speakOutput)
                                                 .reprompt(repromptMessage)
                                                 .getResponse();
                                                 })
