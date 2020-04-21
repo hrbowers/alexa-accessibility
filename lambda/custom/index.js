@@ -77,15 +77,7 @@ const LaunchRequestHandler = {
                     + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription 
                     + "and requires a complete plan of action. If you would like to reinstate your account, begin by saying plan of action.";
                     sessionAttributes.currentState = 'LaunchPOA';
-                } else {
-                    sessionAttributes.currentState = 'LaunchOK';
-                    speakOutput = c.LAUNCH_STATUS_OK;
-                    //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
-                    return handlerInput.responseBuilder
-                        .speak(speakOutput)
-                        .withShouldEndSession(true)
-                        .getResponse();
-                    } else if(sessionAttributes.status === false) {
+                }  else if(sessionAttributes.status === false) {
                         speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
                         + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " and is eligible for the self-reinstatement process."
                         + ". If you would like to reinstate your account, begin by saying reinstate my account.";
@@ -96,13 +88,9 @@ const LaunchRequestHandler = {
                         + ". If you would like to reinstate your account, begin by saying plan of action.";
                         sessionAttributes.currentState = 'LaunchPOA';
                     } else {
-                        speakOutput = "Could not determine the status";
+                        sessionAttributes.currentState = 'LaunchOK';
+                        speakOutput = c.LAUNCH_STATUS_OK;
                     }
-                    
-                } else {
-                    sessionAttributes.currentState = 'LaunchOK';
-                    speakOutput = c.LAUNCH_STATUS_OK;
-                }
 
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
