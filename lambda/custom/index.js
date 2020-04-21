@@ -389,7 +389,7 @@ async function updateStatus() {
  * POA is approved, data is saved to a DynamoDB table.
  * 
  * The yes intent will also handle a cancel request and setting up a reminder to fix
- * the account.
+ * the account
  */
 const YesIntentHandler = {
     canHandle(handlerInput) {
