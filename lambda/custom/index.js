@@ -64,9 +64,12 @@ const LaunchRequestHandler = {
                         .getResponse();
                 }
                 if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
-                    speakOutput += '. The rest of your infractions are under review. Good bye.';
+                    speakOutput += 'You have completed all infractions associated with this account. '
+                    + 'They are currently under review. We will get back to you shortly. Thank you and have a great day.';
                     return handlerInput.responseBuilder
                     .speak(speakOutput)
+                    .withShouldEndSession(true)
+                    .getResponse();
                  } else if(sessionAttributes.infractionArray.length > 0 && sessionAttributes.poa == false){
                     speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
                     + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription 
@@ -77,20 +80,10 @@ const LaunchRequestHandler = {
                     + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription 
                     + "and requires a complete plan of action. If you would like to reinstate your account, begin by saying plan of action.";
                     sessionAttributes.currentState = 'LaunchPOA';
-                }  else if(sessionAttributes.status === false) {
-                        speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
-                        + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " and is eligible for the self-reinstatement process."
-                        + ". If you would like to reinstate your account, begin by saying reinstate my account.";
-                        sessionAttributes.currentState = 'LaunchSR';
-                    } else if(sessionAttributes.status === true) {
-                        speakOutput = "Your account status is currently, suspended. The number of infractions you have is, " + sessionAttributes.infractionArray.length
-                        + ". Your first infraction is " + sessionAttributes.infraction_ShorthandDescription + " which requires a complete plan of action."
-                        + ". If you would like to reinstate your account, begin by saying plan of action.";
-                        sessionAttributes.currentState = 'LaunchPOA';
-                    } else {
-                        sessionAttributes.currentState = 'LaunchOK';
-                        speakOutput = c.LAUNCH_STATUS_OK;
-                    }
+                } else {
+                    sessionAttributes.currentState = 'LaunchOK';
+                    speakOutput = c.LAUNCH_STATUS_OK;
+                }
 
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
