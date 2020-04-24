@@ -54,6 +54,8 @@ const LaunchRequestHandler = {
             .then((data) => {
                 console.log(data, typeof (data));
                 var speakOutput = '';
+                var status = data.Item.statusCode;
+                var poaId = data.Item.poaId;
 
                 //Account does not exist
                 if (data.length == 0) {
@@ -63,7 +65,22 @@ const LaunchRequestHandler = {
                         .withShouldEndSession(true)
                         .getResponse();
                 }
-                if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
+                if (status === 4) {
+                    sessionAttributes.poaId = poaId;
+                    sessionAttributes.currentState = 'LaunchReply';
+                    speakOutput = "Your account is under review for reinstatment.  You can add additional information \
+                    to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
+                    action unchanged."
+                    console.log("this poaID = " + poaId);
+                } 
+                //RAY US101_________________________________________________
+                else if (status == 5) {
+                    sessionAttributes.poaId = poaId;
+                    sessionAttributes.currentState = "LaunchResume";
+                    speakOutput = "Your incomplete POA was saved and can be added to by saying, resume. \
+                    You can also say Cancel, if you would like to return later."
+                }
+                else if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
                     speakOutput += 'You have completed all infractions associated with this account. '
                     + 'They are currently under review. We will get back to you shortly. Thank you and have a great day.';
                     return handlerInput.responseBuilder
@@ -194,8 +211,55 @@ const POAHandler = {
             //Filter user input to trigger either the help intent or cancel intent if needed
             if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
                 return HelpIntentHandler.handle(handlerInput);
-            } else if (temp1 === 'cancel' || temp2 === 'cancel' || temp3 === 'cancel') {
+            } 
+            //Cancel functionality for saving incomplete POA
+            //If slot 1 is empty, nothing to save
+            else if (temp1 === 'cancel') {
                 return CancelIntentHandler.handle(handlerInput);
+            }
+            //If slot 2 is cancel, save slot 1
+            else if (temp2 === 'cancel') {
+
+                sessionAttributes.currentState = 'IncompleteSave';
+                let d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
+
+                sessionAttributes.d1 = d1;
+                sessionAttributes.d2 = "";
+                sessionAttributes.d3 = "";
+
+                //Confirm final submission via YesIntent and NoIntent.
+                speakOutput += `You entered the cause of the issue was ${d1}, \
+                but you have not completed the Plan of Action. \
+                Would you like to save this response and finish later?`
+
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(c.REPROMPT + ' ' + speakOutput)
+                .getResponse();
+
+            } 
+            //If slot 3 is cancel, save slots 1 and 2
+            else if (temp3 === 'cancel') {
+
+                sessionAttributes.currentState = 'IncompleteSave';
+                let d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
+                let d2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
+
+                sessionAttributes.d1 = d1;
+                sessionAttributes.d2 = d2;
+                sessionAttributes.d3 = "";
+
+                //Confirm final submission via YesIntent and NoIntent.
+                speakOutput += `You entered the cause of the issue was ${d1}, \
+                the issue is fixed because ${d2},
+                but you have not completed the Plan of Action. \
+                Would you like to save these responses and finish later?`
+
+                return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .reprompt(c.REPROMPT + ' ' + speakOutput)
+                .getResponse();
+                
             } else {
                 return handlerInput.responseBuilder
                     .addDelegateDirective()
@@ -405,8 +469,8 @@ const YesIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var current = sessionAttributes.currentState;
 
-        //Yes response when confirming submitted POA
-        if (current === 'POAFinished') {
+        //Yes response when confirming submitted POA/incomplete POA
+        if (current === 'POAFinished' || current === 'IncompleteSave') {
             //Retrieve and increment POA id from persistence store
             if (Object.keys(persistentAttributes).length === 0) {
                 sessionAttributes.poaId = 1;
@@ -429,17 +493,18 @@ const YesIntentHandler = {
             let dbSave = util.saveAppeal(id, d1, d2, d3);
 
             if (dbSave) {
-                return dbHelper.updateStatus(4, id)
-                    .then((data) => {
-                        return dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 2)
-                            .then((data1) => {
-                                var index = ++sessionAttributes.infractionIndex;
-                                var length = sessionAttributes.infractionArray.length;
-                                //email confirmation of poa submission.                        
-                                var POA_CONFIRM_MESSAGE = responses.makeResponse(d1,d2,d3);
-                                mail.handler(c.POA_SUBJECT,POA_CONFIRM_MESSAGE);
+                if (current === 'POAFinished' ){
+                    return dbHelper.updateStatus(4, id)
+                        .then((data) => {
+                            return dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 2)
+                                .then((data1) => {
+                                    var index = ++sessionAttributes.infractionIndex;
+                                    var length = sessionAttributes.infractionArray.length;
+                                    //email confirmation of poa submission.                        
+                                    var POA_CONFIRM_MESSAGE = responses.makeResponse(d1,d2,d3);
+                                    mail.handler(c.POA_SUBJECT,POA_CONFIRM_MESSAGE);
 
-                                if(index < length) {
+                                    if(index < length) {
                                     speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
 
                                     return dbHelper.getInfraction(sessionAttributes.infractionArray[index])
@@ -496,7 +561,81 @@ const YesIntentHandler = {
                             .withShouldEndSession(true)
                             .getResponse();
                     })
-            } else {
+                }
+            } 
+
+            if (dbSave) {
+                if (current === 'IncompleteSave' ){
+                    return dbHelper.updateStatus(5, id)
+                        .then((data) => {
+                            return dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 2)
+                                .then((data1) => {
+                                    var index = ++sessionAttributes.infractionIndex;
+                                    var length = sessionAttributes.infractionArray.length;
+                                    //email confirmation of poa submission.                        
+                                    var POA_CONFIRM_MESSAGE = responses.makeResponse(d1,d2,d3);
+                                    mail.handler(c.POA_SUBJECT,POA_CONFIRM_MESSAGE);
+
+                                    if(index < length) {
+                                    speakOutput = 'Thank you for submitting your response to ' + sessionAttributes.infraction_ShorthandDescription;
+
+                                    return dbHelper.getInfraction(sessionAttributes.infractionArray[index])
+                                        .then((data2) => {
+                                        // Retrieve the infraction descriptions
+                                            sessionAttributes.infraction_DetailedDescription = data2.Item.descriptionL;
+                                            sessionAttributes.infraction_ShorthandDescription = data2.Item.descriptionS;
+                                            sessionAttributes.poa = data2.Item.poa;
+                                            if(sessionAttributes.infraction_ShorthandDescription == 'Under Review') {
+                                                speakOutput += '. The rest of your infractions are under review. Good bye.';
+                                                return handlerInput.responseBuilder
+                                                .speak(speakOutput)
+                                            } else if(sessionAttributes.poa == false) {
+                                                speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + '. If you would like '
+                                                + 'to resolve this infraction, begin by saying reinstate my account.';
+                                                sessionAttributes.currentState = 'LaunchSR';
+                                            } else {
+                                                speakOutput += '. Your next infraction is ' + sessionAttributes.infraction_ShorthandDescription + ' and requires a complete plan of action. If you would like '
+                                                + 'to resolve this infraction, begin by saying plan of action.';
+                                                sessionAttributes.currentState = 'LaunchPOA';
+                                            }
+                                            repromptMessage = 'Sorry I did not hear a response, please respond or the session will be closed.'
+                                            return handlerInput.responseBuilder
+                                                .speak(speakOutput)
+                                                .reprompt(repromptMessage)
+                                                .getResponse();
+                                                })
+                                        .catch((err) => {
+                                            console.log("Error occured while getting data", err);
+                                            var speakOutput = 'Error getting infraction ' + err;
+                                            return handlerInput.responseBuilder
+                                                .speak(speakOutput)
+                                                .withShouldEndSession(true)
+                                                .getResponse();
+                                        })
+                                } else {
+                                        sessionAttributes.currentState = 'LaunchOK';
+                                        speakOutput = responses.completion();
+                                        //Prompt if the user wants notifications of future issues
+                                        speakOutput += c.POA_REMIND;
+                                }
+
+                                return handlerInput.responseBuilder
+                                    .speak(speakOutput)
+                                    .reprompt()
+                                    .getResponse();
+                                })
+                    })
+                    .catch((err) => {
+                        console.log("Error occured while updating", err);
+                        var speakOutput = 'Error updating status ' + err;
+                        return handlerInput.responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+                }
+            } 
+            else {
                 speakOutput = responses.dbFail();
             }
         }
@@ -626,6 +765,15 @@ const NoIntentHandler = {
         */
         else if (current === 'CancelRemind') {
             speakOutput = c.REMIND_NO_FROM_CANCEL;
+
+            return handlerInput.responseBuilder
+                .speak(speakOutput)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+
+        else if (current === 'IncompleteSave') {
+            speakOutput = 'Okay, responses will not be saved.'
 
             return handlerInput.responseBuilder
                 .speak(speakOutput)
