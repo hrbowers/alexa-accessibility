@@ -3,7 +3,9 @@
  * excess strings.
  */
 module.exports = {
-    LAUNCH_STATUS_OK: 'Your account is in good standing and does not need attention at this time.\
+    WELCOME: 'Welcome to Amazon seller services.  You can say, get account status, to check the status of your seller account.',
+
+    LAUNCH_STATUS_OK: 'Your marketplace seller account is in good standing and does not need attention at this time.\
     Would you like me to notify you if something goes wrong with your account?',
 
     LAUNCH_STATUS_4: 'Your account is under review for reinstatment.  You can add additional information \
@@ -25,7 +27,7 @@ module.exports = {
     NO_ACTION: ' You must fix the cause of your violation and take steps to ensure it will not happen again.',
 
     NO_QUALITY: ' Amazon customers expect the highest level of service.\
-    You must agree to provide a level of service that will meetour customer\'s expectations.',
+    You must agree to provide a level of service that will meet our customer\'s expectations.',
 
     NO_PERMANENT_LOSS: ' Repeated infractions could possibly result in the permanent loss of your seller account.',
 
@@ -67,7 +69,7 @@ module.exports = {
     HELP_POA_END: 'If you are satisfied with your plan of action, say yes to submit it for review.  Otherwise, you can say cancel to stop.',
 
     HELP_POA: 'Please describe why the violation happened, how you fixed the violation, and why there will be no more violations in the future. \
-    I will prompt you for each piece of information.',
+    I will prompt you for each piece of information.  Simply say, Plan of Action, to get started.',
 
     CANCEL_STATUS_3: 'If you change your mind you can add more information to your plan of action later.  Good bye.',
 

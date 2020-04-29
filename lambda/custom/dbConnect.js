@@ -65,6 +65,7 @@ dbConnect.prototype.getInfraction = (infractionID) => {
     })
 }
 
+
 /**
  * Updates an existing POA with new information.  For this skill, it adds new
  * information to an incomplete POA or to the Reply slot on a complete POA.
@@ -121,6 +122,7 @@ dbConnect.prototype.getAccount = () => {
     });
 }
 
+
 /**
  * Retrieves an incomplete or under review POA based on the poaId. This
  * enables the Resume and Reply functionality.
@@ -165,12 +167,14 @@ dbConnect.prototype.updateStatus = (status, poaId) => {
         const params = {
             TableName: 'sample-account-status',
             Key: {
+
                 'accountId': 1
             },
             UpdateExpression: "set statusCode = :s, poaId = :id",
             ExpressionAttributeValues: {
                 ":s": status,
                 ":id": poaId
+
             }
         }
 

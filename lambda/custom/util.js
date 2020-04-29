@@ -94,3 +94,35 @@ module.exports.saveAppeal = async function saveAppeal(id, data1, data2, data3) {
             return false;
         })
 }
+
+module.exports.supportsDisplay = function supportsDisplay(handlerInput){
+    const hasDisplay =
+    handlerInput.requestEnvelope.context &&
+    handlerInput.requestEnvelope.context.System &&
+    handlerInput.requestEnvelope.context.System.device &&
+    handlerInput.requestEnvelope.context.System.device.supportedInterfaces &&
+    handlerInput.requestEnvelope.context.System.device.supportedInterfaces.Display;
+  return hasDisplay;
+}
+
+module.exports.makeCard = function makeCard(title,primary,secondary,tertiary){
+    return {
+        type: "BodyTemplate1",
+        backButton: "HIDDEN",
+        title: title,
+        textContent: {
+            primaryText: {
+                text: primary,
+                type: "PlainText"
+            },
+            secondaryText: {
+                text: secondary,
+                type: "PlainText"
+            },
+            tertiaryText: {
+                text: tertiary,
+                type: "PlainText"
+            }
+        }
+    }
+}

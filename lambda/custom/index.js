@@ -11,9 +11,25 @@ const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
+    handle(handlerInput) {
+
+        return handlerInput.responseBuilder
+            .addRenderTemplateDirective(util.makeCard('Amazon Seller Services',"Welcome to Amazon Seller Services","You can say, 'Get account status' to get started.",''))
+            .speak(c.WELCOME)
+            .reprompt()
+            .getResponse();
+    }
+}
+
+const EntryHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
+            Alexa.getIntentName(handlerInput.requestEnvelope) === 'Entry';
+    },
     async handle(handlerInput) {
 
         //Set initial session attributes to setup initial routing
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         sessionAttributes.poaId = 'noPOA';
@@ -23,6 +39,7 @@ const LaunchRequestHandler = {
         sessionAttributes.resume = false;
         var status = -1;
         var speakOutput = '';
+
 
         //Get account status first
         await dbHelper.getAccount()
@@ -43,6 +60,7 @@ const LaunchRequestHandler = {
                 sessionAttributes.updatedStatus = data.Item.statusCode;
                 status = sessionAttributes.status;
                 sessionAttributes.infractionArray = data.Item.infractionArray;
+  sessionAttributes.locale = data.Item.locale;
 
                 //If in progress POA exists and status is either Resume or Reply, get id.
                 if (data.Item.poaId != 'noPOA' && (status === 2 || status === 3)) {
@@ -58,6 +76,7 @@ const LaunchRequestHandler = {
                     .withShouldEndSession(true)
                     .getResponse();
             })
+
 
         //If status == 0, account is in good standing.  Output message and prompt for notifications.
         if (status === 0) {
@@ -87,6 +106,7 @@ const LaunchRequestHandler = {
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
+
                 })
 
             //If no POA required, prompt the user to begin the SR process.  Else, prompt for the POA process.
@@ -125,11 +145,13 @@ const LaunchRequestHandler = {
                 .catch((err) => {
                     console.log("Error occured getting POA", err);
                     var speakOutput = 'Error getting plan of action';
+
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
                 })
+
 
             if (sessionAttributes.infractionArray.length > 0) {
                 await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
@@ -187,10 +209,12 @@ const ResumeHandler = {
             .catch((err) => {
                 console.log("Error occured getting POA", err);
                 var speakOutput = 'Error getting plan of action';
+
                 return handlerInput.responseBuilder
                     .speak(speakOutput)
                     .withShouldEndSession(true)
                     .getResponse();
+
             })
 
         //After retrieving in-progress POA, fill in current values and delegate to the POA handler
@@ -256,6 +280,7 @@ const ReplyHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Reply'
     },
     async handle(handlerInput) {
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         const current = handlerInput.requestEnvelope.request.intent;
@@ -263,11 +288,13 @@ const ReplyHandler = {
 
         //Once the dialog is complete, save updated POA
         if (handlerInput.requestEnvelope.request.dialogState === 'COMPLETED') {
+
             await dbHelper.updatePOA(sessionAttributes.poaId,
                 sessionAttributes.d1,
                 sessionAttributes.d2,
                 sessionAttributes.d3,
                 current.slots.Query.value)
+
                 .catch((err) => {
                     console.log("Error occured while updating", err);
                     var speakOutput = 'Error updating';
@@ -276,6 +303,10 @@ const ReplyHandler = {
                         .withShouldEndSession(true)
                         .getResponse();
                 })
+          responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
+                                                                                `You added to your Plan of Action: ${current.slots.Query.value}`,
+                                                                                '',''));
+
 
             //If there are more infractions, iterate to the next one.
             // Increment the infraction array index
@@ -356,10 +387,11 @@ const POAHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PlanOfAction'
     },
     async handle(handlerInput) {
-        const { attributesManager, requestEnvelope } = handlerInput;
+        const { attributesManager, requestEnvelope } = handlerInput;        
         const sessionAttributes = attributesManager.getSessionAttributes();
         const currentIntent = handlerInput.requestEnvelope.request.intent;
         sessionAttributes.currentState = 'POA';
+        const responseBuilder = handlerInput.responseBuilder;
         var speakOutput = '';
 
         //Default values to save if the user stops part way through and wants to save progress.
@@ -382,7 +414,12 @@ const POAHandler = {
                 and this will not happen again because ${sessionAttributes.d3}. \
                 Is this correct?`
 
-            return handlerInput.responseBuilder
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Plan of Action Summary",
+                                                        `Cause of the issue: ${d1}`,
+                                                        `Issue solution: ${d2}`,
+                                                        `Preventative measures: ${d3}`));
+
+            return responseBuilder
                 .speak(speakOutput)
                 .reprompt(c.REPROMPT + ' ' + speakOutput)
                 .getResponse();
@@ -441,6 +478,7 @@ const SRHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Self'
     },
     async handle(handlerInput) {
+        const responseBuilder = handlerInput.responseBuilder;
         const { attributesManager, requestEnvelope } = handlerInput;
         const sessionAttributes = attributesManager.getSessionAttributes();
         const currentIntent = handlerInput.requestEnvelope.request.intent;
@@ -469,12 +507,33 @@ const SRHandler = {
 
                 speakOutput += c.SR_FAIL;
 
-                return handlerInput.responseBuilder
+                responseBuilder.addRenderTemplateDirective({
+                    type: "BodyTemplate1",
+                    backButton: "HIDDEN",
+                    title: "Account Status",
+                    textContent: {
+                        primaryText: {
+                            text: "Self-Reinstatement: Failed",
+                            type: "PlainText"
+                        },
+                        secondaryText: {
+                            text: 'You must agree to all statements by saying \'yes\' when prompted.',
+                            type: "PlainText"
+                        },
+                        tertiaryText: {
+                            text: '',
+                            type: "PlainText"
+                        }
+                    }
+                });
+
+                return responseBuilder
                     .speak(speakOutput)
                     .withShouldEndSession(true)
                     .getResponse();
 
             } else {
+
                 //If there are more infractions, iterate to the next one.
                 // Increment the infraction array index
                 var index = ++sessionAttributes.infractionIndex;
@@ -516,6 +575,8 @@ const SRHandler = {
                             + 'to resolve this infraction say, plan of action.';
                         sessionAttributes.currentState = 'LaunchPOA';
                     }
+                  
+                  responseBuilder.addRenderTemplateDirective(util.makeCard("Self-Reinstate","Self-Reinstatement: Complete",`Number of remaining infractions: ${remaining}`,tertiary));
 
                     return handlerInput.responseBuilder
                         .speak(speakOutput)
@@ -565,6 +626,7 @@ const SRHandler = {
                 }
             }
         } else if (currentIntent.slots["CheckOne"].hasOwnProperty("value") && sessionAttributes.understood === false) {
+            console.log('Print this');
             //Special case: The user must agree with the first question to continue on in the process.
             //Any other 'no' responses will be handled at the end of the process.
             //If the user doesn't understand the policy, read it back re prompt for agreement.
@@ -574,6 +636,7 @@ const SRHandler = {
                     sessionAttributes.infraction_ShorthandDescription + '. ' +
                     sessionAttributes.infraction_DetailedDescription +
                     '. This is a violation of Amazons policy.'
+
 
                 //Output response and delegate back to the dialog
                 return handlerInput.responseBuilder
@@ -601,7 +664,7 @@ const SRHandler = {
                 //If the user responds yes to the first question, save the value and delegate
                 //back to the dialog.
                 sessionAttributes.understood = true;
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .addDelegateDirective({
                         name: "Self",
                         slots: {
@@ -623,8 +686,8 @@ const SRHandler = {
                     .getResponse();
             }
         } else {
-            //If dialog is not complete, delegate to dialog model            
-            return handlerInput.responseBuilder
+            //If dialog is not complete, delegate to dialog model 
+            return responseBuilder
                 .addDelegateDirective()
                 .getResponse();
         }
@@ -647,6 +710,7 @@ const YesIntentHandler = {
         var speakOutput = "";
 
         //Get current set of attributes to route to the correct response
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const persistentAttributes = await attributesManager.getPersistentAttributes() || {};
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -685,6 +749,7 @@ const YesIntentHandler = {
                 d2 = 'noEntry';
             }
 
+
             if (d3 === 'cancel') {
                 d3 = 'noEntry';
             }
@@ -704,9 +769,11 @@ const YesIntentHandler = {
                         .getResponse();
                 })
 
+
             //email confirmation of poa submission.                        
             var POA_CONFIRM_MESSAGE = responses.makeResponse(d1, d2, d3);
             mail.handler(c.POA_SUBJECT, POA_CONFIRM_MESSAGE);
+
 
         } else {
             sessionAttributes.updatedStatus = 3;
@@ -742,6 +809,7 @@ const YesIntentHandler = {
                         sessionAttributes.infraction_DetailedDescription = data2.Item.descriptionL;
                         sessionAttributes.infraction_ShorthandDescription = data2.Item.descriptionS;
                         sessionAttributes.poa = data2.Item.poa;
+
                     })
                     .catch((err) => {
                         console.log("Error occured while getting data", err);
@@ -857,6 +925,7 @@ const YesIntentHandler = {
                 .then(() => {
                     util.setReminder(handlerInput);
 
+
                     return handlerInput.responseBuilder
                         .speak(c.REMIND_OK)
                         .withShouldEndSession(true)
@@ -906,6 +975,7 @@ const YesIntentHandler = {
                     })
             }
 
+
             return handlerInput.responseBuilder
                 .speak(c.REMIND_PRMOPT_FROM_CANCEL)
                 .reprompt(c.REPROMPT)
@@ -917,6 +987,7 @@ const YesIntentHandler = {
         */
         else if (current === 'CancelRemind') {
             util.setReminder(handlerInput);
+
             return handlerInput.responseBuilder
                 .speak(c.REMIND_OK_FROM_CANCEL)
                 .withShouldEndSession(true)
@@ -941,6 +1012,7 @@ const NoIntentHandler = {
     handle(handlerInput) {
         var speakOutput = "There is an error";
 
+        const responseBuilder = handlerInput.responseBuilder;
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var current = sessionAttributes.currentState;
 
@@ -983,8 +1055,31 @@ const NoIntentHandler = {
          * Skill finishes successfully but the user does not want audio notification of account issues.
          */
         else if (current === 'LaunchOK') {
-            return handlerInput.responseBuilder
-                .speak(c.REMIND_NO)
+
+            
+
+            responseBuilder.addRenderTemplateDirective({
+                type: "BodyTemplate1",
+                backButton: "HIDDEN",
+                title: "Would you notifications?",
+                textContent: {
+                    primaryText: {
+                        text: "Reminder: Declined",
+                        type: "PlainText"
+                    },
+                    secondaryText: {
+                        text: "You will not receive audio reminders.",
+                        type: "PlainText"
+                    },
+                    tertiaryText: {
+                        text: 'Notifications will be emailed to you.',
+                        type: "PlainText"
+                    }
+                }
+            });
+
+            return responseBuilder
+                .speak(speakOutput)
                 .withShouldEndSession(true)
                 .getResponse();
         }
@@ -993,11 +1088,13 @@ const NoIntentHandler = {
         * User has canceled the skill and does not want reminders to fix the account.
         */
         else if (current === 'CancelRemind') {
-            return handlerInput.responseBuilder
+          responseBuilder.addRenderTemplateDirective(util.makeCard("Notifications","Reminder: Declined",c.REMIND_NO_FROM_CANCEL,''));
+            return responseBuilder
                 .speak(c.REMIND_NO_FROM_CANCEL)
                 .withShouldEndSession(true)
                 .getResponse();
         }
+
 
         /**
          * User has cancelled the skill mid-POA and chooses not to save.
@@ -1086,12 +1183,18 @@ const HelpIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var current = sessionAttributes.currentState;
         var speakOutput = '';
+        const responseBuilder = handlerInput.responseBuilder;
 
         if (current === 'LaunchPOA') {
             speakOutput = 'Your violation is as follows: ' +
                 sessionAttributes.infraction_ShorthandDescription + '. ' +
                 sessionAttributes.infraction_DetailedDescription + '. ' +
                 c.HELP_FROM_LAUNCH;
+
+                responseBuilder.addRenderTemplateDirective(util.makeCard("Violation Details",
+                                                                        sessionAttributes.infraction_ShorthandDescription,
+                                                                        sessionAttributes.infraction_DetailedDescription,
+                                                                        c.HELP_FROM_LAUNCH));
         } else if (current === 'LaunchSR') {
             speakOutput = c.HELP_SR;
         } else if (current === 'LaunchReply') {
@@ -1100,53 +1203,29 @@ const HelpIntentHandler = {
             speakOutput = c.HELP_POA_END;
         } else if (current === 'POA') {
             speakOutput = c.HELP_POA;
-
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .addDelegateDirective({
-                    name: "PlanOfAction",
-                    slots: {
-                        "Q.One": {
-                            name: "Q.One",
-                            confirmationStatus: "NONE"
-                        },
-                        "Q.Two": {
-                            name: "Q.Two",
-                            confirmationStatus: "NONE"
-                        },
-                        "Q.Three": {
-                            name: "Q.Three",
-                            confirmationStatus: "NONE"
-                        }
-                    }
-                })
-                .getResponse();
         } else if (current === 'Self') {
             speakOutput = c.HELP_SR;
+        } else if (current === 'Help') {
+            speakOutput = 'You can get in touch with Amazon Seller Central by calling, 1, 8 6 6, 2 1 6, 1 0 7 2. \
+                            Say, get account status, to start over.'
 
-            return handlerInput.responseBuilder
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Help",
+                                                                    'You can get in touch with Amazon Seller Central by calling:',
+                                                                    '1-866-216-1072',''));
+
+            return responseBuilder
                 .speak(speakOutput)
-                .addDelegateDirective({
-                    name: "Self",
-                    slots: {
-                        "CheckOne": {
-                            name: "CheckOne"
-                        },
-                        "CheckTwo": {
-                            name: "CheckTwo"
-                        },
-                        "CheckThree": {
-                            name: "CheckThree"
-                        },
-                        "CheckFour": {
-                            name: "CheckFour"
-                        }
-                    }
-                })
+                .reprompt(c.REPROMPT + ' ' + speakOutput)
                 .getResponse();
         }
 
-        return handlerInput.responseBuilder
+        sessionAttributes.currentState = 'Help';
+
+        responseBuilder.addRenderTemplateDirective(util.makeCard("Help",speakOutput,'',''));
+
+        speakOutput += ' If you need more assisstance you can say help again.'
+
+        return responseBuilder
             .speak(speakOutput)
             .reprompt(c.REPROMPT + ' ' + speakOutput)
             .getResponse();
@@ -1159,16 +1238,24 @@ const CancelIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
+        const responseBuilder = handlerInput.responseBuilder;
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.currentState = 'AMAZON.CancelIntent';
 
+
         if (sessionAttributes.status === 3) {
-            return handlerInput.responseBuilder
+          responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel","Action Cancelled", c.CANCEL_STATUS_4,''));
+            return responseBuilder
                 .speak(c.CANCEL_STATUS_3)
                 .withShouldEndSession(true)
                 .getResponse();
         }
         else {
+
+
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel","Action Cancelled",c.CANCEL_CONFIRM,''));
+
+
             return handlerInput.responseBuilder
                 .speak(c.CANCEL_CONFIRM)
                 .reprompt('Are you sure you want to stop now?')
@@ -1311,6 +1398,7 @@ const skillBuilder = Alexa.SkillBuilders.standard();
 exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
+        EntryHandler,
         ReplyHandler,
         ResumeHandler,
         POAHandler,
