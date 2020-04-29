@@ -1,3 +1,7 @@
+/**
+ * Use of constants throughout the main code makes it more readable by not cluttering it up with
+ * excess strings.
+ */
 module.exports = {
     LAUNCH_STATUS_OK: 'Your account is in good standing and does not need attention at this time.\
     Would you like me to notify you if something goes wrong with your account?',
@@ -14,6 +18,10 @@ module.exports = {
 
     REPLY_SUBJECT: 'Plan of Action Updated',
 
+    REPLY_GREETING: "Your account is under review for reinstatment.  You can add additional information \
+    to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
+    action unchanged.",
+
     NO_ACTION: ' You must fix the cause of your violation and take steps to ensure it will not happen again.',
 
     NO_QUALITY: ' Amazon customers expect the highest level of service.\
@@ -23,12 +31,14 @@ module.exports = {
 
     SR_FAIL: ' Your account will remain suspended until you agree to everything outlined in this self-reinstatement process.  Good bye.',
 
-    SR_SUCCESS: 'Thank you for completing the self-reinstatement process. Your account should be reactivated shortly. \
+    SR_SUCCESS: 'Thank you for completing the self-reinstatement process. If you have no pending plan of action reviews, then your account should be reactivated shortly. \
     Would you like to be notified if something else goes wrong with your account?',
 
     SR_SUBJECT: 'Self-Reinstatement Success',
 
     SR_CONFIRM_MESSAGE: 'The self-reinstatement process was successfully completed and your account is reactivated.  Thank you.',
+
+    POA_SAVE:'You have not completed the Plan of Action. Would you like to save this response and finish later?',
 
     POA_SUBJECT: 'Plan of Action Submitted',
 
@@ -59,9 +69,12 @@ module.exports = {
     HELP_POA: 'Please describe why the violation happened, how you fixed the violation, and why there will be no more violations in the future. \
     I will prompt you for each piece of information.',
 
-    CANCEL_STATUS_4: 'If you change your mind you can add more information to your plan of action later.  Good bye.',
+    CANCEL_STATUS_3: 'If you change your mind you can add more information to your plan of action later.  Good bye.',
 
     CANCEL_CONFIRM: 'The reinstatement process is not complete and your account is still suspended.  Are you sure you want to stop?',
 
-    REPROMPT: 'Sorry I did not hear a response, please respond or the session will be closed.'
+    REPROMPT: 'Sorry I did not hear a response, please respond or the session will be closed.',
+
+    RESUME_GREETING: "Your incomplete Plan of Action was saved and can be added to by saying, resume. \
+    You can also say Cancel, if you would like to return later."
 }

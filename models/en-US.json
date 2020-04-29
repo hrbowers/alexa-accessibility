@@ -90,6 +90,13 @@
           ]
         },
         {
+          "name": "Resume",
+          "slots": [],
+          "samples": [
+            "Resume"
+          ]
+        },
+        {
           "name": "PlanOfAction",
           "slots": [
             {
