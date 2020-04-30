@@ -18,12 +18,24 @@
     },
     "apis": {
       "custom": {
+        "interfaces": [
+          {
+            "type":"ALEXA_PRESENTATION_APL"
+          },
+          {
+            "type": "RENDER_TEMPLATE"
+          }
+        ],
         "endpoint": {
           "sourceDir": "lambda/custom",
           "uri": "ask-custom-file-an-appeal-ASUCapstone"
         }
       }
     },
-    "manifestVersion": "1.0"
+    "manifestVersion": "1.0",
+    "permissions": [{
+      "name": "alexa::alerts:reminders:skill:readwrite"
+    }]
+    
   }
 }

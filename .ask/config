@@ -6,11 +6,11 @@
       "merge": {},
       "resources": {
         "manifest": {
-          "eTag": "21395eed0c6e030a0ea8aa4ee4c196f4"
+          "eTag": "6e4734e250f4df3a0e60bfb9eeed037c"
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "1e5afbcd81ae5a76768cb5d52bacbf7a"
+            "eTag": "9528b734d4059a7c8e528f565b3e118e"
           }
         },
         "lambda": [
@@ -23,7 +23,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "d2a3cbe2-fbc0-4156-a17e-1afda4a2cf37",
+            "revisionId": "6781b1cb-d597-4fab-a242-c13cdc8643f2",
             "runtime": "nodejs10.x"
           }
         ]
@@ -68,9 +68,7 @@
         },
         "interactionModel": {
           "en-US": {
-
             "eTag": "df0987f14ec81ee88407fc28e5ce545b"
-
           }
         },
         "lambda": [
@@ -83,9 +81,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-
             "revisionId": "b372a31a-3f6c-4791-9ef3-2b15f3dff36b",
-
             "runtime": "nodejs12.x"
           }
         ]

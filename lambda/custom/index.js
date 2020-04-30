@@ -14,7 +14,7 @@ const LaunchRequestHandler = {
     handle(handlerInput) {
 
         return handlerInput.responseBuilder
-            .addRenderTemplateDirective(util.makeCard('Amazon Seller Services',"Welcome to Amazon Seller Services","You can say, 'Get account status' to get started.",''))
+            .addRenderTemplateDirective(util.makeCard('Amazon Seller Services', "Welcome to Amazon Seller Services", "You can say, 'Get account status' to get started.", ''))
             .speak(c.WELCOME)
             .reprompt()
             .getResponse();
@@ -37,8 +37,10 @@ const EntryHandler = {
         sessionAttributes.infractionIndex = 0;
         sessionAttributes.poa = false;
         sessionAttributes.resume = false;
+        sessionAttributes.understood = false
         var status = -1;
         var speakOutput = '';
+        var tertiary = '';
 
 
         //Get account status first
@@ -49,7 +51,7 @@ const EntryHandler = {
                 //Account does not exist, Exit skill
                 if (data.length == 0) {
                     speakOutput = "No account information available";
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
@@ -60,7 +62,7 @@ const EntryHandler = {
                 sessionAttributes.updatedStatus = data.Item.statusCode;
                 status = sessionAttributes.status;
                 sessionAttributes.infractionArray = data.Item.infractionArray;
-  sessionAttributes.locale = data.Item.locale;
+                sessionAttributes.locale = data.Item.locale;
 
                 //If in progress POA exists and status is either Resume or Reply, get id.
                 if (data.Item.poaId != 'noPOA' && (status === 2 || status === 3)) {
@@ -71,7 +73,7 @@ const EntryHandler = {
             .catch((err) => {
                 console.log("Error occured while getting data", err);
                 var speakOutput = 'Error getting status ' + err;
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .speak(speakOutput)
                     .withShouldEndSession(true)
                     .getResponse();
@@ -80,11 +82,11 @@ const EntryHandler = {
 
         //If status == 0, account is in good standing.  Output message and prompt for notifications.
         if (status === 0) {
-            console.log('Status 0 checkpoint');
             sessionAttributes.currentState = 'LaunchOK';
-            speakOutput = c.LAUNCH_STATUS_OK;
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
+
+            return responseBuilder
+                .addRenderTemplateDirective(util.makeCard('Amazon Seller Services', "Your account is in good standing.", '', ''))
+                .speak(c.LAUNCH_STATUS_OK)
                 .getResponse();
         }
 
@@ -102,7 +104,7 @@ const EntryHandler = {
                 .catch((err) => {
                     console.log("Error occured while getting data", err);
                     var speakOutput = 'Error getting infraction';
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
@@ -113,20 +115,30 @@ const EntryHandler = {
             if (sessionAttributes.poa == false) {
                 speakOutput = "Your account is currently suspended and has " + sessionAttributes.infractionArray.length
                     + " infractions. Your first infraction is " + sessionAttributes.infraction_ShorthandDescription
-                    + ". If you would like to reinstate your account, begin by saying reinstate my account.";
+                    + ". If you would like to reinstate your account, begin by saying, reinstate.";
+                tertiary = "Say 'Reinstate' to get started."
                 sessionAttributes.currentState = 'LaunchSR';
             } else if (sessionAttributes.poa == true) {
                 speakOutput = "Your account is currently suspended and has " + sessionAttributes.infractionArray.length
                     + " infractions. Your first infraction is " + sessionAttributes.infraction_ShorthandDescription
                     + " and requires a complete plan of action. If you would like to reinstate your account, begin by saying plan of action.";
+                tertiary = "Say 'Plan of Action' to get started."
                 sessionAttributes.currentState = 'LaunchPOA';
             }
+
+            responseBuilder.addRenderTemplateDirective(
+                util.makeCard(
+                    'Amazon Seller Services', "Status: Suspended", `Infractions: ${sessionAttributes.infractionArray.length}`, tertiary));
         }
 
         //If status == 2, In-Progress is available.  Prompt for resume.
         if (status === 2) {
             sessionAttributes.currentState = "LaunchResume";
             speakOutput = c.RESUME_GREETING;
+
+            responseBuilder.addRenderTemplateDirective(
+                util.makeCard(
+                    'Amazon Seller Services', "Status: In-Progress", "Say 'Resume' to finish you plan of action", ''));
         }
 
         //If status == 3, Reply availalbe.  Prompt to add more information.
@@ -141,12 +153,13 @@ const EntryHandler = {
 
                     sessionAttributes.currentState = 'LaunchReply';
                     speakOutput = c.REPLY_GREETING;
+
                 })
                 .catch((err) => {
                     console.log("Error occured getting POA", err);
                     var speakOutput = 'Error getting plan of action';
 
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
@@ -158,23 +171,33 @@ const EntryHandler = {
                     .then((data) => {
                         if (data.Item.poa === false) {
                             speakOutput += ` You can also address your next infraction, ${data.Item.descriptionS}, by saying, reinstate.`;
+                            responseBuilder.addRenderTemplateDirective(
+                                util.makeCard(
+                                    'Amazon Seller Services', "Status: Under Review", "Say, 'Add More Information' to add to your plan of action", "Or say 'Reinstate' to address your other infractions."));
                         } else {
                             speakOutput += ` You can also address your next infraction, ${data.Item.descriptionS}, by saying, plan of action.`;
+                            responseBuilder.addRenderTemplateDirective(
+                                util.makeCard(
+                                    'Amazon Seller Services', "Status: Under Review", "Say, 'Add More Information' to add to your plan of action", "Or say 'Plan of Action' to address your other infractions."));
                         }
                     })
                     .catch((err) => {
                         console.log("Error occured while getting data", err);
                         var speakOutput = 'Error getting infraction';
-                        return handlerInput.responseBuilder
+                        return responseBuilder
                             .speak(speakOutput)
                             .withShouldEndSession(true)
                             .getResponse();
                     })
+            } else {
+                responseBuilder.addRenderTemplateDirective(
+                    util.makeCard(
+                        'Amazon Seller Services', "Status: Under Review", "Say, 'Add More Information' to add to your plan of action", ''));
             }
         }
 
         //Outputs the prompt to the user based on the options above.
-        return handlerInput.responseBuilder
+        return responseBuilder
             .speak(speakOutput)
             .reprompt(c.REPROMPT)
             //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
@@ -195,6 +218,7 @@ const ResumeHandler = {
     async handle(handlerInput) {
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
+        const responseBuilder = handlerInput.responseBuilder;
         sessionAttributes.currentState = 'Resume';
         sessionAttributes.resume = true;
 
@@ -210,7 +234,7 @@ const ResumeHandler = {
                 console.log("Error occured getting POA", err);
                 var speakOutput = 'Error getting plan of action';
 
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .speak(speakOutput)
                     .withShouldEndSession(true)
                     .getResponse();
@@ -219,7 +243,7 @@ const ResumeHandler = {
 
         //After retrieving in-progress POA, fill in current values and delegate to the POA handler
         if (sessionAttributes.d2 === 'noEntry') {
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak('You have said so far that the root cause of your issue was ' + sessionAttributes.d1)
                 .addDelegateDirective({
                     name: 'PlanOfAction',
@@ -243,9 +267,9 @@ const ResumeHandler = {
                 })
                 .getResponse();
         } else {
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak('You have said so far that the root cause of your issue was ' + sessionAttributes.d1
-                    + ' and the way you fixed this issue was ' + sessionAttributes.d2)
+                    + ', and the way you fixed this issue was ' + sessionAttributes.d2)
                 .addDelegateDirective({
                     name: 'PlanOfAction',
                     slots: {
@@ -298,15 +322,11 @@ const ReplyHandler = {
                 .catch((err) => {
                     console.log("Error occured while updating", err);
                     var speakOutput = 'Error updating';
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
                 })
-          responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
-                                                                                `You added to your Plan of Action: ${current.slots.Query.value}`,
-                                                                                '',''));
-
 
             //If there are more infractions, iterate to the next one.
             // Increment the infraction array index
@@ -330,7 +350,7 @@ const ReplyHandler = {
                     .catch((err) => {
                         console.log("Error occured while getting data", err);
                         var speakOutput = 'Error getting infraction ' + err;
-                        return handlerInput.responseBuilder
+                        return responseBuilder
                             .speak(speakOutput)
                             .withShouldEndSession(true)
                             .getResponse();
@@ -342,15 +362,25 @@ const ReplyHandler = {
                         + '. If you would like to resolve this infraction you can begin by saying, reinstate.';
 
                     sessionAttributes.currentState = 'LaunchSR';
+                    sessionAttributes.understood === false
+
+                    responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
+                        `You added to your Plan of Action: ${current.slots.Query.value}`,
+                        "You can say 'Reinstate' to address your other infraction(s)", ''));
+
                 } else {
                     speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
                         + sessionAttributes.infraction_ShorthandDescription
                         + ' and requires a complete plan of action. If you would like '
                         + 'to resolve this infraction say, plan of action.';
                     sessionAttributes.currentState = 'LaunchPOA';
+
+                    responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
+                        `You added to your Plan of Action: ${current.slots.Query.value}`,
+                        "You can say 'Plan of Action' to address your other infraction(s)", ''));
                 }
 
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .speak(speakOutput)
                     .reprompt(c.REPROMPT)
                     .getResponse();
@@ -362,14 +392,19 @@ const ReplyHandler = {
                 var REPLY_CONFIRM_MESSAGE = responses.makeReplyResponse(current.slots.Query.value);
                 mail.handler(c.REPLY_SUBJECT, REPLY_CONFIRM_MESSAGE);
 
-                return handlerInput.responseBuilder
+                responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
+                    `You added to your Plan of Action: ${current.slots.Query.value}`,
+                    '', ''));
+
+
+                return responseBuilder
                     .speak(speakOutput)
                     .withShouldEndSession(true)
                     .getResponse();
             }
         } else {
             //Delegate the dialog control to the skill in order to get user input
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .addDelegateDirective()
                 .getResponse();
         }
@@ -387,11 +422,11 @@ const POAHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'PlanOfAction'
     },
     async handle(handlerInput) {
-        const { attributesManager, requestEnvelope } = handlerInput;        
+        const { attributesManager, requestEnvelope } = handlerInput;
         const sessionAttributes = attributesManager.getSessionAttributes();
+        const responseBuilder = handlerInput.responseBuilder;
         const currentIntent = handlerInput.requestEnvelope.request.intent;
         sessionAttributes.currentState = 'POA';
-        const responseBuilder = handlerInput.responseBuilder;
         var speakOutput = '';
 
         //Default values to save if the user stops part way through and wants to save progress.
@@ -415,9 +450,9 @@ const POAHandler = {
                 Is this correct?`
 
             responseBuilder.addRenderTemplateDirective(util.makeCard("Plan of Action Summary",
-                                                        `Cause of the issue: ${d1}`,
-                                                        `Issue solution: ${d2}`,
-                                                        `Preventative measures: ${d3}`));
+                `Cause of the issue: ${sessionAttributes.d1}`,
+                `Issue solution: ${sessionAttributes.d2}`,
+                `Preventative measures: ${sessionAttributes.d3}`));
 
             return responseBuilder
                 .speak(speakOutput)
@@ -453,13 +488,18 @@ const POAHandler = {
                     sessionAttributes.d3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
                 }
 
-                return handlerInput.responseBuilder
+                responseBuilder.addRenderTemplateDirective(util.makeCard("Plan of Action Summary",
+                    `Cause of the issue: ${sessionAttributes.d1}`,
+                    `Issue solution: ${sessionAttributes.d2}`,
+                    `Preventative measures: ${sessionAttributes.d3}`));
+
+                return responseBuilder
                     .speak(c.POA_SAVE)
                     .reprompt(c.REPROMPT + ' ' + c.POA_SAVE)
                     .getResponse();
 
             } else {
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .addDelegateDirective()
                     .getResponse();
             }
@@ -484,6 +524,7 @@ const SRHandler = {
         const currentIntent = handlerInput.requestEnvelope.request.intent;
         sessionAttributes.currentState = 'Self';
         var speakOutput = '';
+        var tertiary = '';
 
         //If dialog is complete, end reinstatement and set account status to 0
         if (requestEnvelope.request.dialogState === 'COMPLETED') {
@@ -556,7 +597,7 @@ const SRHandler = {
                         .catch((err) => {
                             console.log("Error occured while getting data", err);
                             var speakOutput = 'Error getting infraction ' + err;
-                            return handlerInput.responseBuilder
+                            return responseBuilder
                                 .speak(speakOutput)
                                 .withShouldEndSession(true)
                                 .getResponse();
@@ -567,18 +608,28 @@ const SRHandler = {
                             + sessionAttributes.infraction_ShorthandDescription
                             + '. If you would like to resolve this infraction you can begin by saying, reinstate.';
 
+                        tertiary = "Say 'Reinstate' to address your next infraction."
                         sessionAttributes.currentState = 'LaunchSR';
+                        sessionAttributes.understood === false
+
+                        responseBuilder.addRenderTemplateDirective(
+                            util.makeCard(
+                                "Self-Reinstate", "Self-Reinstatement: Complete", `Number of remaining infractions: ${remaining}`, tertiary));
                     } else {
                         speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
                             + sessionAttributes.infraction_ShorthandDescription
                             + ' and requires a complete plan of action. If you would like '
                             + 'to resolve this infraction say, plan of action.';
-                        sessionAttributes.currentState = 'LaunchPOA';
-                    }
-                  
-                  responseBuilder.addRenderTemplateDirective(util.makeCard("Self-Reinstate","Self-Reinstatement: Complete",`Number of remaining infractions: ${remaining}`,tertiary));
 
-                    return handlerInput.responseBuilder
+                        tertiary = "Say 'Plan of Action' to address your next infraction."
+                        sessionAttributes.currentState = 'LaunchPOA';
+
+                        responseBuilder.addRenderTemplateDirective(
+                            util.makeCard(
+                                "Self-Reinstate", "Self-Reinstatement: Complete", `Number of remaining infractions: ${remaining}`, tertiary));
+                    }
+
+                    return responseBuilder
                         .speak(speakOutput)
                         .reprompt(c.REPROMPT)
                         .getResponse();
@@ -593,7 +644,7 @@ const SRHandler = {
                     await dbHelper.updateInfractionArray(sessionAttributes.infractionArray, index, 1)
                         .catch((err) => {
                             console.log("Error updating array", err);
-                            return handlerInput.responseBuilder
+                            return responseBuilder
                                 .speak('Array update error')
                                 .withShouldEndSession(true)
                                 .getResponse();
@@ -611,14 +662,17 @@ const SRHandler = {
                     //Update status and prompt for reminders.
                     return dbHelper.updateStatus(newStatus, sessionAttributes.poaId)
                         .then(() => {
-                            return handlerInput.responseBuilder
+                            responseBuilder.addRenderTemplateDirective(
+                                util.makeCard(
+                                    "Self-Reinstate", "Self-Reinstatement: Complete", '', ''));
+                            return responseBuilder
                                 .speak(c.SR_SUCCESS)
                                 .getResponse();
                         })
                         .catch((err) => {
                             console.log("Error occured while updating", err);
                             var speakOutput = 'Error updating status ' + err;
-                            return handlerInput.responseBuilder
+                            return responseBuilder
                                 .speak(speakOutput)
                                 .withShouldEndSession(true)
                                 .getResponse();
@@ -639,7 +693,7 @@ const SRHandler = {
 
 
                 //Output response and delegate back to the dialog
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .speak(speakOutput)
                     .addDelegateDirective({
                         name: "Self",
@@ -707,7 +761,7 @@ const YesIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.YesIntent';
     },
     async handle(handlerInput) {
-        var speakOutput = "";
+        var speakOutput = "There was an error";
 
         //Get current set of attributes to route to the correct response
         const responseBuilder = handlerInput.responseBuilder;
@@ -753,43 +807,43 @@ const YesIntentHandler = {
             if (d3 === 'cancel') {
                 d3 = 'noEntry';
             }
-        }
 
-        //If finishing an incomplete POA, updatePOA
-        //else addPOA
-        if (sessionAttributes.resume === true) {
-            sessionAttributes.updatedStatus = 3;
-            await dbHelper.updatePOA(id, d1, d2, d3, 'noReply')
-                .catch((err) => {
-                    console.log("Error occured while updating", err);
-                    var speakOutput = 'Error updating status';
-                    return handlerInput.responseBuilder
-                        .speak(speakOutput)
-                        .withShouldEndSession(true)
-                        .getResponse();
-                })
-
-
-            //email confirmation of poa submission.                        
-            var POA_CONFIRM_MESSAGE = responses.makeResponse(d1, d2, d3);
-            mail.handler(c.POA_SUBJECT, POA_CONFIRM_MESSAGE);
+            //If finishing an incomplete POA, updatePOA
+            //else addPOA
+            if (sessionAttributes.resume === true) {
+                sessionAttributes.updatedStatus = 3;
+                await dbHelper.updatePOA(id, d1, d2, d3, 'noReply')
+                    .catch((err) => {
+                        console.log("Error occured while updating", err);
+                        var speakOutput = 'Error updating status';
+                        return responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
 
 
-        } else {
-            sessionAttributes.updatedStatus = 3;
-            await dbHelper.addPoa(id, d1, d2, d3)
-                .catch((err) => {
-                    console.log("Error occured while adding", err);
-                    var speakOutput = 'Error adding plan of action';
-                    return handlerInput.responseBuilder
-                        .speak(speakOutput)
-                        .withShouldEndSession(true)
-                        .getResponse();
-                })
+                //email confirmation of poa submission.                        
+                var POA_CONFIRM_MESSAGE = responses.makeResponse(d1, d2, d3);
+                mail.handler(c.POA_SUBJECT, POA_CONFIRM_MESSAGE);
 
-            //email confirmation of poa submission.                        
-            var POA_CONFIRM_MESSAGE = responses.makeResponse(d1, d2, d3);
-            mail.handler(c.POA_SUBJECT, POA_CONFIRM_MESSAGE);
+
+            } else {
+                sessionAttributes.updatedStatus = 3;
+                await dbHelper.addPoa(id, d1, d2, d3)
+                    .catch((err) => {
+                        console.log("Error occured while adding", err);
+                        var speakOutput = 'Error adding plan of action';
+                        return responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+
+                //email confirmation of poa submission.                        
+                var POA_CONFIRM_MESSAGE = responses.makeResponse(d1, d2, d3);
+                mail.handler(c.POA_SUBJECT, POA_CONFIRM_MESSAGE);
+            }
         }
 
         /**
@@ -814,7 +868,7 @@ const YesIntentHandler = {
                     .catch((err) => {
                         console.log("Error occured while getting data", err);
                         var speakOutput = 'Error getting infraction ' + err;
-                        return handlerInput.responseBuilder
+                        return responseBuilder
                             .speak(speakOutput)
                             .withShouldEndSession(true)
                             .getResponse();
@@ -824,13 +878,26 @@ const YesIntentHandler = {
                     speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
                         + sessionAttributes.infraction_ShorthandDescription
                         + '. If you would like to resolve this infraction you can begin by saying, reinstate.';
+
+                    tertiary = "Say 'Reinstate' to address your next infraction."
                     sessionAttributes.currentState = 'LaunchSR';
+                    sessionAttributes.understood === false
+
+                    responseBuilder.addRenderTemplateDirective(
+                        util.makeCard(
+                            "Plan of Action", "Plan of Action: Complete", `Number of remaining infractions: ${remaining}`, tertiary));
                 } else {
                     speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
                         + sessionAttributes.infraction_ShorthandDescription
                         + ' and requires a complete plan of action. If you would like '
                         + 'to resolve this infraction say, plan of action.';
+
+                    tertiary = "Say 'Reinstate' to address your next infraction."
                     sessionAttributes.currentState = 'LaunchPOA';
+
+                    responseBuilder.addRenderTemplateDirective(
+                        util.makeCard(
+                            "Plan of Action", "Plan of Action: Complete", `Number of remaining infractions: ${remaining}`, tertiary));
                 }
             }
 
@@ -843,7 +910,7 @@ const YesIntentHandler = {
                 await dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 1)
                     .catch((err) => {
                         console.log("Error updating array", err);
-                        return handlerInput.responseBuilder
+                        return responseBuilder
                             .speak('Array update error')
                             .withShouldEndSession(true)
                             .getResponse();
@@ -853,7 +920,7 @@ const YesIntentHandler = {
                     .catch((err) => {
                         console.log("Error occured while updating", err);
                         var speakOutput = 'Error updating status ' + err;
-                        return handlerInput.responseBuilder
+                        return responseBuilder
                             .speak(speakOutput)
                             .withShouldEndSession(true)
                             .getResponse();
@@ -862,9 +929,13 @@ const YesIntentHandler = {
                 speakOutput = responses.completion();
                 //Prompt if the user wants notifications of future issues
                 speakOutput += c.POA_REMIND;
+
+                responseBuilder.addRenderTemplateDirective(
+                    util.makeCard(
+                        "Plan of Action", "Plan of Action: Complete", 'Would you like notifications of future issues?', ''));
             }
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(speakOutput)
                 .reprompt(c.REPROMPT)
                 .getResponse();
@@ -880,7 +951,7 @@ const YesIntentHandler = {
                 await dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 1)
                     .catch((err) => {
                         console.log("Error updating array", err);
-                        return handlerInput.responseBuilder
+                        return responseBuilder
                             .speak('Array update error')
                             .withShouldEndSession(true)
                             .getResponse();
@@ -900,7 +971,11 @@ const YesIntentHandler = {
                     //Prompt if the user wants notifications of future issues
                     speakOutput += c.POA_REMIND;
 
-                    return handlerInput.responseBuilder
+                    responseBuilder.addRenderTemplateDirective(
+                        util.makeCard(
+                            "Plan of Action", "Plan of Action: Saved", 'Would you like notifications of future issues?', ''));
+
+                    return responseBuilder
                         .speak(speakOutput)
                         .reprompt(c.REPROMPT)
                         .getResponse();
@@ -909,7 +984,7 @@ const YesIntentHandler = {
                 .catch((err) => {
                     console.log("Error occured while updating", err);
                     var speakOutput = 'Error updating status ' + err;
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(speakOutput)
                         .withShouldEndSession(true)
                         .getResponse();
@@ -925,8 +1000,11 @@ const YesIntentHandler = {
                 .then(() => {
                     util.setReminder(handlerInput);
 
+                    responseBuilder.addRenderTemplateDirective(
+                        util.makeCard(
+                            "Notifications", "I will notify you if anything else goes wrong.", 'Good bye.', ''));
 
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(c.REMIND_OK)
                         .withShouldEndSession(true)
                         .getResponse();
@@ -934,7 +1012,7 @@ const YesIntentHandler = {
                 })
                 .catch((err) => {
                     console.log("Error occured while updating", err);
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak('Error updating status')
                         .withShouldEndSession(true)
                         .getResponse();
@@ -952,31 +1030,27 @@ const YesIntentHandler = {
                 await dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 1)
                     .catch((err) => {
                         console.log("Error updating array", err);
-                        return handlerInput.responseBuilder
+                        return responseBuilder
                             .speak('Array update error')
                             .withShouldEndSession(true)
                             .getResponse();
                     })
 
-                return dbHelper.updateStatus(sessionAttributes.updatedStatus, sessionAttributes.poaId)
-                    .then(() => {
-                        return handlerInput.responseBuilder
-                            .speak(c.SR_SUCCESS)
-                            .reprompt(c.REPROMPT)
-                            .getResponse();
-                    })
+                await dbHelper.updateStatus(sessionAttributes.updatedStatus, sessionAttributes.poaId)
                     .catch((err) => {
                         console.log("Error occured while updating", err);
-                        var speakOutput = 'Error updating status ' + err;
-                        return handlerInput.responseBuilder
-                            .speak(speakOutput)
+                        return responseBuilder
+                            .speak('Update error')
                             .withShouldEndSession(true)
                             .getResponse();
                     })
             }
 
+            responseBuilder.addRenderTemplateDirective(
+                util.makeCard(
+                    "Notifications", "Would you like to be reminded to fix your account?", '', ''));
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(c.REMIND_PRMOPT_FROM_CANCEL)
                 .reprompt(c.REPROMPT)
                 .getResponse();
@@ -988,13 +1062,17 @@ const YesIntentHandler = {
         else if (current === 'CancelRemind') {
             util.setReminder(handlerInput);
 
-            return handlerInput.responseBuilder
+            responseBuilder.addRenderTemplateDirective(
+                util.makeCard(
+                    "Notifications", "Ok.  I will remind you to fix your account", 'Good bye.', ''));
+
+            return responseBuilder
                 .speak(c.REMIND_OK_FROM_CANCEL)
                 .withShouldEndSession(true)
                 .getResponse();
         }
 
-        return handlerInput.responseBuilder
+        return responseBuilder
             .speak(speakOutput)
             .reprompt(c.REPROMPT)
             .getResponse();
@@ -1010,7 +1088,7 @@ const NoIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NoIntent';
     },
     handle(handlerInput) {
-        var speakOutput = "There is an error";
+        var speakOutput = '';
 
         const responseBuilder = handlerInput.responseBuilder;
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
@@ -1026,7 +1104,7 @@ const NoIntentHandler = {
 
             speakOutput = 'Ok, we can start again. '
 
-            return handlerInput.responseBuilder
+            return responseBuilder
                 .speak(speakOutput)
                 .addDelegateDirective({
                     name: 'PlanOfAction',
@@ -1056,12 +1134,10 @@ const NoIntentHandler = {
          */
         else if (current === 'LaunchOK') {
 
-            
-
             responseBuilder.addRenderTemplateDirective({
                 type: "BodyTemplate1",
                 backButton: "HIDDEN",
-                title: "Would you notifications?",
+                title: "Notifications",
                 textContent: {
                     primaryText: {
                         text: "Reminder: Declined",
@@ -1079,7 +1155,7 @@ const NoIntentHandler = {
             });
 
             return responseBuilder
-                .speak(speakOutput)
+                .speak(c.REMIND_NO)
                 .withShouldEndSession(true)
                 .getResponse();
         }
@@ -1088,7 +1164,7 @@ const NoIntentHandler = {
         * User has canceled the skill and does not want reminders to fix the account.
         */
         else if (current === 'CancelRemind') {
-          responseBuilder.addRenderTemplateDirective(util.makeCard("Notifications","Reminder: Declined",c.REMIND_NO_FROM_CANCEL,''));
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Notifications", "Reminder: Declined", c.REMIND_NO_FROM_CANCEL, ''));
             return responseBuilder
                 .speak(c.REMIND_NO_FROM_CANCEL)
                 .withShouldEndSession(true)
@@ -1100,7 +1176,8 @@ const NoIntentHandler = {
          * User has cancelled the skill mid-POA and chooses not to save.
          */
         else if (current === 'IncompleteSave') {
-            return handlerInput.responseBuilder
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Seller Services", "Plan of Action: Cancelled", c.REMIND_NO_FROM_CANCEL, ''));
+            return responseBuilder
                 .speak('Okay, responses will not be saved.  Good bye.')
                 .withShouldEndSession(true)
                 .getResponse();
@@ -1115,7 +1192,7 @@ const NoIntentHandler = {
 
             //POA
             if (sessionAttributes.poa === true) {
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .speak(speakOutput)
                     .addDelegateDirective({
                         name: 'PlanOfAction',
@@ -1142,7 +1219,7 @@ const NoIntentHandler = {
 
             //SR
             else if (sessionAttributes.poa === false) {
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .addDelegateDirective({
                         name: "Self",
                         slots: {
@@ -1164,7 +1241,7 @@ const NoIntentHandler = {
             }
         }
 
-        return handlerInput.responseBuilder
+        return responseBuilder
             .speak(speakOutput)
             .reprompt(c.REPROMPT)
             .getResponse();
@@ -1191,10 +1268,10 @@ const HelpIntentHandler = {
                 sessionAttributes.infraction_DetailedDescription + '. ' +
                 c.HELP_FROM_LAUNCH;
 
-                responseBuilder.addRenderTemplateDirective(util.makeCard("Violation Details",
-                                                                        sessionAttributes.infraction_ShorthandDescription,
-                                                                        sessionAttributes.infraction_DetailedDescription,
-                                                                        c.HELP_FROM_LAUNCH));
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Violation Details",
+                sessionAttributes.infraction_ShorthandDescription,
+                sessionAttributes.infraction_DetailedDescription,
+                c.HELP_FROM_LAUNCH));
         } else if (current === 'LaunchSR') {
             speakOutput = c.HELP_SR;
         } else if (current === 'LaunchReply') {
@@ -1210,8 +1287,8 @@ const HelpIntentHandler = {
                             Say, get account status, to start over.'
 
             responseBuilder.addRenderTemplateDirective(util.makeCard("Help",
-                                                                    'You can get in touch with Amazon Seller Central by calling:',
-                                                                    '1-866-216-1072',''));
+                'You can get in touch with Amazon Seller Central by calling:',
+                '1-866-216-1072', ''));
 
             return responseBuilder
                 .speak(speakOutput)
@@ -1221,9 +1298,9 @@ const HelpIntentHandler = {
 
         sessionAttributes.currentState = 'Help';
 
-        responseBuilder.addRenderTemplateDirective(util.makeCard("Help",speakOutput,'',''));
+        responseBuilder.addRenderTemplateDirective(util.makeCard("Help", speakOutput, '', ''));
 
-        speakOutput += ' If you need more assisstance you can say help again.'
+        speakOutput += ' If you need more assistance you can say help again.'
 
         return responseBuilder
             .speak(speakOutput)
@@ -1244,7 +1321,7 @@ const CancelIntentHandler = {
 
 
         if (sessionAttributes.status === 3) {
-          responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel","Action Cancelled", c.CANCEL_STATUS_4,''));
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel", "Action Cancelled", c.CANCEL_STATUS_3, ''));
             return responseBuilder
                 .speak(c.CANCEL_STATUS_3)
                 .withShouldEndSession(true)
@@ -1252,9 +1329,7 @@ const CancelIntentHandler = {
         }
         else {
 
-
-            responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel","Action Cancelled",c.CANCEL_CONFIRM,''));
-
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel", "Action Cancelled", c.CANCEL_CONFIRM, ''));
 
             return handlerInput.responseBuilder
                 .speak(c.CANCEL_CONFIRM)
