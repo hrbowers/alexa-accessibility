@@ -145,7 +145,7 @@ const EntryHandler = {
         if (status === 3) {
 
             //Retrieve the completed POA
-            await dbHelper.getPOA(sessionAttributes.poaId)
+            await dbHelper.getPOA(sessionAttributes.poaId.toString())
                 .then((data) => {
                     sessionAttributes.d1 = data.Item.rootCause;
                     sessionAttributes.d2 = data.Item.actionTaken;
@@ -223,7 +223,7 @@ const ResumeHandler = {
         sessionAttributes.resume = true;
 
         //Retrieve incomplete POA and set values to session attributes for later retrieval
-        await dbHelper.getPOA(sessionAttributes.poaId)
+        await dbHelper.getPOA(sessionAttributes.poaId.toString())
             .then((data) => {
                 console.log("POA data: " + JSON.stringify(data));
                 sessionAttributes.d1 = data.Item.rootCause;
