@@ -52,9 +52,10 @@ This table serves as a dummy account from which the skill retrieves necessary in
 + locale: General location of the seller account.  i.e. North America, Asia, etc.
 + poaId: If there is a plan of action on the account, either incomplete or complete, this is the corresponding id number.  If there is no plan of action on the account it is set to 'noPOA'.
 + statusCode: This value determines what action the skill will take at launch.  Valid status codes are numbers 0-3.
-  0. Account in good standing.
-  1. Account enforced.  Skill will then check if infraction should follow the Plan of Action or Self-Reinstatement route.
-  2. Plan of Action In-Progress: Skill will retrieve incomplete plan of action and prompt the user to complete it.
-  3. Plan of Action Under Review: Skill will retrieve the completed plan of action and give the user the option to add more information.
+  
+  0 = Account in good standing.
+  1 = Account enforced.  Skill will then check if infraction should follow the Plan of Action or Self-Reinstatement route.
+  2 = Plan of Action In-Progress: Skill will retrieve incomplete plan of action and prompt the user to complete it.
+  3 = Plan of Action Under Review: Skill will retrieve the completed plan of action and give the user the option to add more information.
 ### poa-id-numbers
 This is simply the storage of an incrementing number value used for generating the plan of action id numbers.  
