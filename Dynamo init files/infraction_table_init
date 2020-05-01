@@ -1,0 +1,14 @@
+//DynamoDB table set up via AWS console.  This is the equivalent
+//CLI script to accomplish the same.  This script is included to
+//show evidence of work done in the repository.  DO NOT try to run
+//this script.
+
+aws dynamodb create-table \
+    --table-name infraction \
+    --attribute-definitions \
+        AttributeName=infractionId,AttributeType=N \
+        AttributeName=poa,AttributeType=BOOL \
+        AttributeName=descriptionS,AttributeType=S \
+        AttributeName=descriptionL,AttributeType=S \
+    --key-schema AttributeName=infractionID,KeyType=HASH \
+    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5

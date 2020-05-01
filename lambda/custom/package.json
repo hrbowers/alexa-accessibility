@@ -1,7 +1,7 @@
 {
   "name": "file-an-appeal",
   "version": "1.1.0",
-  "description": "alexa utility for quickly building skills",
+  "description": "Custome skill for reinstating a suspended seller account",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -14,6 +14,9 @@
     "ask-sdk-core": "^2.6.0",
     "ask-sdk-model": "^1.18.0",
     "ask-sdk-s3-persistence-adapter": "^2.0.0",
-    "aws-sdk": "^2.326.0"
+    "aws-sdk": "^2.326.0",
+    "moment-timezone": "^0.5.28",
+    "nodemailer": "^6.4.6",
+    "s": "^1.0.0"
   }
 }

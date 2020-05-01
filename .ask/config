@@ -6,11 +6,11 @@
       "merge": {},
       "resources": {
         "manifest": {
-          "eTag": "21395eed0c6e030a0ea8aa4ee4c196f4"
+          "eTag": "6e4734e250f4df3a0e60bfb9eeed037c"
         },
         "interactionModel": {
           "en-US": {
-            "eTag": "e57859e39b35d0156081c84dd389ea34"
+            "eTag": "e9c038b0c8742d565995196361ca7b5d"
           }
         },
         "lambda": [
@@ -23,7 +23,7 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-            "revisionId": "24aed0f2-fdf4-4541-a965-904c16c3a256",
+            "revisionId": "d8dea69b-af4d-4236-b5f8-42a0cac3cb50",
             "runtime": "nodejs10.x"
           }
         ]
@@ -39,10 +39,7 @@
         },
         "interactionModel": {
           "en-US": {
-
-            "eTag": "cdc41dd70a64f47e70e50fc6ea38f1ca"
-
-
+            "eTag": "17b5e0a9f18c9c4fec64b27264d1612c"
           }
         },
         "lambda": [
@@ -55,10 +52,37 @@
             "codeUri": "lambda/custom",
             "functionName": "ask-custom-file-an-appeal-ASUCapstone",
             "handler": "index.handler",
-
-            "revisionId": "4efcf52b-e8a2-4e24-b1e3-41aae62f5a4f",
-
+            "revisionId": "d3ec9df7-03e7-4290-9f58-d6781e3e0286",
             "runtime": "nodejs10.x"
+          }
+        ]
+      }
+    },
+    "jpasimio": {
+      "skill_id": "amzn1.ask.skill.e7af968d-4827-4e46-826c-d5fd6a5b7a95",
+      "was_cloned": false,
+      "merge": {},
+      "resources": {
+        "manifest": {
+          "eTag": "f1444594ab573f226ffcb58acc309c6c"
+        },
+        "interactionModel": {
+          "en-US": {
+            "eTag": "3cb479f616f210ceb8b2ec796cd7a62a"
+          }
+        },
+        "lambda": [
+          {
+            "alexaUsage": [
+              "custom/default"
+            ],
+            "arn": "arn:aws:lambda:us-east-1:295503081320:function:ask-custom-file-an-appeal-ASUCapstone",
+            "awsRegion": "us-east-1",
+            "codeUri": "lambda/custom",
+            "functionName": "ask-custom-file-an-appeal-ASUCapstone",
+            "handler": "index.handler",
+            "revisionId": "d7e4a123-3287-4c95-913b-3e98e1ee2e1e",
+            "runtime": "nodejs12.x"
           }
         ]
       }

@@ -1,6 +1,9 @@
 const Alexa = require('ask-sdk');
 const dbHelper = require("./dbConnect");
 const responses = require("./response");
+const mail = require("./mailer");
+const util = require("./util");
+const c = require("./constants");
 
 /* Skill initiation handler, determines status of account
  * and responds to user accordingly */
@@ -8,73 +11,287 @@ const LaunchRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'LaunchRequest';
     },
+    handle(handlerInput) {
+
+        return handlerInput.responseBuilder
+            .addRenderTemplateDirective(util.makeCard('Amazon Seller Services', "Welcome to Amazon Seller Services", "You can say, 'Get account status' to get started.", ''))
+            .speak(c.WELCOME)
+            .reprompt()
+            .getResponse();
+    }
+}
+
+const EntryHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest' &&
+            Alexa.getIntentName(handlerInput.requestEnvelope) === 'Entry';
+    },
     async handle(handlerInput) {
 
         //Set initial session attributes to setup initial routing
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
-        sessionAttributes.poaId = 0;
+        sessionAttributes.poaId = 'noPOA';
         sessionAttributes.currentState = '';
+        sessionAttributes.infractionIndex = 0;
+        sessionAttributes.poa = false;
+        sessionAttributes.resume = false;
+        sessionAttributes.understood = false
+        var status = -1;
+        var speakOutput = '';
+        var tertiary = '';
 
-        //Get test account status
-        return dbHelper.getTestValue()
+
+        //Get account status first
+        await dbHelper.getAccount()
             .then((data) => {
                 console.log(data, typeof (data));
-                var speakOutput = '';
-                var status = data.Item.statusCode;
-                var poaId = data.Item.poaId;
 
-                //Account does not exist
+                //Account does not exist, Exit skill
                 if (data.length == 0) {
                     speakOutput = "No account information available";
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 }
 
-                //Error
-                if (status === -1) {
-                    speakOutput = 'There was an error getting your account status';
-                    return handlerInput.responseBuilder
-                        .speak(speakOutput)
-                        .getResponse();
+                //If data exists, set status session Attribute
+                sessionAttributes.status = data.Item.statusCode;
+                sessionAttributes.updatedStatus = data.Item.statusCode;
+                status = sessionAttributes.status;
+                sessionAttributes.infractionArray = data.Item.infractionArray;
+                sessionAttributes.locale = data.Item.locale;
+
+                //If in progress POA exists and status is either Resume or Reply, get id.
+                if (data.Item.poaId != 'noPOA' && (status === 2 || status === 3)) {
+                    sessionAttributes.poaId = data.Item.poaId;
                 }
 
-                //Prompt the user based on retrieved account status
-                if (status === 1) {
-                    sessionAttributes.currentState = 'LaunchPOA';
-                    speakOutput = "Your account has been suspended and requires a complete plan of action to be reinstated.\
-                    You can say, Plan of Action, to begin the process.  If you are not ready to begin, say cancel."
-                } else if (status === 2) {
-                    sessionAttributes.currentState = 'LaunchSR';
-                    sessionAttributes.understood = false;
-                    speakOutput = "Your account has been suspended and is eligible for the self-reinstatement process.\
-                    To begin you can say, reinstate.  Or, you can say cancel to reinstate your account at a later date."
-                } else if (status === 4) {
-                    sessionAttributes.poaId = poaId;
-                    sessionAttributes.currentState = 'LaunchReply';
-                    speakOutput = "Your account is under review for reinstatment.  You can add additional information \
-                    to your plan of action by saying, add more information.  Or, you can say cancel to leave your plan of \
-                    action unchanged."
-                } else {
-                    speakOutput = 'Your account is in good standing and does not need attention at this time.'
-                    return handlerInput.responseBuilder
-                        .speak(speakOutput)
-                        .getResponse();
-                }
-
-                return handlerInput.responseBuilder
-                    .speak(speakOutput)
-                    .reprompt()
-                    .getResponse();
             })
             .catch((err) => {
                 console.log("Error occured while getting data", err);
-                var speakOutput = 'Error getting status';
-                return handlerInput.responseBuilder
+                var speakOutput = 'Error getting status ' + err;
+                return responseBuilder
                     .speak(speakOutput)
+                    .withShouldEndSession(true)
                     .getResponse();
             })
+
+
+        //If status == 0, account is in good standing.  Output message and prompt for notifications.
+        if (status === 0) {
+            sessionAttributes.currentState = 'LaunchOK';
+
+            return responseBuilder
+                .addRenderTemplateDirective(util.makeCard('Amazon Seller Services', "Your account is in good standing.", '', ''))
+                .speak(c.LAUNCH_STATUS_OK)
+                .getResponse();
+        }
+
+        //If status == 1, account is suspended.  Dive deeper for resolution type.
+        if (status === 1) {
+
+            //Get the infraction to determine if a POA is required.
+            await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
+                .then((data) => {
+                    // Retrieve the infraction descriptions
+                    sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
+                    sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
+                    sessionAttributes.poa = data.Item.poa;
+                })
+                .catch((err) => {
+                    console.log("Error occured while getting data", err);
+                    var speakOutput = 'Error getting infraction';
+                    return responseBuilder
+                        .speak(speakOutput)
+                        .withShouldEndSession(true)
+                        .getResponse();
+
+                })
+
+            //If no POA required, prompt the user to begin the SR process.  Else, prompt for the POA process.
+            if (sessionAttributes.poa == false) {
+                speakOutput = "Your account is currently suspended and has " + sessionAttributes.infractionArray.length
+                    + " infractions. Your first infraction is " + sessionAttributes.infraction_ShorthandDescription
+                    + ". If you would like to reinstate your account, begin by saying, reinstate.";
+                tertiary = "Say 'Reinstate' to get started."
+                sessionAttributes.currentState = 'LaunchSR';
+            } else if (sessionAttributes.poa == true) {
+                speakOutput = "Your account is currently suspended and has " + sessionAttributes.infractionArray.length
+                    + " infractions. Your first infraction is " + sessionAttributes.infraction_ShorthandDescription
+                    + " and requires a complete plan of action. If you would like to reinstate your account, begin by saying plan of action.";
+                tertiary = "Say 'Plan of Action' to get started."
+                sessionAttributes.currentState = 'LaunchPOA';
+            }
+
+            responseBuilder.addRenderTemplateDirective(
+                util.makeCard(
+                    'Amazon Seller Services', "Status: Suspended", `Infractions: ${sessionAttributes.infractionArray.length}`, tertiary));
+        }
+
+        //If status == 2, In-Progress is available.  Prompt for resume.
+        if (status === 2) {
+            sessionAttributes.currentState = "LaunchResume";
+            speakOutput = c.RESUME_GREETING;
+
+            responseBuilder.addRenderTemplateDirective(
+                util.makeCard(
+                    'Amazon Seller Services', "Status: In-Progress", "Say 'Resume' to finish you plan of action", ''));
+        }
+
+        //If status == 3, Reply availalbe.  Prompt to add more information.
+        if (status === 3) {
+
+            //Retrieve the completed POA
+            await dbHelper.getPOA(sessionAttributes.poaId.toString())
+                .then((data) => {
+                    sessionAttributes.d1 = data.Item.rootCause;
+                    sessionAttributes.d2 = data.Item.actionTaken;
+                    sessionAttributes.d3 = data.Item.preventativeMeasure;
+
+                    sessionAttributes.currentState = 'LaunchReply';
+                    speakOutput = c.REPLY_GREETING;
+
+                })
+                .catch((err) => {
+                    console.log("Error occured getting POA", err);
+                    var speakOutput = 'Error getting plan of action';
+
+                    return responseBuilder
+                        .speak(speakOutput)
+                        .withShouldEndSession(true)
+                        .getResponse();
+                })
+
+
+            if (sessionAttributes.infractionArray.length > 0) {
+                await dbHelper.getInfraction(sessionAttributes.infractionArray[0])
+                    .then((data) => {
+                        if (data.Item.poa === false) {
+                            speakOutput += ` You can also address your next infraction, ${data.Item.descriptionS}, by saying, reinstate.`;
+                            responseBuilder.addRenderTemplateDirective(
+                                util.makeCard(
+                                    'Amazon Seller Services', "Status: Under Review", "Say, 'Add More Information' to add to your plan of action", "Or say 'Reinstate' to address your other infractions."));
+                        } else {
+                            speakOutput += ` You can also address your next infraction, ${data.Item.descriptionS}, by saying, plan of action.`;
+                            responseBuilder.addRenderTemplateDirective(
+                                util.makeCard(
+                                    'Amazon Seller Services', "Status: Under Review", "Say, 'Add More Information' to add to your plan of action", "Or say 'Plan of Action' to address your other infractions."));
+                        }
+                    })
+                    .catch((err) => {
+                        console.log("Error occured while getting data", err);
+                        var speakOutput = 'Error getting infraction';
+                        return responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+            } else {
+                responseBuilder.addRenderTemplateDirective(
+                    util.makeCard(
+                        'Amazon Seller Services', "Status: Under Review", "Say, 'Add More Information' to add to your plan of action", ''));
+            }
+        }
+
+        //Outputs the prompt to the user based on the options above.
+        return responseBuilder
+            .speak(speakOutput)
+            .reprompt(c.REPROMPT)
+            //.withAskForPermissionsConsentCard(['alexa::alerts:reminders:skill:readwrite'])
+            .getResponse();
+
+    }
+};
+
+/**
+ * Allow the user to resume an incomplete POA by retrieving the in-progress
+ * POA and delegating the skill to appropriate point in the POA process.
+ */
+const ResumeHandler = {
+    canHandle(handlerInput) {
+        return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
+            && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Resume'
+    },
+    async handle(handlerInput) {
+        const attributesManager = handlerInput.attributesManager;
+        const sessionAttributes = attributesManager.getSessionAttributes();
+        const responseBuilder = handlerInput.responseBuilder;
+        sessionAttributes.currentState = 'Resume';
+        sessionAttributes.resume = true;
+
+        //Retrieve incomplete POA and set values to session attributes for later retrieval
+        await dbHelper.getPOA(sessionAttributes.poaId.toString())
+            .then((data) => {
+                console.log("POA data: " + JSON.stringify(data));
+                sessionAttributes.d1 = data.Item.rootCause;
+                sessionAttributes.d2 = data.Item.actionTaken;
+                sessionAttributes.d3 = data.Item.preventativeMeasure;
+            })
+            .catch((err) => {
+                console.log("Error occured getting POA", err);
+                var speakOutput = 'Error getting plan of action';
+
+                return responseBuilder
+                    .speak(speakOutput)
+                    .withShouldEndSession(true)
+                    .getResponse();
+
+            })
+
+        //After retrieving in-progress POA, fill in current values and delegate to the POA handler
+        if (sessionAttributes.d2 === 'noEntry') {
+            return responseBuilder
+                .speak('You have said so far that the root cause of your issue was ' + sessionAttributes.d1)
+                .addDelegateDirective({
+                    name: 'PlanOfAction',
+                    slots: {
+                        "Q.Three": {
+                            "name": "Q.Three",
+                            "value": "",
+                            "confirmationStatus": "NONE"
+                        },
+                        "Q.Two": {
+                            "name": "Q.Two",
+                            "value": "",
+                            "confirmationStatus": "NONE"
+                        },
+                        "Q.One": {
+                            "name": "Q.One",
+                            "value": sessionAttributes.d1,
+                            "confirmationStatus": "CONFIRMED"
+                        }
+                    }
+                })
+                .getResponse();
+        } else {
+            return responseBuilder
+                .speak('You have said so far that the root cause of your issue was ' + sessionAttributes.d1
+                    + ', and the way you fixed this issue was ' + sessionAttributes.d2)
+                .addDelegateDirective({
+                    name: 'PlanOfAction',
+                    slots: {
+                        "Q.Three": {
+                            "name": "Q.Three",
+                            "value": "",
+                            "confirmationStatus": "NONE"
+                        },
+                        "Q.Two": {
+                            "name": "Q.Two",
+                            "value": sessionAttributes.d2,
+                            "confirmationStatus": "CONFIRMED"
+                        },
+                        "Q.One": {
+                            "name": "Q.One",
+                            "value": sessionAttributes.d1,
+                            "confirmationStatus": "CONFIRMED"
+                        }
+                    }
+                })
+                .getResponse();
+        }
     }
 };
 
@@ -87,29 +304,107 @@ const ReplyHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Reply'
     },
     async handle(handlerInput) {
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const sessionAttributes = attributesManager.getSessionAttributes();
         const current = handlerInput.requestEnvelope.request.intent;
         sessionAttributes.currentState = 'Reply';
 
+        //Once the dialog is complete, save updated POA
         if (handlerInput.requestEnvelope.request.dialogState === 'COMPLETED') {
-            return dbHelper.updatePOA(sessionAttributes.poaId, current.slots.Query.value)
-                .then((data) => {
-                    console.log(data, typeof (data));
-                    var speakOutput = 'Your plan of action was successfully updated. Please wait to hear back from Amazon regarding the status of your account reinstatement.';
-                    return handlerInput.responseBuilder
-                        .speak(speakOutput)
-                        .getResponse();
-                })
+
+            await dbHelper.updatePOA(sessionAttributes.poaId,
+                sessionAttributes.d1,
+                sessionAttributes.d2,
+                sessionAttributes.d3,
+                current.slots.Query.value)
+
                 .catch((err) => {
                     console.log("Error occured while updating", err);
                     var speakOutput = 'Error updating';
-                    return handlerInput.responseBuilder
+                    return responseBuilder
                         .speak(speakOutput)
+                        .withShouldEndSession(true)
                         .getResponse();
                 })
+
+            //If there are more infractions, iterate to the next one.
+            // Increment the infraction array index
+            var index = ++sessionAttributes.infractionIndex;
+            var length = sessionAttributes.infractionArray.length;
+            var remaining = length - index;
+
+            if (index < length) {
+                speakOutput = 'Thank you for you response.';
+                //email confirmation of complete SR.
+                mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
+
+                //Get the next infraction
+                await dbHelper.getInfraction(sessionAttributes.infractionArray[index])
+                    .then((data) => {
+                        // Retrieve the infraction descriptions
+                        sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
+                        sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
+                        sessionAttributes.poa = data.Item.poa;
+                    })
+                    .catch((err) => {
+                        console.log("Error occured while getting data", err);
+                        var speakOutput = 'Error getting infraction ' + err;
+                        return responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+
+                if (sessionAttributes.poa == false) {
+                    speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
+                        + sessionAttributes.infraction_ShorthandDescription
+                        + '. If you would like to resolve this infraction you can begin by saying, reinstate.';
+
+                    sessionAttributes.currentState = 'LaunchSR';
+                    sessionAttributes.understood === false
+
+                    responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
+                        `You added to your Plan of Action: ${current.slots.Query.value}`,
+                        "You can say 'Reinstate' to address your other infraction(s)", ''));
+
+                } else {
+                    speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
+                        + sessionAttributes.infraction_ShorthandDescription
+                        + ' and requires a complete plan of action. If you would like '
+                        + 'to resolve this infraction say, plan of action.';
+                    sessionAttributes.currentState = 'LaunchPOA';
+
+                    responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
+                        `You added to your Plan of Action: ${current.slots.Query.value}`,
+                        "You can say 'Plan of Action' to address your other infraction(s)", ''));
+                }
+
+                return responseBuilder
+                    .speak(speakOutput)
+                    .reprompt(c.REPROMPT)
+                    .getResponse();
+
+            } else {
+                var speakOutput = c.REPLY_SUCCESS;
+
+                //Constructs and sends an email confirmation of the added information
+                var REPLY_CONFIRM_MESSAGE = responses.makeReplyResponse(current.slots.Query.value);
+                mail.handler(c.REPLY_SUBJECT, REPLY_CONFIRM_MESSAGE);
+
+                responseBuilder.addRenderTemplateDirective(util.makeCard("Additional Information",
+                    `You added to your Plan of Action: ${current.slots.Query.value}`,
+                    '', ''));
+
+
+                return responseBuilder
+                    .speak(speakOutput)
+                    .withShouldEndSession(true)
+                    .getResponse();
+            }
         } else {
-            return handlerInput.responseBuilder
+            //Delegate the dialog control to the skill in order to get user input
+            return responseBuilder
                 .addDelegateDirective()
                 .getResponse();
         }
@@ -129,34 +424,85 @@ const POAHandler = {
     async handle(handlerInput) {
         const { attributesManager, requestEnvelope } = handlerInput;
         const sessionAttributes = attributesManager.getSessionAttributes();
+        const responseBuilder = handlerInput.responseBuilder;
+        const currentIntent = handlerInput.requestEnvelope.request.intent;
         sessionAttributes.currentState = 'POA';
-        var speechOutput = '';
+        var speakOutput = '';
+
+        //Default values to save if the user stops part way through and wants to save progress.
+        sessionAttributes.d1 = 'noEntry';
+        sessionAttributes.d2 = 'noEntry';
+        sessionAttributes.d3 = 'noEntry';
 
         //If dialog is complete, save POA
         if (handlerInput.requestEnvelope.request.dialogState === 'COMPLETED') {
 
             sessionAttributes.currentState = 'POAFinished';
-            let d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
-            let d2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
-            let d3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
 
-            sessionAttributes.d1 = d1;
-            sessionAttributes.d2 = d2;
-            sessionAttributes.d3 = d3;
+            sessionAttributes.d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
+            sessionAttributes.d2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
+            sessionAttributes.d3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
 
             //Confirm final submission via YesIntent and NoIntent.
-            speechOutput += `You entered the cause of the issue was ${d1}, the issue is fixed because ${d2}, and this will not happen again because ${d3}. \
-                                    Is this correct?`
+            speakOutput += `You entered the cause of the issue was ${sessionAttributes.d1}, \
+                the issue is fixed because ${sessionAttributes.d2}, \
+                and this will not happen again because ${sessionAttributes.d3}. \
+                Is this correct?`
 
-            return handlerInput.responseBuilder
-                .speak(speechOutput)
-                .reprompt()
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Plan of Action Summary",
+                `Cause of the issue: ${sessionAttributes.d1}`,
+                `Issue solution: ${sessionAttributes.d2}`,
+                `Preventative measures: ${sessionAttributes.d3}`));
+
+            return responseBuilder
+                .speak(speakOutput)
+                .reprompt(c.REPROMPT + ' ' + speakOutput)
                 .getResponse();
 
-        } else { //If dialog is not complete, delegate to dialog model            
-            return handlerInput.responseBuilder
-                .addDelegateDirective()
-                .getResponse();
+        } else { //If dialog is not complete, delegate to dialog model  
+
+            let temp1 = Alexa.getSlotValue(requestEnvelope, 'Q.One'); //Answer to Q1   
+            let temp2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');  //Answer to Q2
+            let temp3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');  //Answer to Q3
+
+            //Filter user input to trigger either the help intent or cancel intent if needed
+            if (temp1 === 'help' || temp2 === 'help' || temp3 === 'help') {
+                return HelpIntentHandler.handle(handlerInput);
+            }
+            //Cancel functionality for saving incomplete POA
+            //If slot 1 is empty, nothing to save
+            else if (temp1 === 'cancel') {
+                return CancelIntentHandler.handle(handlerInput);
+            }
+            //If slot 2 or 3 is cancel, save current input
+            else if (temp2 === 'cancel' || temp3 === 'cancel') {
+
+                sessionAttributes.currentState = 'IncompleteSave';
+                sessionAttributes.updatedStatus = 2;
+
+                sessionAttributes.d1 = Alexa.getSlotValue(requestEnvelope, 'Q.One');
+                if (currentIntent.slots["Q.Two"].hasOwnProperty("value")) {
+                    sessionAttributes.d2 = Alexa.getSlotValue(requestEnvelope, 'Q.Two');
+                }
+                if (currentIntent.slots["Q.Three"].hasOwnProperty("value")) {
+                    sessionAttributes.d3 = Alexa.getSlotValue(requestEnvelope, 'Q.Three');
+                }
+
+                responseBuilder.addRenderTemplateDirective(util.makeCard("Plan of Action Summary",
+                    `Cause of the issue: ${sessionAttributes.d1}`,
+                    `Issue solution: ${sessionAttributes.d2}`,
+                    `Preventative measures: ${sessionAttributes.d3}`));
+
+                return responseBuilder
+                    .speak(c.POA_SAVE)
+                    .reprompt(c.REPROMPT + ' ' + c.POA_SAVE)
+                    .getResponse();
+
+            } else {
+                return responseBuilder
+                    .addDelegateDirective()
+                    .getResponse();
+            }
         }
     }
 }
@@ -164,7 +510,7 @@ const POAHandler = {
 /**
  * Handler triggers the dialog model for handling the self-reinstatement
  * process.  At completion, update status of account to '0' for
- * all clear.
+ * all clear and set the poaId on the account to noPOA.
  */
 const SRHandler = {
     canHandle(handlerInput) {
@@ -172,17 +518,16 @@ const SRHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'Self'
     },
     async handle(handlerInput) {
+        const responseBuilder = handlerInput.responseBuilder;
         const { attributesManager, requestEnvelope } = handlerInput;
         const sessionAttributes = attributesManager.getSessionAttributes();
         const currentIntent = handlerInput.requestEnvelope.request.intent;
         sessionAttributes.currentState = 'Self';
-        var speechOutput = '';
+        var speakOutput = '';
+        var tertiary = '';
 
         //If dialog is complete, end reinstatement and set account status to 0
         if (requestEnvelope.request.dialogState === 'COMPLETED') {
-            var noAction = 'You must fix the cause of your violation and take steps to ensure it will not happen again.';
-            var noQuality = ' Amazon customers expect the highest level of service. You must agree to provide a level of service that will meetour customer\'s expectations.';
-            var noPermLoss = ' Repeated infractions could possibly result in the permanent loss of your seller account.';
 
             //If any of the questions received a 'no' response, inform user and end skill w/o updating status
             if (currentIntent.slots["CheckTwo"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No'
@@ -190,52 +535,190 @@ const SRHandler = {
                 || currentIntent.slots["CheckFour"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
 
                 if (currentIntent.slots["CheckTwo"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
-                    speechOutput += noAction;
+                    speakOutput += c.NO_ACTION;
                 }
 
                 if (currentIntent.slots["CheckThree"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
-                    speechOutput += noQuality;
+                    speakOutput += c.NO_QUALITY;
                 }
 
                 if (currentIntent.slots["CheckFour"].resolutions.resolutionsPerAuthority[0].values[0].value.name === 'No') {
-                    speechOutput += noPermLoss;
+                    speakOutput += c.NO_PERMANENT_LOSS;
                 }
 
-                speechOutput += ' Your account will remain suspended until you agree to everything outlined in this self-reinstatement process.  Good bye.'
+                speakOutput += c.SR_FAIL;
 
-                return handlerInput.responseBuilder
-                    .speak(speechOutput)
+                responseBuilder.addRenderTemplateDirective({
+                    type: "BodyTemplate1",
+                    backButton: "HIDDEN",
+                    title: "Account Status",
+                    textContent: {
+                        primaryText: {
+                            text: "Self-Reinstatement: Failed",
+                            type: "PlainText"
+                        },
+                        secondaryText: {
+                            text: 'You must agree to all statements by saying \'yes\' when prompted.',
+                            type: "PlainText"
+                        },
+                        tertiaryText: {
+                            text: '',
+                            type: "PlainText"
+                        }
+                    }
+                });
+
+                return responseBuilder
+                    .speak(speakOutput)
+                    .withShouldEndSession(true)
                     .getResponse();
 
             } else {
-                return dbHelper.updateStatus(0, 'noPOA')
-                    .then((data) => {
-                        speechOutput = 'Thank you for completing the self-reinstatement process. Your account should be reactivated shortly.';
-                        //Output message and don't reprompt to exit skill
-                        return handlerInput.responseBuilder
-                            .speak(speechOutput)
-                            .getResponse();
-                    })
-                    .catch((err) => {
-                        console.log("Error occured while updating", err);
-                        var speakOutput = 'Error updating status';
-                        return handlerInput.responseBuilder
-                            .speak(speakOutput)
-                            .getResponse();
-                    })
+
+                //If there are more infractions, iterate to the next one.
+                // Increment the infraction array index
+                var index = ++sessionAttributes.infractionIndex;
+                var length = sessionAttributes.infractionArray.length;
+                var remaining = length - index;
+
+                if (index < length) {
+                    speakOutput = 'Thank you for you response.';
+                    //email confirmation of complete SR.
+                    mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
+
+                    //Get the next infraction
+                    await dbHelper.getInfraction(sessionAttributes.infractionArray[index])
+                        .then((data) => {
+                            // Retrieve the infraction descriptions
+                            sessionAttributes.infraction_DetailedDescription = data.Item.descriptionL;
+                            sessionAttributes.infraction_ShorthandDescription = data.Item.descriptionS;
+                            sessionAttributes.poa = data.Item.poa;
+                        })
+                        .catch((err) => {
+                            console.log("Error occured while getting data", err);
+                            var speakOutput = 'Error getting infraction ' + err;
+                            return responseBuilder
+                                .speak(speakOutput)
+                                .withShouldEndSession(true)
+                                .getResponse();
+                        })
+
+                    if (sessionAttributes.poa == false) {
+                        speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
+                            + sessionAttributes.infraction_ShorthandDescription
+                            + '. If you would like to resolve this infraction you can begin by saying, reinstate.';
+
+                        tertiary = "Say 'Reinstate' to address your next infraction."
+                        sessionAttributes.currentState = 'LaunchSR';
+                        sessionAttributes.understood === false
+
+                        responseBuilder.addRenderTemplateDirective(
+                            util.makeCard(
+                                "Self-Reinstate", "Self-Reinstatement: Complete", `Number of remaining infractions: ${remaining}`, tertiary));
+                    } else {
+                        speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
+                            + sessionAttributes.infraction_ShorthandDescription
+                            + ' and requires a complete plan of action. If you would like '
+                            + 'to resolve this infraction say, plan of action.';
+
+                        tertiary = "Say 'Plan of Action' to address your next infraction."
+                        sessionAttributes.currentState = 'LaunchPOA';
+
+                        responseBuilder.addRenderTemplateDirective(
+                            util.makeCard(
+                                "Self-Reinstate", "Self-Reinstatement: Complete", `Number of remaining infractions: ${remaining}`, tertiary));
+                    }
+
+                    return responseBuilder
+                        .speak(speakOutput)
+                        .reprompt(c.REPROMPT)
+                        .getResponse();
+
+                } else {
+                    sessionAttributes.currentState = 'LaunchOK';
+                    speakOutput = c.SR_SUCCESS;
+
+                    //email confirmation of SR completion
+                    mail.handler(c.SR_SUBJECT, c.SR_CONFIRM_MESSAGE);
+
+                    await dbHelper.updateInfractionArray(sessionAttributes.infractionArray, index, 1)
+                        .catch((err) => {
+                            console.log("Error updating array", err);
+                            return responseBuilder
+                                .speak('Array update error')
+                                .withShouldEndSession(true)
+                                .getResponse();
+                        })
+
+                    //Update the account status based on if there is a POA under review
+                    var newStatus;
+                    if (sessionAttributes.updatedStatus === 1) {
+                        newStatus = 0;
+                        sessionAttributes.poaId = 'noPOA';
+                    } else {
+                        newStatus = sessionAttributes.updatedStatus;
+                    }
+
+                    //Update status and prompt for reminders.
+                    return dbHelper.updateStatus(newStatus, sessionAttributes.poaId)
+                        .then(() => {
+                            responseBuilder.addRenderTemplateDirective(
+                                util.makeCard(
+                                    "Self-Reinstate", "Self-Reinstatement: Complete", '', ''));
+                            return responseBuilder
+                                .speak(c.SR_SUCCESS)
+                                .getResponse();
+                        })
+                        .catch((err) => {
+                            console.log("Error occured while updating", err);
+                            var speakOutput = 'Error updating status ' + err;
+                            return responseBuilder
+                                .speak(speakOutput)
+                                .withShouldEndSession(true)
+                                .getResponse();
+                        })
+                }
             }
         } else if (currentIntent.slots["CheckOne"].hasOwnProperty("value") && sessionAttributes.understood === false) {
+            console.log('Print this');
             //Special case: The user must agree with the first question to continue on in the process.
             //Any other 'no' responses will be handled at the end of the process.
             //If the user doesn't understand the policy, read it back re prompt for agreement.
             if (currentIntent.slots["CheckOne"].resolutions.resolutionsPerAuthority[0].values[0].value.name === "No") {
-                return handlerInput.responseBuilder
-                    .speak('Implement Detailed policy read back and re prompt for understanding. Stopping skill.')
+                //Construct response
+                speakOutput = 'Your violation is as follows: ' +
+                    sessionAttributes.infraction_ShorthandDescription + '. ' +
+                    sessionAttributes.infraction_DetailedDescription +
+                    '. This is a violation of Amazons policy.'
+
+
+                //Output response and delegate back to the dialog
+                return responseBuilder
+                    .speak(speakOutput)
+                    .addDelegateDirective({
+                        name: "Self",
+                        slots: {
+                            "CheckOne": {
+                                name: "CheckOne"
+                            },
+                            "CheckTwo": {
+                                name: "CheckTwo"
+                            },
+                            "CheckThree": {
+                                name: "CheckThree"
+                            },
+                            "CheckFour": {
+                                name: "CheckFour"
+                            }
+                        }
+                    })
                     .getResponse();
 
             } else {
+                //If the user responds yes to the first question, save the value and delegate
+                //back to the dialog.
                 sessionAttributes.understood = true;
-                return handlerInput.responseBuilder
+                return responseBuilder
                     .addDelegateDirective({
                         name: "Self",
                         slots: {
@@ -257,8 +740,8 @@ const SRHandler = {
                     .getResponse();
             }
         } else {
-            //If dialog is not complete, delegate to dialog model            
-            return handlerInput.responseBuilder
+            //If dialog is not complete, delegate to dialog model 
+            return responseBuilder
                 .addDelegateDirective()
                 .getResponse();
         }
@@ -269,10 +752,8 @@ const SRHandler = {
  * The yes intent will handle confirmation of completed plans of action.  If the 
  * POA is approved, data is saved to a DynamoDB table.
  * 
- * The yes intent will also handle a cancel request.
- * 
- * TODO: Try to refactor to remove the self-reinstatement process from the yes
- * intent and use the dialog model instead.
+ * The yes intent will also handle the responses for a  cancel request and setting up a reminder to fix
+ * the account
  */
 const YesIntentHandler = {
     canHandle(handlerInput) {
@@ -280,91 +761,337 @@ const YesIntentHandler = {
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.YesIntent';
     },
     async handle(handlerInput) {
-        var speechOutput = "";
-        var reprompt = "";
+        var speakOutput = "There was an error";
 
         //Get current set of attributes to route to the correct response
+        const responseBuilder = handlerInput.responseBuilder;
         const attributesManager = handlerInput.attributesManager;
         const persistentAttributes = await attributesManager.getPersistentAttributes() || {};
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var current = sessionAttributes.currentState;
 
-        //Yes response when confirming submitted POA
-        if (current === 'POAFinished') {
+        sessionAttributes.infractionIndex;
+        var length = sessionAttributes.infractionArray.length;
+        var remaining = length;
+
+        var id, d1, d2, d3;
+
+        //Yes response when confirming submitted POA/incomplete POA
+        if (current === 'POAFinished' || current === 'IncompleteSave') {
             //Retrieve and increment POA id from persistence store
-            if (Object.keys(persistentAttributes).length === 0) {
-                sessionAttributes.poaId = 1;
-                persistentAttributes.poaId = 2;
-                attributesManager.setPersistentAttributes(persistentAttributes);
-                await attributesManager.savePersistentAttributes();
-            } else {
-                sessionAttributes.poaId = persistentAttributes.poaId;
-                persistentAttributes.poaId += 1;
-                attributesManager.setPersistentAttributes(persistentAttributes);
-                await attributesManager.savePersistentAttributes();
+            if (sessionAttributes.poaId === 'noPOA') {
+                if (Object.keys(persistentAttributes).length === 0) {
+                    sessionAttributes.poaId = 1;
+                    persistentAttributes.poaId = 2;
+                    attributesManager.setPersistentAttributes(persistentAttributes);
+                    await attributesManager.savePersistentAttributes();
+                } else {
+                    sessionAttributes.poaId = persistentAttributes.poaId;
+                    persistentAttributes.poaId += 1;
+                    attributesManager.setPersistentAttributes(persistentAttributes);
+                    await attributesManager.savePersistentAttributes();
+                }
             }
 
-            //Save data values (d1,d2,d3) to POA storage in dynamo
-            let id = `${sessionAttributes.poaId}`;
-            let d1 = sessionAttributes.d1;
-            let d2 = sessionAttributes.d2;
-            let d3 = sessionAttributes.d3;
+            //Save data values (d1,d2,d3) to POA storage in dynamo        
+            id = `${sessionAttributes.poaId}`;
+            d1 = sessionAttributes.d1;
+            d2 = sessionAttributes.d2;
+            d3 = sessionAttributes.d3;
 
-            let dbSave = saveAppeal(id, d1, d2, d3);
+            if (d2 === 'cancel') {
+                d2 = 'noEntry';
+            }
 
-            if (dbSave) {
 
-                return dbHelper.updateStatus(4, id)
-                    .then((data) => {
-                        speechOutput = responses.completion();
+            if (d3 === 'cancel') {
+                d3 = 'noEntry';
+            }
 
-                        //Exit point at end of skill
-                        return handlerInput.responseBuilder
-                            .speak(speechOutput)
-                            .getResponse();
-                    })
+            //If finishing an incomplete POA, updatePOA
+            //else addPOA
+            if (sessionAttributes.resume === true) {
+                sessionAttributes.updatedStatus = 3;
+                await dbHelper.updatePOA(id, d1, d2, d3, 'noReply')
                     .catch((err) => {
                         console.log("Error occured while updating", err);
                         var speakOutput = 'Error updating status';
-                        return handlerInput.responseBuilder
+                        return responseBuilder
                             .speak(speakOutput)
+                            .withShouldEndSession(true)
                             .getResponse();
                     })
 
+
+                //email confirmation of poa submission.                        
+                var POA_CONFIRM_MESSAGE = responses.makeResponse(d1, d2, d3);
+                mail.handler(c.POA_SUBJECT, POA_CONFIRM_MESSAGE);
+
+
             } else {
-                speechOutput = responses.dbFail();
+                sessionAttributes.updatedStatus = 3;
+                await dbHelper.addPoa(id, d1, d2, d3)
+                    .catch((err) => {
+                        console.log("Error occured while adding", err);
+                        var speakOutput = 'Error adding plan of action';
+                        return responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+
+                //email confirmation of poa submission.                        
+                var POA_CONFIRM_MESSAGE = responses.makeResponse(d1, d2, d3);
+                mail.handler(c.POA_SUBJECT, POA_CONFIRM_MESSAGE);
             }
         }
 
-        //From cancel intent
-        else if (current === 'AMAZON.CancelIntent') {
-            speechOutput = responses.cancel();
+        /**
+         * If the current POA is complete, check for more infractions
+         */
+        if (current === 'POAFinished') {
+            sessionAttributes.infractionIndex++;
+            remaining = length - sessionAttributes.infractionIndex;
 
-            //Output message and don't reprompt to exit skill
-            return handlerInput.responseBuilder
-                .speak(speechOutput)
+            //If there are more infractions, continue on to the next one.
+            if (sessionAttributes.infractionIndex < length) {
+                speakOutput = 'Thank you for submitting your response.';
+
+                await dbHelper.getInfraction(sessionAttributes.infractionArray[sessionAttributes.infractionIndex])
+                    .then((data2) => {
+                        // Retrieve the infraction descriptions
+                        sessionAttributes.infraction_DetailedDescription = data2.Item.descriptionL;
+                        sessionAttributes.infraction_ShorthandDescription = data2.Item.descriptionS;
+                        sessionAttributes.poa = data2.Item.poa;
+
+                    })
+                    .catch((err) => {
+                        console.log("Error occured while getting data", err);
+                        var speakOutput = 'Error getting infraction ' + err;
+                        return responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+
+                if (sessionAttributes.poa == false) {
+                    speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
+                        + sessionAttributes.infraction_ShorthandDescription
+                        + '. If you would like to resolve this infraction you can begin by saying, reinstate.';
+
+                    tertiary = "Say 'Reinstate' to address your next infraction."
+                    sessionAttributes.currentState = 'LaunchSR';
+                    sessionAttributes.understood === false
+
+                    responseBuilder.addRenderTemplateDirective(
+                        util.makeCard(
+                            "Plan of Action", "Plan of Action: Complete", `Number of remaining infractions: ${remaining}`, tertiary));
+                } else {
+                    speakOutput += ` You have ${remaining} more infractions. Your next infraction is `
+                        + sessionAttributes.infraction_ShorthandDescription
+                        + ' and requires a complete plan of action. If you would like '
+                        + 'to resolve this infraction say, plan of action.';
+
+                    tertiary = "Say 'Reinstate' to address your next infraction."
+                    sessionAttributes.currentState = 'LaunchPOA';
+
+                    responseBuilder.addRenderTemplateDirective(
+                        util.makeCard(
+                            "Plan of Action", "Plan of Action: Complete", `Number of remaining infractions: ${remaining}`, tertiary));
+                }
+            }
+
+            /**
+             * If there are no more infractions, update the list of infractions and update status
+             */
+            else {
+                sessionAttributes.currentState = 'LaunchOK';
+
+                await dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 1)
+                    .catch((err) => {
+                        console.log("Error updating array", err);
+                        return responseBuilder
+                            .speak('Array update error')
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+
+                await dbHelper.updateStatus(3, id)
+                    .catch((err) => {
+                        console.log("Error occured while updating", err);
+                        var speakOutput = 'Error updating status ' + err;
+                        return responseBuilder
+                            .speak(speakOutput)
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+
+                speakOutput = responses.completion();
+                //Prompt if the user wants notifications of future issues
+                speakOutput += c.POA_REMIND;
+
+                responseBuilder.addRenderTemplateDirective(
+                    util.makeCard(
+                        "Plan of Action", "Plan of Action: Complete", 'Would you like notifications of future issues?', ''));
+            }
+
+            return responseBuilder
+                .speak(speakOutput)
+                .reprompt(c.REPROMPT)
                 .getResponse();
         }
 
-        //Speak output and await input
-        return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .reprompt(reprompt)
+        /**
+         * If the POA is incomplete, update status accordingly
+         */
+        else if (current === 'IncompleteSave') {
+
+            //If there are other infractions that were resolved, update the list
+            if (sessionAttributes.infractionIndex > 0) {
+                await dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 1)
+                    .catch((err) => {
+                        console.log("Error updating array", err);
+                        return responseBuilder
+                            .speak('Array update error')
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+            }
+
+            //update status and prompt for exit
+            return dbHelper.updateStatus(2, id)
+                .then(() => {
+
+                    //email confirmation of poa submission.                        
+                    var POA_CONFIRM_MESSAGE = responses.makeResponse(d1, d2, d3);
+                    mail.handler(c.POA_SUBJECT, POA_CONFIRM_MESSAGE);
+
+                    sessionAttributes.currentState = 'LaunchOK';
+                    speakOutput = responses.completion();
+                    //Prompt if the user wants notifications of future issues
+                    speakOutput += c.POA_REMIND;
+
+                    responseBuilder.addRenderTemplateDirective(
+                        util.makeCard(
+                            "Plan of Action", "Plan of Action: Saved", 'Would you like notifications of future issues?', ''));
+
+                    return responseBuilder
+                        .speak(speakOutput)
+                        .reprompt(c.REPROMPT)
+                        .getResponse();
+
+                })
+                .catch((err) => {
+                    console.log("Error occured while updating", err);
+                    var speakOutput = 'Error updating status ' + err;
+                    return responseBuilder
+                        .speak(speakOutput)
+                        .withShouldEndSession(true)
+                        .getResponse();
+                })
+        }
+
+        /**
+         * Sets up the reminder to notify the user if anthing goes wrong
+         * with the account in the future.
+         */
+        else if (current === "LaunchOK") {
+            return dbHelper.updateStatus(1, 'noPOA')
+                .then(() => {
+                    util.setReminder(handlerInput);
+
+                    responseBuilder.addRenderTemplateDirective(
+                        util.makeCard(
+                            "Notifications", "I will notify you if anything else goes wrong.", 'Good bye.', ''));
+
+                    return responseBuilder
+                        .speak(c.REMIND_OK)
+                        .withShouldEndSession(true)
+                        .getResponse();
+
+                })
+                .catch((err) => {
+                    console.log("Error occured while updating", err);
+                    return responseBuilder
+                        .speak('Error updating status')
+                        .withShouldEndSession(true)
+                        .getResponse();
+                })
+        }
+
+        /**
+         * From cancel, ask if the user wants a reminder to fix the account.
+         */
+        else if (current === 'AMAZON.CancelIntent') {
+            sessionAttributes.currentState = 'CancelRemind'
+
+            //Skill is about to exit.  Update list of infractions if any have been resolved
+            if (sessionAttributes.infractionIndex > 0) {
+                await dbHelper.updateInfractionArray(sessionAttributes.infractionArray, sessionAttributes.infractionIndex, 1)
+                    .catch((err) => {
+                        console.log("Error updating array", err);
+                        return responseBuilder
+                            .speak('Array update error')
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+
+                await dbHelper.updateStatus(sessionAttributes.updatedStatus, sessionAttributes.poaId)
+                    .catch((err) => {
+                        console.log("Error occured while updating", err);
+                        return responseBuilder
+                            .speak('Update error')
+                            .withShouldEndSession(true)
+                            .getResponse();
+                    })
+            }
+
+            responseBuilder.addRenderTemplateDirective(
+                util.makeCard(
+                    "Notifications", "Would you like to be reminded to fix your account?", '', ''));
+
+            return responseBuilder
+                .speak(c.REMIND_PRMOPT_FROM_CANCEL)
+                .reprompt(c.REPROMPT)
+                .getResponse();
+        }
+
+        /**
+        * Set reminder to fix the account later.
+        */
+        else if (current === 'CancelRemind') {
+            util.setReminder(handlerInput);
+
+            responseBuilder.addRenderTemplateDirective(
+                util.makeCard(
+                    "Notifications", "Ok.  I will remind you to fix your account", 'Good bye.', ''));
+
+            return responseBuilder
+                .speak(c.REMIND_OK_FROM_CANCEL)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+
+        return responseBuilder
+            .speak(speakOutput)
+            .reprompt(c.REPROMPT)
             .getResponse();
     }
 }
 
+/**
+ * Handles various 'no' responses from the user.
+ */
 const NoIntentHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'IntentRequest'
             && Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.NoIntent';
     },
     handle(handlerInput) {
-        var speechOutput = "There is an error";
-        var reprompt = "";
+        var speakOutput = '';
 
+        const responseBuilder = handlerInput.responseBuilder;
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
-        var prevIntent = sessionAttributes.previousIntent;
         var current = sessionAttributes.currentState;
 
         /**
@@ -375,10 +1102,10 @@ const NoIntentHandler = {
          */
         if (current === 'POAFinished') {
 
-            speechOutput = 'Ok, we can start again. '
+            speakOutput = 'Ok, we can start again. '
 
-            return handlerInput.responseBuilder
-                .speak(speechOutput)
+            return responseBuilder
+                .speak(speakOutput)
                 .addDelegateDirective({
                     name: 'PlanOfAction',
                     slots: {
@@ -402,16 +1129,121 @@ const NoIntentHandler = {
                 .getResponse();
         }
 
-        //User cancels, and then decides not to cancel at the confirmation of cancel
-        else if (prevIntent === 'AMAZON.CancelIntent') {
-            speechOutput = responses.startOver() + "Are you ready?";
-            sessionAttributes.previousIntent = ('Question' + 0);
+        /**
+         * Skill finishes successfully but the user does not want audio notification of account issues.
+         */
+        else if (current === 'LaunchOK') {
+
+            responseBuilder.addRenderTemplateDirective({
+                type: "BodyTemplate1",
+                backButton: "HIDDEN",
+                title: "Notifications",
+                textContent: {
+                    primaryText: {
+                        text: "Reminder: Declined",
+                        type: "PlainText"
+                    },
+                    secondaryText: {
+                        text: "You will not receive audio reminders.",
+                        type: "PlainText"
+                    },
+                    tertiaryText: {
+                        text: 'Notifications will be emailed to you.',
+                        type: "PlainText"
+                    }
+                }
+            });
+
+            return responseBuilder
+                .speak(c.REMIND_NO)
+                .withShouldEndSession(true)
+                .getResponse();
         }
 
-        //Output message and await response
-        return handlerInput.responseBuilder
-            .speak(speechOutput)
-            .reprompt(reprompt)
+        /**
+        * User has canceled the skill and does not want reminders to fix the account.
+        */
+        else if (current === 'CancelRemind') {
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Notifications", "Reminder: Declined", c.REMIND_NO_FROM_CANCEL, ''));
+            return responseBuilder
+                .speak(c.REMIND_NO_FROM_CANCEL)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+
+
+        /**
+         * User has cancelled the skill mid-POA and chooses not to save.
+         */
+        else if (current === 'IncompleteSave') {
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Seller Services", "Plan of Action: Cancelled", c.REMIND_NO_FROM_CANCEL, ''));
+            return responseBuilder
+                .speak('Okay, responses will not be saved.  Good bye.')
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+
+        /**
+         * User cancels, and then decides not to cancel at the confirmation of cancel.
+         * Re-Delegates to appropriate intent based on sesstionAttributes.poa.
+         */
+        else if (current === 'AMAZON.CancelIntent') {
+            speakOutput = responses.startOver();
+
+            //POA
+            if (sessionAttributes.poa === true) {
+                return responseBuilder
+                    .speak(speakOutput)
+                    .addDelegateDirective({
+                        name: 'PlanOfAction',
+                        slots: {
+                            "Q.Three": {
+                                "name": "Q.Three",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            },
+                            "Q.One": {
+                                "name": "Q.One",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            },
+                            "Q.Two": {
+                                "name": "Q.Two",
+                                "value": "",
+                                "confirmationStatus": "NONE"
+                            }
+                        }
+                    })
+                    .getResponse();
+            }
+
+            //SR
+            else if (sessionAttributes.poa === false) {
+                return responseBuilder
+                    .addDelegateDirective({
+                        name: "Self",
+                        slots: {
+                            "CheckOne": {
+                                name: "CheckOne"
+                            },
+                            "CheckTwo": {
+                                name: "CheckTwo"
+                            },
+                            "CheckThree": {
+                                name: "CheckThree"
+                            },
+                            "CheckFour": {
+                                name: "CheckFour"
+                            }
+                        }
+                    })
+                    .getResponse();
+            }
+        }
+
+        return responseBuilder
+            .speak(speakOutput)
+            .reprompt(c.REPROMPT)
             .getResponse();
     }
 }
@@ -428,71 +1260,51 @@ const HelpIntentHandler = {
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         var current = sessionAttributes.currentState;
         var speakOutput = '';
+        const responseBuilder = handlerInput.responseBuilder;
 
         if (current === 'LaunchPOA') {
-            speakOutput = 'You will have to describe the reason the policy was violated, how you fixed your policy violation, \
-                            and how you will prevent further violations. \
-                            Simply say, Plan of Action to fill out your reinstatement form.'
+            speakOutput = 'Your violation is as follows: ' +
+                sessionAttributes.infraction_ShorthandDescription + '. ' +
+                sessionAttributes.infraction_DetailedDescription + '. ' +
+                c.HELP_FROM_LAUNCH;
+
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Violation Details",
+                sessionAttributes.infraction_ShorthandDescription,
+                sessionAttributes.infraction_DetailedDescription,
+                c.HELP_FROM_LAUNCH));
         } else if (current === 'LaunchSR') {
-            speakOutput = 'You must agree that you understand the policy that was violated. You must also agree that you know why the violation happened and that \
-                            you have taken steps to prevent further violations. You must finally agree that you understand continued violations will result in a loss \
-                            of your marketplace account.  Simply say, reinstate, in order to start the process.'
+            speakOutput = c.HELP_SR;
         } else if (current === 'LaunchReply') {
-            speakOutput = 'You already have a plan of action under review.  If there is more information you need to add simply say, add more information.'
+            speakOutput = c.HELP_REPLY;
         } else if (current === 'POAFinished') {
-            speakOutput = 'If you are satisfied with your plan of action, say yes to submit it for review.  Otherwise, you can say cancel to stop.'
+            speakOutput = c.HELP_POA_END;
         } else if (current === 'POA') {
-            speakOutput = 'Please describe why the violation happened, how you fixed the violation, and why there will be no more violations in the future. \
-                            I will prompt you for each piece of information.'
-            return handlerInput.responseBuilder
-                .speak(speakOutput)
-                .addDelegateDirective({
-                    name: "PlanOfAction",
-                    slots: {
-                        "Q.One": {
-                            name: "Q.One",
-                            confirmationStatus: "NONE"
-                        },
-                        "Q.Two": {
-                            name: "Q.Two",
-                            confirmationStatus: "NONE"
-                        },
-                        "Q.Three": {
-                            name: "Q.Three",
-                            confirmationStatus: "NONE"
-                        }
-                    }
-                })
-                .getResponse();
+            speakOutput = c.HELP_POA;
         } else if (current === 'Self') {
-            speakOutput = 'You must agree that you understand the policy that was violated. You must also agree that you know why the violation happened and that \
-            you have taken steps to prevent further violations. You must finally agree that you understand continued violations will result in a loss \
-            of your marketplace account.'
-            return handlerInput.responseBuilder
+            speakOutput = c.HELP_SR;
+        } else if (current === 'Help') {
+            speakOutput = 'You can get in touch with Amazon Seller Central by calling, 1, 8 6 6, 2 1 6, 1 0 7 2. \
+                            Say, get account status, to start over.'
+
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Help",
+                'You can get in touch with Amazon Seller Central by calling:',
+                '1-866-216-1072', ''));
+
+            return responseBuilder
                 .speak(speakOutput)
-                .addDelegateDirective({
-                    name: "Self",
-                    slots: {
-                        "CheckOne": {
-                            name: "CheckOne"
-                        },
-                        "CheckTwo": {
-                            name: "CheckTwo"
-                        },
-                        "CheckThree": {
-                            name: "CheckThree"
-                        },
-                        "CheckFour": {
-                            name: "CheckFour"
-                        }
-                    }
-                })
+                .reprompt(c.REPROMPT + ' ' + speakOutput)
                 .getResponse();
         }
 
-        return handlerInput.responseBuilder
+        sessionAttributes.currentState = 'Help';
+
+        responseBuilder.addRenderTemplateDirective(util.makeCard("Help", speakOutput, '', ''));
+
+        speakOutput += ' If you need more assistance you can say help again.'
+
+        return responseBuilder
             .speak(speakOutput)
-            .reprompt(speakOutput)
+            .reprompt(c.REPROMPT + ' ' + speakOutput)
             .getResponse();
     }
 };
@@ -503,15 +1315,27 @@ const CancelIntentHandler = {
             && (Alexa.getIntentName(handlerInput.requestEnvelope) === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
-        const speakOutput = 'Your responses have not been saved and your account is still suspended.  Are you sure you want to stop?';
-
+        const responseBuilder = handlerInput.responseBuilder;
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.currentState = 'AMAZON.CancelIntent';
 
-        return handlerInput.responseBuilder
-            .speak(speakOutput)
-            .reprompt('Are you sure you want to stop now?')
-            .getResponse();
+
+        if (sessionAttributes.status === 3) {
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel", "Action Cancelled", c.CANCEL_STATUS_3, ''));
+            return responseBuilder
+                .speak(c.CANCEL_STATUS_3)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+        else {
+
+            responseBuilder.addRenderTemplateDirective(util.makeCard("Cancel", "Action Cancelled", c.CANCEL_CONFIRM, ''));
+
+            return handlerInput.responseBuilder
+                .speak(c.CANCEL_CONFIRM)
+                .reprompt('Are you sure you want to stop now?')
+                .getResponse();
+        }
     }
 };
 
@@ -539,7 +1363,7 @@ const SessionEndedRequestHandler = {
     canHandle(handlerInput) {
         return Alexa.getRequestType(handlerInput.requestEnvelope) === 'SessionEndedRequest';
     },
-    handle(handlerInput) {
+    async handle(handlerInput) {
         // Any cleanup logic goes here.
         const speakOutput = 'Session Ended';
         return handlerInput.responseBuilder
@@ -572,7 +1396,7 @@ const FallbackIntentHandler = {
             speakOutput += ' You can say, add more information, to add more information to your plan of action.';
         } else if (current === 'POAFinished') {
             speakOutput += ' If you are satisfied with your plan of action, say yes to submit it for review. Otherwise, you can say cancel to stop.';
-        }else if (current === 'Self') {
+        } else if (current === 'Self') {
             speakOutput += ' Say yes to the following questions to reinstate your account.'
             return handlerInput.responseBuilder
                 .speak(speakOutput)
@@ -598,7 +1422,7 @@ const FallbackIntentHandler = {
 
         return handlerInput.responseBuilder
             .speak(speakOutput)
-            .reprompt('Sorry, please try again')
+            .reprompt(c.REPROMPT)
             .getResponse();
     }
 }
@@ -649,7 +1473,9 @@ const skillBuilder = Alexa.SkillBuilders.standard();
 exports.handler = skillBuilder
     .addRequestHandlers(
         LaunchRequestHandler,
+        EntryHandler,
         ReplyHandler,
+        ResumeHandler,
         POAHandler,
         SRHandler,
         YesIntentHandler,
@@ -665,19 +1491,7 @@ exports.handler = skillBuilder
         ErrorHandler
     )
     .withTableName('poa-id-numbers')
-    .withAutoCreateTable(true)
+    //.withAutoCreateTable(true)
     .lambda();
-
-//Helper function to save new POA data to DynamoDB
-async function saveAppeal(id, data1, data2, data3) {
-    return dbHelper.addPoa(id, data1, data2, data3)
-        .then((data) => {
-            return true;
-        })
-        .catch((err) => {
-            console.log("Error occured while saving data", err);
-            return false;
-        })
-}
 
 
